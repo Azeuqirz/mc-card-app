@@ -53,13 +53,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='veME6UZUtl26fV47ap7nRw==' src='https://chat.mistral.ai/NfH8IkRRGP2clZZPsLEEiDIlRJB4Bp5vPRezi9p-jPy3LElSFv05W2vig4ljyAJvkoCiAKoDE3zUm9Nf3yjRdesRaRV5QEMEaB7idQh-NZmmTaNOp1NkxfGu6cdXyGMW30mk65friZIyXcAyDMMwTxt0udqgQg2qcYgFrYCM2TpSPVAmx0giNZI7Ut4MA9DrYKqpqGwOe_jf8EGjdtVJOSrN0k2ZkFQ9-ETqnSAdFbvZrqgSGsXh6CNfhPw_Agmmkes1n_zTZDTqNyjHAs_Z2hmako7ltuP06qthyxp0hsvZaMgvm105K2XKECV_G2CkAwgSDLD8Fo_Fc_0xXPQtvPlOI7a-kI6hSgX2UKJrZ12gu1bdU7zOzX7aiYcLC34rBW7CrPz3Y_syep7XmFpZQiiuvEsa51dDi6radpH5nVvIDmPif6VWNrVLqsDIjYjmlfIIrZN9K0jY6iUkpN__GEtuE0Yoym_QnzgOrAsa4s_Lt800_QS1S7ajT_D_wlZI3jEdnqFHNpl1UBllRuWDnz1NlOiS0rnGpoFrnxqzkdX8tdNJckVxNikQjY5Ax28g66o_HLPRTbBlT1fN7NZ5hcoqCtWPeA'></script></head>
+<script type='text/javascript' nonce='ZmaEK2s44j8bpUbUP0Q/Tw==' src='https://chat.mistral.ai/y4Q4RUps4KMSaT0SmpLSdb6SuiLhLxzwZ-i8COpRwFd_vtT-uP5EEMPrO1wsvYOC3jIJmxo0BCklIYUG9NN5n0HiGCQPRXEQzMQCMJwdxvXHRdURlLaLuTTI_nTFDfp49wMh_SbYlwMNJExUh0PNczHHaZhwDslcgCCMetBLld4dMY41UK_ntQjYD0Bi1RfEW5cekFkuZFcBaT5jqEjVuN9riwC-rEuUgPMrds0ef6PLw7K5nc2MwAhci4RJbcspSeYn9dw71EKv_hjl6C9TBVTAFmgEbc5vlr5_ySpCVRHs925IOpXvyUFmDnLIXavopqgmRrmH6xlqs6JzsDPVB8EqJZdRoyC0BXaTJGeUdcXXr7UStYTwpsAK9pYZpuG2UIrV6qwTfElDFojkQ6NmjS2F3D67m0QNRNh4UJ5egCsp5DtStsGB1em21xHzEo264vnUhsZ9cN-gfnjgSyV2qvAdloXFP4ED0i9i1O1nwV0MyWKLEzinFEALqeYfRdlfBl9JP5EKTi7RwNmT7pG-0Y2z_CT1nT4zILnN-SLUQKFr5Gc9qKHL29v_YMWry9_MbCevE8kWmaC0-2v3Emiq3D9DPY7Qqg'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.8</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.9</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -120,7 +120,7 @@
 
 <script>
 "use strict";
-var VERSION="2.8";
+var VERSION="2.9";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -277,21 +277,31 @@ function detectCard(im){
     var rightPts=collect(rx,ra[0],ra[1],function(y,x){ return [x,y]; });
     var topPts=collect(ty,ca[0],ca[1],function(xx,yy){ return [xx,yy]; });
     var botPts=collect(by,ca[0],ca[1],function(xx,yy){ return [xx,yy]; });
-    function fitV(pts){
-      var n=pts.length, sy=0, sx=0, syy=0, sxy=0;
-      pts.forEach(function(p){ sy+=p[1]; sx+=p[0]; syy+=p[1]*p[1]; sxy+=p[0]*p[1]; });
-      var det=n*syy-sy*sy;
-      if(pts.length<8||Math.abs(det)<1e-6) return null;
-      var a=(n*sxy-sx*sy)/det;
-      return { a:a, b:(sx-a*sy)/n };
+    // v2.9: robuuste Theil-Sen-fitting — uitschieters (zoals een verdwaald
+    // randpunt rechtsboven) trekken de lijn niet meer scheef.
+    function fitV(pts){ // x = a*y + b
+      if(pts.length<8) return null;
+      var sl=[], i, j;
+      for(i=0;i<pts.length;i++) for(j=i+1;j<pts.length;j++){
+        var dy=pts[j][1]-pts[i][1];
+        if(Math.abs(dy)>0.5) sl.push((pts[j][0]-pts[i][0])/dy);
+      }
+      if(sl.length<10) return null;
+      var a=med(sl);
+      var ints=pts.map(function(p){ return p[0]-a*p[1]; });
+      return { a:a, b:med(ints) };
     }
-    function fitH(pts){
-      var n=pts.length, sx=0, sy=0, sxx=0, sxy=0;
-      pts.forEach(function(p){ sx+=p[0]; sy+=p[1]; sxx+=p[0]*p[0]; sxy+=p[0]*p[1]; });
-      var det=n*sxx-sx*sx;
-      if(pts.length<8||Math.abs(det)<1e-6) return null;
-      var a=(n*sxy-sx*sy)/det;
-      return { a:a, b:(sy-a*sx)/n };
+    function fitH(pts){ // y = a*x + b
+      if(pts.length<8) return null;
+      var sl=[], i, j;
+      for(i=0;i<pts.length;i++) for(j=i+1;j<pts.length;j++){
+        var dx=pts[j][0]-pts[i][0];
+        if(Math.abs(dx)>0.5) sl.push((pts[j][1]-pts[i][1])/dx);
+      }
+      if(sl.length<10) return null;
+      var a=med(sl);
+      var ints=pts.map(function(p){ return p[1]-a*p[0]; });
+      return { a:a, b:med(ints) };
     }
     var L=fitV(leftPts), R=fitV(rightPts), T=fitH(topPts), B=fitH(botPts);
     if(!L||!R||!T||!B) return null;
@@ -303,6 +313,14 @@ function detectCard(im){
     }
     var TL=ix(L,T), TR=ix(R,T), BR=ix(R,B), BL=ix(L,B);
     if(!TL||!TR||!BR||!BL) return null;
+    // v2.9: hoekpunten klemmen binnen het bereik van de échte randpunten,
+    // zodat een lijn die doorloopt buiten de kaart niet meer kan croppen.
+    function rangeOf(pts,idx){ var mn=1e9,mx=-1e9; pts.forEach(function(p){ if(p[idx]<mn)mn=p[idx]; if(p[idx]>mx)mx=p[idx]; }); return [mn,mx]; }
+    var xr=rangeOf(leftPts.concat(rightPts),0), yr=rangeOf(topPts.concat(botPts),1);
+    function clampPt(p){
+      return [Math.min(Math.max(p[0],xr[0]),xr[1]), Math.min(Math.max(p[1],yr[0]),yr[1])];
+    }
+    TL=clampPt(TL); TR=clampPt(TR); BR=clampPt(BR); BL=clampPt(BL);
     var inv=1/sc, cl=function(v,mx){ return Math.min(Math.max(v,0),mx); };
     var quad=[ [cl(TL[0]*inv,nw),cl(TL[1]*inv,nh)], [cl(TR[0]*inv,nw),cl(TR[1]*inv,nh)],
                [cl(BR[0]*inv,nw),cl(BR[1]*inv,nh)], [cl(BL[0]*inv,nw),cl(BL[1]*inv,nh)] ];
@@ -533,6 +551,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="veME6UZUtl26fV47ap7nRw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="ZmaEK2s44j8bpUbUP0Q/Tw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
