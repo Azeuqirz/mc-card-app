@@ -41,17 +41,25 @@
   .bar { height:8px; background:#1e293b; border-radius:99px; overflow:hidden; margin:6px 0 10px; }
   .bar > div { height:100%; border-radius:99px; }
   .n { font-size:12px; color:#cbd5e1; margin:3px 0; }
+  .scanItem { display:flex; gap:10px; align-items:center; background:#0f172a; border-radius:12px;
+    padding:8px; margin-bottom:8px; }
+  .scanItem img { width:52px; height:73px; object-fit:cover; border-radius:6px; background:#1e293b; }
+  .scanItem .si { flex:1; min-width:0; }
+  .scanItem .sd { font-size:11px; color:#64748b; }
+  .scanItem .sg { font-size:18px; font-weight:800; }
+  .scanItem button { background:#1e293b; border:0; color:#f87171; border-radius:8px;
+    padding:8px 10px; font-size:13px; font-weight:700; }
   .card { background:#0f172a; border-radius:16px; padding:16px; margin-bottom:14px; }
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='0K6KfVa3xFx6PIIFbadGyQ==' src='https://chat.mistral.ai/fch-8-6XDQM0jVsnb-Xybqn9NjiNHv-jx-N3lu6yl291AYFfvBpM9JG9tcDgED9_QmVLZ6DdlHdDBXC3x-ihkJfI8KOpfeRORlM66tEo0L9bqu2LL6EBw64ouN2th8ZwXmYKBxBzGWqSQzICfRON0-TAaUgOYy4pYEWXwzwPNJaWuVQu_g3jUtFXFpxneht0oYA_JkVwlm3yeqaUNqWNzzmdok00OZwgL5_QX_4mJFf8tl_Vpzlvj6e6J-BXWdD6Ww6kSkmvLXLBINRrWuNglNp2qHFu-hNufTldO_HLb_YdfUDfeJJck5JYjHH8lgh9V_uI3Pnjk20Zs8CwcxKVddn3h_mBhwEy_XhI9TtkiI3lsvAKINpEykQaMNquRYStetqPZWM5L_nIzS0-hVAiAZtviSvLzIpzKTFVv8FHYTUw37GImCwxOauAdUH0oaHGQtEx_41fPCPAgOf6Tw3w0p-Pju2VikNAbiKECaM9zWvFmS0LJzsAUgT7YcX0RN8pZ_62TuRuDlC1GqDwRI1H2laI1FlR_tr3mbIrMnCUEkhDTSWIAzlnf_AybsWQBHfMJlR2WJOvSrtCdYJSGApT_aauY7Lozg'></script></head>
+<script type='text/javascript' nonce='vi/fPltAhSYfPPX6H6AExw==' src='https://chat.mistral.ai/OFAXHPT5ePxROQs5HjkBSG-GckzAxwQtbaUEZ5vdvWdwvzpMkfcDpos_3mSwXNfFq__U8zPmacpC4c1Q0GjsetYito2zZg9GT97jlsAYP1rHxArpCJi0Oa_d9wYunMLB70flmug2lVYurf7gqMhEbaHpdppQR27dQipCBoKJhSE_mWCAveALcI7T6f1P8edjwOOvusAY3GTKFWP27ewk5Ng6MTVOt4EPHtY9virUdI5UfhCLz9tKWwqpSR7-KO0wIjUuLXylDvx9ltOCWqhprPGYNRsbuecdGAeTByM_0tV028xNYSa4xj46akMP_FN63IvaV9d0nAvyF9-8Zulqc9i0f-lzrWVegbKoW2Bj1q82ogMww2kvg9kTUE7aNniVRsq_Cubll7YC3rkEWPnb4gfXadF4lL_OpnTP1nWWLO95pKo3a4kuriJ_LjaO_WKefRa9CdhxNS9VW3saZBuT8cUfGirFe41CwEqeSwKJks8eEt7zs0s0mhKP5pkF36KLcmOtWr8Kme1W8IDks0e6S8MYXiALhzQQdBTWd8nZq3jy8KQYqcEwB5rcuNH_1mH28UFdy5AKgo_vIYnQbnpDZWxMD5aHGw'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.1</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.2</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -74,6 +82,7 @@
   <label class="btn yellow" style="margin:0">📷 Foto van kaart maken
     <input type="file" accept="image/*" capture="environment" id="fileInput">
   </label>
+  <button class="btn dark" onclick="renderHistory()">📚 Mijn gescande kaarten &amp; rapport</button>
   <p class="tip">Tip: kaart volledig in beeld, plat liggen, iPhone er recht boven, egale ondergrond zonder schaduw of glans.</p>
 </div>
 
@@ -93,6 +102,14 @@
 <div class="view" id="resultView">
   <div id="resultScroll"></div>
   <button class="btn dark" onclick="showView('scan')">⬅ Terug naar foto</button>
+</div>
+
+<!-- ===== HISTORIE & RAPPORT ===== -->
+<div class="view" id="historyView">
+  <div id="histScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <button class="btn dark" onclick="exportCSV()">📄 Exporteren als CSV</button>
+  <button class="btn dark" style="margin-top:8px" onclick="clearScans()">🗑 Alles wissen</button>
+  <button class="btn dark" style="margin-top:8px" onclick="showView('home')">🏠 Naar beginscherm</button>
 </div>
 
 <script>
@@ -389,7 +406,12 @@ function analyzeCentering(){
     +'<circle cx="'+cx+'" cy="'+midTop+'" r="4" fill="#38bdf8"/>'
     +'<circle cx="'+cx+'" cy="'+midBot+'" r="4" fill="#38bdf8"/>'
     +'</svg>';
-  return { grade:grade, notes:notes, vis:vis };
+  var tc=document.createElement("canvas"); tc.width=68; tc.height=Math.round(68*h/w*1);
+  tc.width=68; tc.height=Math.round(68*(h/w));
+  tc.getContext("2d").drawImage(vc,0,0,tc.width,tc.height);
+  var thumb=tc.toDataURL("image/jpeg",0.5);
+  return { grade:grade, notes:notes, vis:vis, thumb:thumb, devLR:devLR, devTB:devTB,
+           tTop:tTop, tBot:tBot, tLeft:tLeft, tRight:tRight };
 }
 
 function gradeColor(g){ return g>=9.5?"#22c55e":g>=9?"#84cc16":g>=8?"#eab308":"#f97316"; }
@@ -404,9 +426,72 @@ function runAnalysis(){
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
     +res.vis+legenda
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")+'</div>';
+  saveScan(res);
   showView("resultView");
 }
+
+// ---------- Scan-database (lokaal opgeslagen op deze iPhone) ----------
+function getScans(){
+  try{ return JSON.parse(localStorage.getItem("mcScans")||"[]"); }catch(e){ return []; }
+}
+function saveScan(res){
+  try{
+    var scans=getScans();
+    scans.unshift({ d:new Date().toLocaleString("nl-NL"), g:res.grade,
+      lr:Math.round(res.devLR*100)/100, tb:Math.round(res.devTB*100)/100,
+      tT:Math.round(res.tTop*10)/10, tB:Math.round(res.tBot*10)/10,
+      tL:Math.round(res.tLeft*10)/10, tR:Math.round(res.tRight*10)/10,
+      t:res.thumb });
+    if(scans.length>200) scans=scans.slice(0,200);
+    localStorage.setItem("mcScans", JSON.stringify(scans));
+  }catch(e){}
+}
+function delScan(i){
+  var scans=getScans(); scans.splice(i,1);
+  try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e){}
+  renderHistory();
+}
+function clearScans(){
+  if(!confirm("Alle opgeslagen scans wissen?")) return;
+  try{ localStorage.removeItem("mcScans"); }catch(e){}
+  renderHistory();
+}
+function renderHistory(){
+  var scans=getScans(), el=document.getElementById("histScroll"), html="";
+  if(scans.length===0){
+    html='<div class="note" style="margin-top:16px">Nog geen gescande kaarten. Maak een foto en analyseer hem — daarna verschijnt hij hier automatisch in je collectie.</div>';
+  } else {
+    var sum=0, best=scans[0], worst=scans[0];
+    scans.forEach(function(s){ sum+=s.g; if(s.g>best.g) best=s; if(s.g<worst.g) worst=s; });
+    var avg=Math.round(sum/scans.length*10)/10;
+    function gColor(g){ return gradeColor(g); }
+    html+='<div class="card"><div class="score"><span>Rapport — '+scans.length+' kaart'+(scans.length===1?"":"en")+'</span></div>'
+      +'<div class="bar"><div style="width:'+(avg*10)+'%;background:'+gColor(avg)+'"></div></div>'
+      +'<p class="n">📊 Gemiddelde centering score: <b style="color:'+gColor(avg)+'">'+avg+'</b></p>'
+      +'<p class="n">🏆 Beste: '+best.g+' ('+best.d+')</p>'
+      +'<p class="n">⚠️ Slechtste: '+worst.g+' ('+worst.d+')</p></div>';
+    scans.forEach(function(s,i){
+      html+='<div class="scanItem">'
+        +'<img src="'+(s.t||"")+'" alt="scan">'
+        +'<div class="si"><div class="sd">'+s.d+'</div>'
+        +'<div class="sg" style="color:'+gColor(s.g)+'">'+s.g+'</div>'
+        +'<div class="sd">afw. LR '+s.lr+'% · TB '+s.tb+'%</div></div>'
+        +'<button onclick="delScan('+i+')">✕</button></div>';
+    });
+  }
+  el.innerHTML=html;
+  showView("historyView");
+}
+function exportCSV(){
+  var scans=getScans();
+  if(scans.length===0){ alert("Nog geen scans om te exporteren."); return; }
+  var csv="datum;tijd;score;afwijking_LR_%;afwijking_TB_%;rand_boven_px;rand_onder_px;rand_links_px;rand_rechts_px\n";
+  scans.forEach(function(s){
+    csv+=[s.d.replace(", ",";"), s.g, s.lr, s.tb, s.tT, s.tB, s.tL, s.tR].join(";")+"\n";
+  });
+  window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
+}
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="0K6KfVa3xFx6PIIFbadGyQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="vi/fPltAhSYfPPX6H6AExw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
