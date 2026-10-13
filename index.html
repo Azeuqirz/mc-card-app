@@ -53,13 +53,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='2jEGSS7gxuCfqJ5RjNKWOg==' src='https://chat.mistral.ai/ZDpxmLPXPH1tmRVOEkX4siA5bYRHrPdIAdnNUKiBZ1gO3SJdFTkQSLUiJycnfqTA7rkx3hXtpl1ssnzuf8U9NhNARSq4rWoPNOFnxzguoY3DEbyXMFxzkT5y7KLAJpow4h-zSjD4BaNrQu_OstlL6gh14QWpl6aaPscNdC2kVrmt8igy-3zekHIgyVZIh6ySu0FPCnLcOL2ni9yzWC7iqOxTpexpH_i5tu0Id5r7viQhNSi9b5Inj6vvNcWZioyNb5faotIM4xAqMOB-Rwocx_MoQL6li-GTgXWsu0KqNZ86TAnqzUyCfCyJXAoO0vJgtJTfNwKPWSu6_MAQDfKIEdLB2BpCkNrFgQTkpqZPiiRZ-16yOBGrOz4yxWrwscjO3V_zkrjj5pOKDf44f6vHGl6vnIlOgXhQe5C7gRhWszbCf8iHMcqdZ0MwpExqsz1nQB0LHEbBNShiJAe-oT2ibAZhbwbdKOcPixCwpKA49UZoJCYHe1y8elBMO3LL60QSeOTH1bdZYAoN_zxG_fFsLMPq4npzwP63DN_DLDKNGhJLXfz3_0ibIxOgHRJnJA0VmTbMbR0BNBiVsWMG7i8JluET-O6o1A'></script></head>
+<script type='text/javascript' nonce='veME6UZUtl26fV47ap7nRw==' src='https://chat.mistral.ai/NfH8IkRRGP2clZZPsLEEiDIlRJB4Bp5vPRezi9p-jPy3LElSFv05W2vig4ljyAJvkoCiAKoDE3zUm9Nf3yjRdesRaRV5QEMEaB7idQh-NZmmTaNOp1NkxfGu6cdXyGMW30mk65friZIyXcAyDMMwTxt0udqgQg2qcYgFrYCM2TpSPVAmx0giNZI7Ut4MA9DrYKqpqGwOe_jf8EGjdtVJOSrN0k2ZkFQ9-ETqnSAdFbvZrqgSGsXh6CNfhPw_Agmmkes1n_zTZDTqNyjHAs_Z2hmako7ltuP06qthyxp0hsvZaMgvm105K2XKECV_G2CkAwgSDLD8Fo_Fc_0xXPQtvPlOI7a-kI6hSgX2UKJrZ12gu1bdU7zOzX7aiYcLC34rBW7CrPz3Y_syep7XmFpZQiiuvEsa51dDi6radpH5nVvIDmPif6VWNrVLqsDIjYjmlfIIrZN9K0jY6iUkpN__GEtuE0Yoym_QnzgOrAsa4s_Lt800_QS1S7ajT_D_wlZI3jEdnqFHNpl1UBllRuWDnz1NlOiS0rnGpoFrnxqzkdX8tdNJckVxNikQjY5Ax28g66o_HLPRTbBlT1fN7NZ5hcoqCtWPeA'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.7</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.8</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -120,7 +120,7 @@
 
 <script>
 "use strict";
-var VERSION="2.7";
+var VERSION="2.8";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -183,16 +183,25 @@ function homography(quad,W,H){
 }
 function warpToQuad(quad,W,H){
   var hh=homography(quad,W,H); if(!hh) return null;
+  // v2.8 FIX: bemonsteren vanaf verkleinde canvas (max 1500px).
+  // iOS Safari tekent stilletjes NIETS op canvassen boven de pixellimiet,
+  // waardoor getImageData alleen nullen gaf -> "piek 0" op alle zijden.
+  var nw=img.naturalWidth, nh=img.naturalHeight;
+  var s=Math.min(1,1500/Math.max(nw,nh));
   var sc=document.createElement("canvas");
-  sc.width=img.naturalWidth; sc.height=img.naturalHeight;
+  sc.width=Math.max(1,Math.round(nw*s)); sc.height=Math.max(1,Math.round(nh*s));
   var sctx=sc.getContext("2d"); if(!sctx) return null;
-  sctx.drawImage(img,0,0);
+  sctx.drawImage(img,0,0,sc.width,sc.height);
   var sd; try{ sd=sctx.getImageData(0,0,sc.width,sc.height).data; }catch(e){ return null; }
+  // health check: alpha moet ergens 255 zijn, anders is er niets getekend
+  var drawn=false, chk=Math.max(1,Math.floor(sc.width*sc.height/1000));
+  for(var ci=3;ci<sc.width*sc.height*4;ci+=4*chk){ if(sd[ci]===255){ drawn=true; break; } }
+  if(!drawn) return { canvasFail:true };
   var sw=sc.width, sh=sc.height;
   var out=new Uint8ClampedArray(W*H*4), u,v;
   for(v=0;v<H;v++) for(u=0;u<W;u++){
     var d=u*hh[6]+v*hh[7]+1;
-    var sx=(u*hh[0]+v*hh[1]+hh[2])/d, sy=(u*hh[3]+v*hh[4]+hh[5])/d;
+    var sx=(u*hh[0]+v*hh[1]+hh[2])/d*s, sy=(u*hh[3]+v*hh[4]+hh[5])/d*s;
     var x0=Math.floor(sx), y0=Math.floor(sy);
     var fx=sx-x0, fy=sy-y0;
     var oi=(v*W+u)*4;
@@ -346,7 +355,11 @@ function analyzeCentering(){
   var q0=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
   var cx0=(q0[0][0]+q0[1][0]+q0[2][0]+q0[3][0])/4, cy0=(q0[0][1]+q0[1][1]+q0[2][1]+q0[3][1])/4;
   var quad=q0.map(function(p){ return [p[0]+(cx0-p[0])*0.02, p[1]+(cy0-p[1])*0.02]; });
-  var wp=warpToQuad(quad,W,H); if(!wp) return null;
+  var wp=warpToQuad(quad,W,H);
+  if(!wp){ return { fail:true, help:"warp mislukt (homografie onoplosbaar — kaart te scheef?)",
+    tTop:null,tBot:null,tLeft:null,tRight:null }; }
+  if(wp.canvasFail){ return { fail:true, help:"canvas niet gevuld — foto kon niet gelezen worden (canvasFail)",
+    tTop:null,tBot:null,tLeft:null,tRight:null }; }
   var data=wp.data, w=W, h=H;
   function px(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; }
   var w2=w, h2=h;
@@ -447,7 +460,7 @@ function runAnalysis(){
   if(!img||!rect) return;
   var res=analyzeCentering();
   var el=document.getElementById("resultScroll");
-  if(!res){ el.innerHTML='<div class="note">Analyse mislukt — diagnostiek: top='+(res&&res.tTop!==undefined?res.tTop:"-")+', onder='+(res&&res.tBot!==undefined?res.tBot:"-")+', links='+(res&&res.tLeft!==undefined?res.tLeft:"-")+', rechts='+(res&&res.tRight!==undefined?res.tRight:"-")+'. Stuur deze tekst even mee als je weer hulp vraagt.</div>'; showView("resultView"); return; }
+  if(!res||res.canvasFail){ el.innerHTML='<div class="note">Analyse mislukt — '+((res&&res.help)||"onbekende fout")+'. Probeer de foto opnieuw te selecteren uit de bibliotheek.</div>'; showView("resultView"); return; }
   if(res.fail){ el.innerHTML='<div class="note">Rand niet gevonden — '+res.help+'<br><br>📱 Kopieer deze regel en stuur hem in de chat: <br><small style="color:#94a3b8">v'+VERSION+' | '+diag(res.tTop)+' | '+diag(res.tBot)+' | '+diag(res.tLeft)+' | '+diag(res.tRight)+'</small></div>'; showView("resultView"); return; }
   var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: randmidden</p>';
   el.innerHTML='<div class="card"><div class="score"><span>Centering score</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
@@ -520,6 +533,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="2jEGSS7gxuCfqJ5RjNKWOg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="veME6UZUtl26fV47ap7nRw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
