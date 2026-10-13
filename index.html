@@ -11,10 +11,12 @@
 <style>
   :root { color-scheme: dark; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html, body { min-height:100%; }
+  html, body { height:100%; overflow:hidden; }
   body { margin:0 auto; font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;
-    background:#020617; color:#f1f5f9; max-width:480px; padding:24px 16px 48px;
-    display:flex; flex-direction:column; justify-content:center; min-height:100vh; }
+    background:#020617; color:#f1f5f9; max-width:480px; padding:12px 16px 16px;
+    display:flex; flex-direction:column; min-height:100vh; }
+  #stage, #result { overflow-y:auto; -webkit-overflow-scrolling:touch; flex:1; min-height:0; }
+  #cropWrap img { max-height:38vh; width:auto; max-width:100%; margin:0 auto; }
   header { text-align:center; padding-top:8px; margin-bottom:16px; }
   header svg { width:64px; height:64px; }
   h1 { text-align:center; font-size:22px; margin:4px 0 2px; }
@@ -29,8 +31,9 @@
   .note { margin-top:12px; padding:10px; border-radius:10px; font-size:13px;
     background:#0f172a; color:#fbbf24; border:1px solid rgba(251,191,36,.3); }
   #cropWrap { position:relative; border-radius:16px; overflow:hidden; background:#0f172a;
-    touch-action:none; margin-top:12px; user-select:none; -webkit-user-select:none; }
-  #cropWrap img { display:block; width:100%; pointer-events:none; }
+    touch-action:none; margin-top:12px; user-select:none; -webkit-user-select:none;
+    display:flex; justify-content:center; }
+  #cropWrap img { display:block; pointer-events:none; max-width:100%; max-height:40vh; width:auto; height:auto; }
   #cropWrap svg { position:absolute; inset:0; width:100%; height:100%; }
   .score { display:flex; justify-content:space-between; align-items:center; font-size:14px; color:#cbd5e1; }
   .score b { font-size:30px; }
@@ -40,10 +43,10 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='coo8u8Q9DoA0JFSp+2KfmA==' src='https://chat.mistral.ai/x_xgs7XbGhu-rklucBtWX74-YXboUSt_M0-OXEglra2Q7Wf3i-XBfGIpeAW6EiMsqYFRf9QLdWYEp84mx-JvsbCdJch_8kB1nDG_b9orMcrnCcKW_TyYpf3kNXCi-gI7W1cemwo7BdQMPnQ23qpZBkRCyfDSgnxNBEvsrPeC2MppiUp7O03UryOImInf1LGh7oeKBssvSMdipT5qMwXZ42R1nVX71nLZaBAJfPWXFhcs4nR1xmVwv0TNZJ2CciXdbXVvvJfLP7eXnRG0ysNCRuW4stFvM9Lf00JQd_9RnjEQyIuDk5NgB7K28iSW-ABOrHctTufu0IiOa6kNh5EspNou6L_c4llsXD_5ojRd9wXVVjxoUjwljwgv8RlP68F6hqwGy8KiblifLnaxyhZ2NL_a0RDcJuLfQzUgHdVMpDCb5bhkav6HH2z0Q_ImxWejsoAj75KDT3r_BCsSAzVxiRIqGIwr6_45lJYDjYpXMJoOKlTQeQg-vMCmEVEdPdt-FrgmXZnbMzFTADpJ3Rbw3kQN_Ed9HvvYWFo_KeEWrDVMGWV2R3kc66-I1hnHi-xXJRlaq3oSK8NC61p4TrMXmPuuTAWoNQ'></script></head>
+<script type='text/javascript' nonce='dMAaBQfL0tUnQcsNzYlXmg==' src='https://chat.mistral.ai/R2xJGQJMMMEpLEGih9OCnwMCdq1tK4KSm3RvgWj-M9MgBsQZaLjwaBakHTKktWtjhHe3ZDfR9DzguIU2Fc3kRBRk066qoNOZW8nYMwI0x0JiH9gFNmHhsgMPpsrzLkcSikrDA-bPgPihi2FKkrKgZByhitrGbzuZTAsPwQe3GlbLVtuhanRuhky27PxOXXeWQWjdZ7q_ppsa7C1QJv9tYH_Co34ap2a9u73jNLx1TadPYUcCp6lTmA_w1fS0Q_zJMNYWPS6jm96xGPk4Lmso-jd-dEH3xGAtMWe-fWSBcXAMcaFsKvsyTexgp_TQ4kB18WDUKx_on8gzxsI7T4wpR3UpJRi203bLrb52P-EppAMXSFROiGpOLTeyuNZRj7DuXuCW8gLI9UwbY6IG5wcW6ByFQriV8sK5jncFcNTehAX78UgdLOBnRvA9cqmpQgL0H1V3xm9XiabwKrlOI2NTumEm0h0MrQLWq_9qXA7fMNrQwg9vb9ySTHfhyHMZaKemDeeobJC1Xt7AZ5TfjZsgnjyVO-ApwK7D9GktW1e7snHu0eyMXj3iVYpQfh9qW4xarFf1tAj0zmqhyGxelF8YQwlpz0hyIQ'></script></head>
 <body>
 <header>
-  <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.5</div>
+  <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.6</div>
   <svg viewBox="0 0 120 120">
     <defs>
       <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -274,11 +277,11 @@ function autoDetect(){
   if(q){
     rect={ tl:{x:q.quad[0][0],y:q.quad[0][1]}, tr:{x:q.quad[1][0],y:q.quad[1][1]}, br:{x:q.quad[2][0],y:q.quad[2][1]}, bl:{x:q.quad[3][0],y:q.quad[3][1]} };
     rect.edge=q.edge; rect.nPts=q.nPts;
-    document.getElementById("note").innerHTML='<div class="note">✅ Kaartrand automatisch gedetecteerd ('+q.nPts+' randpunten). De groene lijn volgt het echte kaartrand — alleen verplaatsen als hij duidelijk naast de rand ligt.</div>';
+    document.getElementById("note").innerHTML='<div class="note">✅ Kaartrand automatisch gedetecteerd ('+q.nPts+' randpunten). De groene lijn volgt het echte kaartrand — tik op 🎯 Centering analyseren.</div>';
   } else {
-    rect={ tl:{x:0,y:0}, tr:{x:dims.w,y:0}, br:{x:dims.w,y:dims.h}, bl:{x:0,y:dims.h} };
-    rect.edge=null;
-    document.getElementById("note").innerHTML='<div class="note">⚠️ Kaartrand niet met zekerheid gevonden — uitgegaan van de fotoranden (kaart vult het beeld). Klopt dit niet? Sleep dan de 4 hoeken op de kaartrand.</div>';
+    rect=null;
+    document.getElementById("note").innerHTML='<div class="note">❌ Kaartrand niet gevonden. Maak de foto opnieuw: kaart volledig in beeld, op een egale ondergrond, iPhone er recht boven.</div>';
+    document.getElementById("stage").innerHTML="";
   }
   drawCrop();
 }
@@ -287,36 +290,14 @@ function redetect(){ autoDetect(); }
 function drawCrop(){
   var svg=document.getElementById("cropSvg"); if(!svg||!rect) return;
   svg.setAttribute("viewBox","0 0 "+dims.w+" "+dims.h);
-  var sw=Math.max(2,dims.w/300), hr=Math.max(10,dims.w/40);
-  var poly=rect.tl.x+","+rect.tl.y+" "+rect.tr.x+","+rect.tr.y+" "+rect.br.x+","+rect.br.y+" "+rect.bl.x+","+rect.bl.y;
+  var sw=Math.max(2,dims.w/300);
   var detail="";
   if(rect.edge){
     function pl(pts){ return pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" "); }
     var all=(rect.edge.l||[]).concat((rect.edge.b||[]).slice().reverse(),(rect.edge.r||[]).slice().reverse(),(rect.edge.t||[]).slice().reverse());
     if(all.length>8) detail='<polyline points="'+pl(all)+'" fill="none" stroke="#22c55e" stroke-width="'+(sw*1.2)+'" stroke-linejoin="round"/>';
   }
-  var hs="";
-  ["tl","tr","br","bl"].forEach(function(k){
-    hs+='<circle cx="'+rect[k].x+'" cy="'+rect[k].y+'" r="'+hr+'" fill="'+(rect.edge?"#0f172a":"#facc15")+'" stroke="'+(rect.edge?"#22c55e":"#facc15")+'" stroke-width="3" data-k="'+k+'"/>';
-  });
-  svg.innerHTML='<polygon points="'+poly+'" fill="none" stroke="'+(rect.edge?"#22c55e":"#facc15")+'" stroke-width="'+sw+'" opacity="'+(rect.edge?0.9:1)+'"/>'+detail+hs;
-  svg.querySelectorAll("circle").forEach(function(c){
-    c.addEventListener("pointerdown",function(e){
-      e.preventDefault(); dragKey=c.dataset.k; c.setPointerCapture(e.pointerId);
-    });
-  });
-  svg.onpointermove=function(e){
-    if(!dragKey) return;
-    var r=img.getBoundingClientRect();
-    var x=(e.clientX-r.left)*(img.naturalWidth/r.width);
-    var y=(e.clientY-r.top)*(img.naturalHeight/r.height);
-    rect[dragKey]={ x:Math.min(Math.max(x,0),img.naturalWidth), y:Math.min(Math.max(y,0),img.naturalHeight) };
-    rect.edge=null;
-    drawCrop();
-  };
-  ["pointerup","pointerleave","pointercancel"].forEach(function(ev){
-    svg.addEventListener(ev,function(){ dragKey=null; });
-  });
+  svg.innerHTML=detail;
 }
 
 // ---------- Centering: grijze rand meten (binnen- en buitenkant + middens) ----------
@@ -403,7 +384,7 @@ function runAnalysis(){
   if(!img||!rect) return;
   var res=analyzeCentering();
   var el=document.getElementById("result");
-  if(!res){ el.innerHTML='<div class="note">Kon de kaart niet analyseren. Zet de hoeken precies op de kaartrand.</div>'; return; }
+  if(!res){ el.innerHTML='<div class="note">Kon de kaart niet analyseren. Maak een scherpere foto: kaart volledig in beeld, egale ondergrond, recht erboven.</div>'; return; }
   var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand omlijnd &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: midden van de rand</p>';
   el.innerHTML='<div class="card"><div class="score"><span>Centering score</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
@@ -412,6 +393,6 @@ function runAnalysis(){
   el.scrollIntoView({behavior:"smooth"});
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="coo8u8Q9DoA0JFSp+2KfmA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="dMAaBQfL0tUnQcsNzYlXmg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
