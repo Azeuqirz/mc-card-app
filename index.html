@@ -53,13 +53,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='vi/fPltAhSYfPPX6H6AExw==' src='https://chat.mistral.ai/OFAXHPT5ePxROQs5HjkBSG-GckzAxwQtbaUEZ5vdvWdwvzpMkfcDpos_3mSwXNfFq__U8zPmacpC4c1Q0GjsetYito2zZg9GT97jlsAYP1rHxArpCJi0Oa_d9wYunMLB70flmug2lVYurf7gqMhEbaHpdppQR27dQipCBoKJhSE_mWCAveALcI7T6f1P8edjwOOvusAY3GTKFWP27ewk5Ng6MTVOt4EPHtY9virUdI5UfhCLz9tKWwqpSR7-KO0wIjUuLXylDvx9ltOCWqhprPGYNRsbuecdGAeTByM_0tV028xNYSa4xj46akMP_FN63IvaV9d0nAvyF9-8Zulqc9i0f-lzrWVegbKoW2Bj1q82ogMww2kvg9kTUE7aNniVRsq_Cubll7YC3rkEWPnb4gfXadF4lL_OpnTP1nWWLO95pKo3a4kuriJ_LjaO_WKefRa9CdhxNS9VW3saZBuT8cUfGirFe41CwEqeSwKJks8eEt7zs0s0mhKP5pkF36KLcmOtWr8Kme1W8IDks0e6S8MYXiALhzQQdBTWd8nZq3jy8KQYqcEwB5rcuNH_1mH28UFdy5AKgo_vIYnQbnpDZWxMD5aHGw'></script></head>
+<script type='text/javascript' nonce='TPFV54SXA6mWEE8+ZbDXeQ==' src='https://chat.mistral.ai/7zSSU29f0FzOkBljpk1pBs86owQ9b8qMSxldzrbIeB9XG6JViZP_X17taeJ_ExgGeO9EZTFDTYplR_fqSiVLU1vOk2L5HoMAJqIcqje2ZVQgtml9IRjhsm1J9NgJLAH4vO0G7uSTZnJcM0bUlCONVZ48qmIIinwYzqpGenaCvyy5-oK8_0i5RYoIauoIF0kIUis16_OZLf5Kp0Ukrz-1bMRHFns1WIxe9Nuv6DR9ZqxQ-ubbNso5kcp5y0RLhOdf3v54vWVCejLMxFhJ3q0UowbsMKRvENaW2-QkNwE7S9BNDjPiFiKtblh7BC6_uwFFRZ3uOdZbBakHeOW8hZOmZC_4i3LRl_Lv0OarIOHAQBZLufQE0s-G3gQ41P0EyO-prB6AlqQ3CeAn2KUp5lRaew2FJVen8zjw15F0HjLOFdGXpgk5zhT4QKPAebNII3u7oJvHc8_kUl0ZUYXWswjzzxjKg1w7XxpfKkFsD40i3IYl0Fhqfl8JYDLd9okSx088e_ayqHhm3rWRSz1DgwTlbNphHcBCWVS8VNqlI4Rh17L6LfEpeHFWM5e2htBMoVCPA0LPE3mARsXj-VCk1_O-X70HHQ2Q-g'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.2</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.3</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -338,29 +338,29 @@ function analyzeCentering(){
   var data=wp.data, w=W, h=H;
   function px(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; }
   var w2=w, h2=h;
-  // Gradiënt-methode: per meetlijn eerst de buitenrand van de kaart overslaan,
-  // daarna de EERSTE sterke overgang pakken (= binnenrand van de grijze strook)
+  // Randstrook-meting: de donkere kaderlijn (grens geel kader / artwork-venster)
+  // is de sterkste overgang binnen de randzone. Nieuwe v2.3-aanpak:
+  // sterkste gradient in randzone pakken + subpixel-verfijning (zwaartepunt).
   function measureSide(fromStart,horizontal){
     var len=horizontal?h:w, span=horizontal?w:h;
     var maxDepth=Math.floor(len*0.45), th=[];
     var margin=Math.floor(span*0.15);
-    var skip=Math.floor(maxDepth*0.18); // zone waarin de kaart-buitenrand ligt
+    var skip=Math.min(30,maxDepth-5); // geel kader + kaderlijn vallen altijd binnen deze zone
     for(var pos=margin;pos<span-margin;pos++){
       var prev=null, kk, dd, grads=[];
-      for(kk=0;kk<=maxDepth;kk++){
+      for(kk=0;kk<=skip+2;kk++){
         dd=fromStart?kk:len-1-kk;
         var p=horizontal?px(pos,dd):px(dd,pos);
         grads.push(prev?Math.abs(p[0]-prev[0])+Math.abs(p[1]-prev[1])+Math.abs(p[2]-prev[2]):0);
         prev=p;
       }
-      // buitenrand = sterkste gradiënt in de skip-zone
-      var edgeK=-1, edgeG=0;
-      for(kk=1;kk<skip;kk++) if(grads[kk]>edgeG){ edgeG=grads[kk]; edgeK=kk; }
-      // eerste sterke overgang ná de buitenrand (+2px marge)
-      var found=-1;
-      var startK=Math.max(edgeK+2, 3);
-      for(kk=startK;kk<maxDepth-1;kk++) if(grads[kk]>50){ found=kk; break; }
-      if(found>0) th.push(found);
+      var bestK=-1, bestG=0;
+      for(kk=3;kk<skip;kk++) if(grads[kk]>bestG){ bestG=grads[kk]; bestK=kk; }
+      if(bestG>35&&bestK>0){
+        var s=0, sw=0;
+        for(kk=Math.max(3,bestK-2);kk<=Math.min(skip-1,bestK+2);kk++){ s+=kk*grads[kk]; sw+=grads[kk]; }
+        th.push(sw>0 ? s/sw : bestK);
+      }
     }
     if(th.length===0) return null;
     th.sort(function(a,b){ return a-b; });
@@ -492,6 +492,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="vi/fPltAhSYfPPX6H6AExw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="TPFV54SXA6mWEE8+ZbDXeQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
