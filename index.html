@@ -53,13 +53,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='TPFV54SXA6mWEE8+ZbDXeQ==' src='https://chat.mistral.ai/7zSSU29f0FzOkBljpk1pBs86owQ9b8qMSxldzrbIeB9XG6JViZP_X17taeJ_ExgGeO9EZTFDTYplR_fqSiVLU1vOk2L5HoMAJqIcqje2ZVQgtml9IRjhsm1J9NgJLAH4vO0G7uSTZnJcM0bUlCONVZ48qmIIinwYzqpGenaCvyy5-oK8_0i5RYoIauoIF0kIUis16_OZLf5Kp0Ukrz-1bMRHFns1WIxe9Nuv6DR9ZqxQ-ubbNso5kcp5y0RLhOdf3v54vWVCejLMxFhJ3q0UowbsMKRvENaW2-QkNwE7S9BNDjPiFiKtblh7BC6_uwFFRZ3uOdZbBakHeOW8hZOmZC_4i3LRl_Lv0OarIOHAQBZLufQE0s-G3gQ41P0EyO-prB6AlqQ3CeAn2KUp5lRaew2FJVen8zjw15F0HjLOFdGXpgk5zhT4QKPAebNII3u7oJvHc8_kUl0ZUYXWswjzzxjKg1w7XxpfKkFsD40i3IYl0Fhqfl8JYDLd9okSx088e_ayqHhm3rWRSz1DgwTlbNphHcBCWVS8VNqlI4Rh17L6LfEpeHFWM5e2htBMoVCPA0LPE3mARsXj-VCk1_O-X70HHQ2Q-g'></script></head>
+<script type='text/javascript' nonce='xMhwrTlLi/xzl8GSkFkZAQ==' src='https://chat.mistral.ai/pMy_BVD127fgir9IlV35-VFPe84Nio9RGuwfhdL3AQh7ucFxpbmF5g-IFR5MuYSBF_MIZ33BWcNHttD3_cIlfGrncqSxPKGXtDRmcrEFWlP3d-VSupgu703iwtuBSRedvf27hR1HO-64g7a7ieYxQeJMLGHaxwcDrXUKSkVNXzO7gRoTmzMaZLBRdKuHzyYI7Fy_v-gV1ALT3AXMIPC6fL0JuhhLkex5x04LT7Q0PtLvWkQOetGD-h7XDMCrSVKmx5O_a5OPCqXyPyrpENCXqdkvsCxHpUnvstrJlo62cAzq_aPlsq4tGCVN4P-aKPxqw_-6O9fTBLOHbVybwn7s-szshDcbq0w3swkaLr2Ekjy8ZCUHtg0B8klckNuMI853ejrKYCWef1ZXLLjEbDuWsv7wjAZOrN3QzpdsjifCh7IRFFIDgeDcnK4PYPM90DPb5QFz1_FqCmYM0CdBKlqMDSudlP-cdA-Fn9PA0yBhrs_9j2JPqpokR1vBwNYaKwYLaKpatVS1yOoYduj_rxK28ms7TCVKdV5ktt0ZfaW4JXw0iYXOB1HP6QdwjRcd9l22j6NoCuFEkUbEEDlFF7UoCn9jb2NsrA'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.3</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.4</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -338,38 +338,52 @@ function analyzeCentering(){
   var data=wp.data, w=W, h=H;
   function px(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; }
   var w2=w, h2=h;
-  // Randstrook-meting: de donkere kaderlijn (grens geel kader / artwork-venster)
-  // is de sterkste overgang binnen de randzone. Nieuwe v2.3-aanpak:
-  // sterkste gradient in randzone pakken + subpixel-verfijning (zwaartepunt).
+  // v2.4: adaptieve meting — geen vaste drempel, maar per zijde zelf kalibreren
+  // + ruis-onderdrukking via gesmeerde gradient (buren-middeling)
   function measureSide(fromStart,horizontal){
     var len=horizontal?h:w, span=horizontal?w:h;
-    var maxDepth=Math.floor(len*0.45), th=[];
     var margin=Math.floor(span*0.15);
-    var skip=Math.min(30,maxDepth-5); // geel kader + kaderlijn vallen altijd binnen deze zone
+    var skip=Math.min(30,Math.floor(len*0.45)-5);
+    var lines=[];
     for(var pos=margin;pos<span-margin;pos++){
-      var prev=null, kk, dd, grads=[];
+      // lijn inlezen met 1px marge voor smoothing
+      var pts=[], kk, dd;
       for(kk=0;kk<=skip+2;kk++){
         dd=fromStart?kk:len-1-kk;
-        var p=horizontal?px(pos,dd):px(dd,pos);
-        grads.push(prev?Math.abs(p[0]-prev[0])+Math.abs(p[1]-prev[1])+Math.abs(p[2]-prev[2]):0);
-        prev=p;
+        pts.push(horizontal?px(pos,dd):px(dd,pos));
+      }
+      // gesmeerde gradients: verschil tussen 2px-afstand = minder ruisgevoelig
+      var grads=[0,0];
+      for(kk=2;kk<pts.length;kk++){
+        grads.push(Math.abs(pts[kk][0]-pts[kk-2][0])+Math.abs(pts[kk][1]-pts[kk-2][1])+Math.abs(pts[kk][2]-pts[kk-2][2]));
       }
       var bestK=-1, bestG=0;
       for(kk=3;kk<skip;kk++) if(grads[kk]>bestG){ bestG=grads[kk]; bestK=kk; }
-      if(bestG>35&&bestK>0){
-        var s=0, sw=0;
-        for(kk=Math.max(3,bestK-2);kk<=Math.min(skip-1,bestK+2);kk++){ s+=kk*grads[kk]; sw+=grads[kk]; }
-        th.push(sw>0 ? s/sw : bestK);
-      }
+      lines.push({ pos:pos, bestK:bestK, bestG:bestG });
     }
-    if(th.length===0) return null;
+    if(lines.length===0) return null;
+    // kalibratie: mediaan van de sterkste pieken bepaalt de drempel
+    var gs=lines.map(function(l){ return l.bestG; }).sort(function(a,b){ return a-b; });
+    var medG=gs[Math.floor(gs.length/2)];
+    var thr=Math.max(10, medG*0.5);
+    var th=[], maxSeen=0;
+    lines.forEach(function(l){
+      if(l.bestG>maxSeen) maxSeen=l.bestG;
+      if(l.bestG>=thr&&l.bestK>0) th.push(l.bestK);
+    });
+    if(th.length===0) return { fail:true, medG:Math.round(medG), maxG:Math.round(maxSeen), skip:skip };
     th.sort(function(a,b){ return a-b; });
     var mid=Math.floor(th.length/2);
-    return th.length%2===1 ? th[mid] : (th[mid-1]+th[mid])/2;
+    var val=th.length%2===1 ? th[mid] : (th[mid-1]+th[mid])/2;
+    return { v:val, medG:Math.round(medG), maxG:Math.round(maxSeen), skip:skip };
   }
-  var tTop=measureSide(true,true), tBot=measureSide(false,true);
-  var tLeft=measureSide(true,false), tRight=measureSide(false,false);
-  if(tTop===null||tBot===null||tLeft===null||tRight===null) return { fail:true, tTop:tTop, tBot:tBot, tLeft:tLeft, tRight:tRight };
+  var rTop=measureSide(true,true), rBot=measureSide(false,true);
+  var rLeft=measureSide(true,false), rRight=measureSide(false,false);
+  if(!rTop||!rBot||!rLeft||!rRight||rTop.fail||rBot.fail||rLeft.fail||rRight.fail){
+    return { fail:true, tTop:rTop, tBot:rBot, tLeft:rLeft, tRight:rRight,
+      help:"piek-mediaan per zijde: top "+diag(rTop)+", onder "+diag(rBot)+", links "+diag(rLeft)+", rechts "+diag(rRight) };
+  }
+  var tTop=rTop.v, tBot=rBot.v, tLeft=rLeft.v, tRight=rRight.v;
 
   var midTop=tTop/2, midBot=h-tBot/2, midLeft=tLeft/2, midRight=w-tRight/2;
   var cx=w/2, cy=h/2;
@@ -415,12 +429,13 @@ function analyzeCentering(){
 }
 
 function gradeColor(g){ return g>=9.5?"#22c55e":g>=9?"#84cc16":g>=8?"#eab308":"#f97316"; }
+function diag(r){ if(!r) return "onbekend"; return r.fail ? "❌piek~"+r.medG : r.v.toFixed(1)+"px"; }
 function runAnalysis(){
   if(!img||!rect) return;
   var res=analyzeCentering();
   var el=document.getElementById("resultScroll");
   if(!res){ el.innerHTML='<div class="note">Analyse mislukt — diagnostiek: top='+(res&&res.tTop!==undefined?res.tTop:"-")+', onder='+(res&&res.tBot!==undefined?res.tBot:"-")+', links='+(res&&res.tLeft!==undefined?res.tLeft:"-")+', rechts='+(res&&res.tRight!==undefined?res.tRight:"-")+'. Stuur deze tekst even mee als je weer hulp vraagt.</div>'; showView("resultView"); return; }
-  if(res.fail){ el.innerHTML='<div class="note">Rand niet gevonden op: top='+(res.tTop===null?"✗":Math.round(res.tTop*10)/10)+', onder='+(res.tBot===null?"✗":Math.round(res.tBot*10)/10)+', links='+(res.tLeft===null?"✗":Math.round(res.tLeft*10)/10)+', rechts='+(res.tRight===null?"✗":Math.round(res.tRight*10)/10)+'px. Stuur deze regel even mee als het niet lukt.</div>'; showView("resultView"); return; }
+  if(res.fail){ el.innerHTML='<div class="note">Rand niet gevonden — '+res.help+'<br><br>📱 Kopieer deze regel en stuur hem in de chat: <br><small style="color:#94a3b8">v2.4 | '+diag(res.tTop)+' | '+diag(res.tBot)+' | '+diag(res.tLeft)+' | '+diag(res.tRight)+'</small></div>'; showView("resultView"); return; }
   var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: randmidden</p>';
   el.innerHTML='<div class="card"><div class="score"><span>Centering score</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
@@ -492,6 +507,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="TPFV54SXA6mWEE8+ZbDXeQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="xMhwrTlLi/xzl8GSkFkZAQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
