@@ -58,13 +58,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='FiFGLpoFgidWuPe7eU58uA==' src='https://chat.mistral.ai/gMec2ubn-G7PIub0vrDn1fjaMmJ1m_thVFhH5_ybovtLolakfhzIQE2EFd_VWQuKPahrv8eLjRbq0z5tEXFJs618YE39FNrIhLu6MOYdSDbmTaliuMQM2-WlRmWTSfviooGT3GDSDrUtg1n7Tccx69VKOg0dhC1UraNAq_9lTzsTOvBmBGuVrGGY3akhP6xv26rTGRmQpYS1LpuCFWXHI6TFgqBIwHtU-m1Pi-bFQt1sut7xsg1kCiQ56r5aAGpIEnYFsXWGI00u3AcFLPhBd1qzLuvMbJTkD0qJD2XBSWs7wGSLW1v3cJEg1nmaVJmLC_HIq1Gn_wbhlFHNuB_mu7oiS-0kGk0Uud67cN5CZBW2OSRzLKq11Ncnrb5lxZZI3cu3Vf_fZMmMEKY6swicmn88cWOCDJSEUA-CtpQXu3Ei9CY0k3A419ij_5uG1hZ5bzgtyfzUOul2pPF-DH7K2ciaUO2rGBWDmLonf-dz7dJuRcZl-VTYVn7CBuylAJ_ViaDnL2fqICBeDCu7G400rPEx0Oo0WNqj38yIzYBadoL7Gj7tCPSNkALau8zuxiFvLcQFex-4bL7EvXpzQZ4ffT99mtRk_w'></script></head>
+<script type='text/javascript' nonce='+rmxYNcmQZSj4ecFAiZWbw==' src='https://chat.mistral.ai/ey-0NTT4noWQ02ZYUASWzHlsa2LUWfWlQAEQXiVikGw_xCjYbzevM212VCFQLD4yVTCzpAvI6b4BXCy7qi3eThQdeMjVwzLhb66lL3ySOK_yJWWgj5UZnZCdvT3S0xpcWMhEMyby0t41IQiwW9Cb6cBkhjkNJlfTNxQ12NMoAEsIFuNQWuQ05N7zGAKt_sfEtmC14sovEe0uR8l4PqGcqo3yVT17vfajKuM-RsVEHVcdRk1DKC1MHY77O29SF_Kee8rVHP-Y5fcF-haq3rRZFyx-wMcEwn0FkqS5wwun_zugl46fjitUs0cluJ62dEPPP1itWq8BJ9ymp5PUFSaJ2dZPe6fWotZnQhAaVwP_qvk8-KkwvaG5O4Z1Gj8yK4NbNek5iRi1xATBZEflxfN3RuDUxA5brXRuF7I5r566lHDXEPTcuQ5104a-iGSKnqQ885j8xeqf8nq5Lv-55ffCTYyH-_b_tZ84P0XgEReB3fd8k5LLGCwtFIqJPmE3qT3Fc0pUg8Dc-r_EuN7CH02PqrRVJXqlmJQr3aMW_Uspp7zJl-JmksRltp0bCR0_fELILrAlcTRI-rP75ZbLHqx5hfwIftI-vw'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.20</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.21</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -135,7 +135,7 @@
 
 <script>
 "use strict";
-var VERSION="2.20";
+var VERSION="2.21";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -609,31 +609,32 @@ function runAnalysis(){
   var el=document.getElementById("resultScroll");
   if(!res||res.canvasFail){ el.innerHTML='<div class="note">Analyse mislukt — '+((res&&res.help)||"onbekende fout")+'. Probeer de foto opnieuw te selecteren uit de bibliotheek.</div>'; showView("resultView"); return; }
   if(res.fail){ el.innerHTML='<div class="note">Rand niet gevonden — '+res.help+'<br><br>📱 Kopieer deze regel en stuur hem in de chat: <br><small style="color:#94a3b8">v'+VERSION+' | '+diag(res.tTop)+' | '+diag(res.tBot)+' | '+diag(res.tLeft)+' | '+diag(res.tRight)+'</small></div>'; showView("resultView"); return; }
-  var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: randmidden</p>';
-  // v2.20: controle-weergave — de ORIGINELE foto met de gele detectielijn erop,
-  // zodat je kunt zien of de rand goed gedetecteerd is.
-  var checkVis="";
+  var legenda='<p class="n" style="margin-top:8px">🟡 gedetecteerde kaartrand &nbsp;·&nbsp; randdiktes en afwijkingen zie je bij de metingen hieronder</p>';
+  // v2.21: ÉÉN weergave — originele foto bijgesneden tot 50px rondom de kaart,
+  // met de gele detectielijn erop. Zo zie je exact wat de detectie heeft gedaan.
+  var vis="";
   if(img&&rect){
     try{
-      var nw2=img.naturalWidth, nh2=img.naturalHeight;
-      var s2=Math.min(1,1200/Math.max(nw2,nh2));
+      var xs=[rect.tl.x,rect.tr.x,rect.br.x,rect.bl.x], ys=[rect.tl.y,rect.tr.y,rect.br.y,rect.bl.y];
+      var bx0=Math.max(0,Math.min.apply(null,xs)-50), by0=Math.max(0,Math.min.apply(null,ys)-50);
+      var bx1=Math.min(img.naturalWidth,Math.max.apply(null,xs)+50), by1=Math.min(img.naturalHeight,Math.max.apply(null,ys)+50);
+      var bw=bx1-bx0, bh=by1-by0;
+      var s2=Math.min(1,1200/Math.max(bw,bh));
       var oc=document.createElement("canvas");
-      oc.width=Math.max(1,Math.round(nw2*s2)); oc.height=Math.max(1,Math.round(nh2*s2));
-      oc.getContext("2d").drawImage(img,0,0,oc.width,oc.height);
+      oc.width=Math.max(1,Math.round(bw*s2)); oc.height=Math.max(1,Math.round(bh*s2));
+      oc.getContext("2d").drawImage(img,-bx0*s2,-by0*s2,img.naturalWidth*s2,img.naturalHeight*s2);
       var ohref=oc.toDataURL("image/jpeg",0.85);
-      var sw2=Math.max(2,nw2/280);
-      var poly2=rect.tl.x+","+rect.tl.y+" "+rect.tr.x+","+rect.tr.y+" "+rect.br.x+","+rect.br.y+" "+rect.bl.x+","+rect.bl.y;
-      checkVis='<p class="n" style="margin:10px 0 4px;color:#94a3b8">🔍 Controle: originele foto met de gedetecteerde kaartrand</p>'
-        +'<svg viewBox="0 0 '+nw2+' '+nh2+'" style="width:100%;display:block;border-radius:10px;background:#020617">'
-        +'<image href="'+ohref+'" x="0" y="0" width="'+nw2+'" height="'+nh2+'"/>'
+      var sw2=Math.max(2,img.naturalWidth/280);
+      var poly2=(rect.tl.x-bx0)+","+(rect.tl.y-by0)+" "+(rect.tr.x-bx0)+","+(rect.tr.y-by0)+" "+(rect.br.x-bx0)+","+(rect.br.y-by0)+" "+(rect.bl.x-bx0)+","+(rect.bl.y-by0);
+      vis='<svg viewBox="0 0 '+bw+' '+bh+'" style="width:100%;display:block;border-radius:10px;background:#020617">'
+        +'<image href="'+ohref+'" x="0" y="0" width="'+bw+'" height="'+bh+'"/>'
         +'<polygon points="'+poly2+'" fill="none" stroke="#facc15" stroke-width="'+sw2+'" stroke-linejoin="round"/>'
         +'</svg>';
-    }catch(e){ checkVis=""; }
-  }
+    }catch(e){ vis=res.vis; }
+  } else { vis=res.vis; }
   el.innerHTML='<div class="card"><div class="score"><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
-    +checkVis
-    +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+res.vis+'</div></div>'+legenda
+    +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>'+legenda
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")+'</div>';
   attachZoom();
   saveScan(res);
@@ -781,6 +782,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="FiFGLpoFgidWuPe7eU58uA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="+rmxYNcmQZSj4ecFAiZWbw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
