@@ -49,25 +49,21 @@
   .scanItem .sg { font-size:18px; font-weight:800; }
   .scanItem button { background:#1e293b; border:0; color:#f87171; border-radius:8px;
     padding:8px 10px; font-size:13px; font-weight:700; }
-  .zoomBar { display:flex; gap:8px; align-items:center; margin:8px 0 4px; }
-  .zoomBar button { background:#1e293b; border:0; color:#e2e8f0; border-radius:8px;
-    padding:6px 12px; font-size:14px; font-weight:700; }
-  .zoomBar span { font-size:12px; color:#64748b; }
   .zoomWrap { position:relative; overflow:auto; touch-action:none; user-select:none;
     -webkit-user-select:none; background:#020617; border-radius:10px; max-height:52vh; }
-  .zoomInner { transform-origin:0 0; width:100%; }
+  .zoomInner { transform-origin:50% 50%; width:100%; transition:transform .15s ease-out; }
   .zoomInner svg { display:block; }
   .card { background:#0f172a; border-radius:16px; padding:16px; margin-bottom:14px; }
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='LPV94SN3FSGJjDBWs9/ePg==' src='https://chat.mistral.ai/HZwVnyufQeXYJ2bun0T7zNDOb08hcbz212Ywa929yLjKstjOLlh-Ba1vz7i5M8Tk9AZDrqujXSRVTzxUyd9biE5n6InOtnYVMon3pRIBqi_8XPsS8CT4CX1U73Mdpf3yFYYgH7l1rWPiFMH-kQKIQIieRJuUoCWlqIJpXRDZdh9lCW9mQQN-48ueqJYux3a8sezamiq4o_Vacvt9eQRe8pbTgDGmPnsaX8YxS1ABB35T4SOG_qHK4z__5h7QNUTdYEqpv56HDU9E6s0epoVrwsaSgH3nOzjVvi1S_kfHLvvwK_0Z-ORpITxOoyVUa9k2ENyVGMciT61zI0D7x3IuiqBpbswvmROAwGtmqoOT4OAHgY28gAFyJv4NDZ4alN0vt76MdRyZbtjFoZ4mIRbgvQBtQpb2mC-80KTtxnvpAqW48veU_Xo43C3NLDiKoOOrBlWQqhdznF6RY31_DiDH_FZT8hN3RvSC7UQoyeMdV1lyoaqZEfn9N90KiYOY1SjlMtquC6QU_th9W_uMTWZd1WoLvz4J8aeQ0MMldoehxB-g2lhivSdQqnGuxam3NviLMVihyMsf-n0v9jcASEVKYqDqAUeAKQ'></script></head>
+<script type='text/javascript' nonce='gpC+7tOYMAQvN/9E5SoxIA==' src='https://chat.mistral.ai/lg2dKBBGFKrVQugecgpD4ARuFVFvtCM1Ji-MFv2Etl9ZfEv9sB96UGo7BxSxl-x0_boGZkfqO-mYBWXHPNnafYDCQ4X9zj-UGbC22v53R00R0UlN0hf9k3R_O0Z4HOcSm0ZaYq6m7UiK2Q940o8Y-O_o32qcq-K7IT865Tzi--FWJaOzj6PW9hWZAUgtV1aKhtTr8VnQLyDCHQTUPBLsGrdcGeGtzTh-4TFmCdeFBUw3p5BdxWZfS9ebmN63zRnsTUYLroFqPvM0s8obHl7fAG6T7iGYlVRPppu9tTjC8ZhGaKiFTor7SJ6QOp4oU8qZqsociw6BPPDhO42rwUiQnnlaweduMwVXy1H0RGH4qpD69CR3lErcYwEXwvwGXGKqc_VPC3ITLfW_Du2UZ9aREw4l-mmPGu7432fYQLaET3uWFRq3wcmyrn4SCyeK_WPAfx5QZyp7fyw4ht__r2h8BjAJvRAw7LVa3mwPvGOtrQOhI6280wa4ZhDIyyRqpQuN4IAO4lNVmSugqSmQeeokd_LN_S8V8oV5aAxGj3W9sjZ9AUmMz-lZeVeN_fNa62L_gR8iOcuUNvVTpbQ2Quct6fe2j73lIQ'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.11</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.12</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -132,7 +128,7 @@
 
 <script>
 "use strict";
-var VERSION="2.11";
+var VERSION="2.12";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -437,8 +433,10 @@ function analyzeCentering(){
     var len=horizontal?h:w, span=horizontal?w:h;
   var lines=[];
   var margin=Math.floor(span*0.15);
-  var maxDepth=Math.floor(len*0.45);
-  var skip=maxDepth; // v2.6: hele diepte afzoeken — rand kan verder weg liggen (bijv. bij ruime detectie)
+  // v2.12: binnenrand zit ALTIJD vlak achter de gele randstrook (~15% van de kaart).
+  // Met de oude 45%-diepte pakte de meting bij zwakke kaderlijn (glans) een
+  // artwork-overgang diep in de kaart -> "heel ver naar binnen". Nu: venster 15%.
+  var skip=Math.max(20,Math.floor(len*0.15));
   for(var pos=margin;pos<span-margin;pos++){
       // lijn inlezen met 1px marge voor smoothing
       var pts=[], kk, dd;
@@ -533,7 +531,6 @@ function runAnalysis(){
   var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: randmidden</p>';
   el.innerHTML='<div class="card"><div class="score"><span>Centering score</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
-    +'<div class="zoomBar"><button onclick="zoomStep(1.3)">🔍＋</button><button onclick="zoomStep(1/1.3)">➖</button><button onclick="setZoom(1)">⟲</button><span id="zoomLabel">100%</span><span style="margin-left:auto">knijpen = zoomen</span></div>'
     +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+res.vis+'</div></div>'+legenda
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")+'</div>';
   attachZoom();
@@ -547,10 +544,7 @@ function setZoom(s){
   zs=Math.min(4,Math.max(0.5,s));
   var inner=document.getElementById("zoomInner");
   if(inner) inner.style.transform="scale("+zs+")";
-  var lb=document.getElementById("zoomLabel");
-  if(lb) lb.textContent=Math.round(zs*100)+"%";
 }
-function zoomStep(f){ setZoom(zs*f); }
 function attachZoom(){
   var wrap=document.getElementById("zoomWrap"); if(!wrap) return;
   var pts={}, lastDist=0, lastPan=null, lastTap=0;
@@ -656,6 +650,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="LPV94SN3FSGJjDBWs9/ePg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="gpC+7tOYMAQvN/9E5SoxIA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
