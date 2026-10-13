@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="nl">
-<head>
+<head><script type='text/javascript' nonce='6LFvxoEiWHd7Y37mUp9K8A==' src='https://chat.mistral.ai/2YtQt0NKtV-3ryD9JnYMJcm1EqhsWKYgyGTI9gT4zuiKeZb55bs4wPVkfMSNjl9mCywuh_6qyLjsjn4qwUD_VsndvAYzOQzScFQm_FAS-ZiWrwHa82_tODz16aHpP6zX99MpWKSrm_TXUiBRCh2qcFUTlmxtH3a6OA2GWUueJqPYrK41hKPmYqMNjfx4wISXo9V3aZBbbuFKTIHF70ITbK3x20S5AsD0XIpL6ES1YeHoOB1HzBOkl6-o4WG2F2w6FuhZKtSH3T2ffaq0V3hP3WmbXKW86vbe3bJBw7rlDQjDHNRpZ3gGNibzbPkiKHXMKjUULAmJlUyI9wtNKE5epUWNlTq_sxpBQHYJ3JM4_83JNDAUitaOlr_QbbH2CkA5pNSdsw0mTfNa26O8J7RtUMFx-LOEbXVCwrw2fl4hWZyKWwQNI66PA2CBb8jVf9zLtllCQkEGj_wTWmh_eDh3_wTsxzPNSrqz1qg7uOVv66naPCRvFQ9Jd_d2F5utdldmAYaZrSUUbqMjIlRTsBuKheUWPiLSpq_SdrHr7UplbFveNQ7n5SSlFxpufORgjzbqi9ph2Yv7_y8nrpLuYXLRWgtxzycAdw'></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -45,13 +45,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='ezHb8LDfUM9doVu4uo8QvQ==' src='https://chat.mistral.ai/6Vy120qHObk5zYRNn2fIBPNtHaKEit320BNkpO_BRJteNMgbVyY5wBCBvInrPkFwY-V0QqYPHl0BAIUjEQu4Jdo8M8B8xg4ad2ZA-CJVX8QcjwR1gg5ctVlItDTpqb_zpFB_f7EUl_1LqE_TcJloZrA-Or-pVJ7czIqi_Y2M_vCIS1z61QBXt1dgvgUukVmCRtChk6O6l5vX4zdHtpMapYfiarKkMZG2oPL-Yr1kEhAhtcMxG71DrsF-4G0U6olAeomNK8nt9LomWLyF901yR4T0aS7aMd917xoubtH5iF6Iu2ABxOTjwqWXglCxTZxFfLeoC_KYyb5qrVpoMF6h8eiWW4JFYhp6Q_a-aKtE_XtlO1KA55ZExykHssX0bS6H4RGDT9CKJFPg5I6Go4wmGirwGIXI2v1Vp4XiBBO-XI5V7RtELrfVznfCi4FUN2NbUNRGgPyhmMmPJogadAp8aKmaui_fGEIzv8XuDNx22_1lLG86EhlJUBLya4bvElI5foFLiu-AgrF02sE6btjm4SU2S2ocFs5L3xjeBkh9zCKQJBaYMR2WU3DyhnYkL_HsjPjEM-ztzM4niSpc5AVwVYPV-e4zcw'></script></head>
+</head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.7</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.8</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -303,32 +303,32 @@ function drawCrop(){
   var svg=document.getElementById("cropSvg"); if(!svg) return;
   svg.setAttribute("viewBox","0 0 "+dims.w+" "+dims.h);
   var sw=Math.max(2,dims.w/300);
-  var detail="";
-  if(rect && rect.edge){
-    function pl(pts){ return pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" "); }
-    var all=(rect.edge.l||[]).concat((rect.edge.b||[]).slice().reverse(),(rect.edge.r||[]).slice().reverse(),(rect.edge.t||[]).slice().reverse());
-    if(all.length>8) detail='<polyline points="'+pl(all)+'" fill="none" stroke="#22c55e" stroke-width="'+(sw*1.2)+'" stroke-linejoin="round"/>';
-  }
-  svg.innerHTML=detail;
+  if(!rect||!rect.edge){ svg.innerHTML=""; return; }
+  // nette omlijning: de gefitte 4-hoekige kaartrand (geen kruis door de kaart)
+  var poly=rect.tl.x+","+rect.tl.y+" "+rect.tr.x+","+rect.tr.y+" "+rect.br.x+","+rect.br.y+" "+rect.bl.x+","+rect.bl.y;
+  svg.innerHTML='<polygon points="'+poly+'" fill="none" stroke="#22c55e" stroke-width="'+sw+'" stroke-linejoin="round"/>';
 }
 
 // ---------- Centering: grijze rand meten ----------
 function analyzeCentering(){
   if(!rect) return null;
   var W=340, H=Math.round(340*88/63);
-  var quad=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
+  // minieme inset: meetkader 1% naar binnen zodat achtergrond-slierten buiten de kaart niet mee gemeten worden
+  var q0=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
+  var cx0=(q0[0][0]+q0[1][0]+q0[2][0]+q0[3][0])/4, cy0=(q0[0][1]+q0[1][1]+q0[2][1]+q0[3][1])/4;
+  var quad=q0.map(function(p){ return [p[0]+(cx0-p[0])*0.02, p[1]+(cy0-p[1])*0.02]; });
   var wp=warpToQuad(quad,W,H); if(!wp) return null;
   var data=wp.data, w=W, h=H;
   function px(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; }
   var ring=[], ringW=4, x, y, k;
-  for(x=1;x<w-1;x++) for(k=0;k<ringW;k++){ ring.push(px(x,k)); ring.push(px(x,h-1-k)); }
-  for(y=1;y<h-1;y++) for(k=0;k<ringW;k++){ ring.push(px(k,y)); ring.push(px(w-1-k,y)); }
+  for(x=2;x<w-2;x++) for(k=1;k<=ringW;k++){ ring.push(px(x,k)); ring.push(px(x,h-1-k)); }
+  for(y=2;y<h-2;y++) for(k=1;k<=ringW;k++){ ring.push(px(k,y)); ring.push(px(w-1-k,y)); }
   var bc=[0,0,0]; ring.forEach(function(s){ bc[0]+=s[0];bc[1]+=s[1];bc[2]+=s[2]; });
   bc=bc.map(function(v){ return v/ring.length; });
   function colDist(p){ return Math.abs(p[0]-bc[0])+Math.abs(p[1]-bc[1])+Math.abs(p[2]-bc[2]); }
-  var THR=95;
+  var THR=95, THR2=60;
 
-  function measureSide(fromStart,horizontal){
+  function measureSide(fromStart,horizontal,thr){
     var len=horizontal?h:w, span=horizontal?w:h;
     var maxDepth=Math.floor(len*0.45), th=[];
     var margin=Math.floor(span*0.15);
@@ -337,20 +337,24 @@ function analyzeCentering(){
       for(var kk=0;kk<maxDepth;kk++){
         var dd=fromStart?kk:len-1-kk;
         var p=horizontal?px(pos,dd):px(dd,pos);
-        if(colDist(p)>=THR){
-          var frac=Math.min(1,colDist(p)/(THR*2));
+        if(colDist(p)>=thr){
+          var frac=Math.min(1,colDist(p)/(thr*2));
           depth=kk-frac*0.5; found=true; break;
         }
       }
-      if(found&&depth>1&&depth<maxDepth) th.push(depth);
+      if(found&&depth>0.5&&depth<maxDepth) th.push(depth);
     }
     if(th.length===0) return null;
     th.sort(function(a,b){ return a-b; });
     var mid=Math.floor(th.length/2);
     return th.length%2===1 ? th[mid] : (th[mid-1]+th[mid])/2;
   }
-  var tTop=measureSide(true,true), tBot=measureSide(false,true);
-  var tLeft=measureSide(true,false), tRight=measureSide(false,false);
+  function side(fs,hor){
+    var r=measureSide(fs,hor,THR);
+    return r!==null ? r : measureSide(fs,hor,THR2);
+  }
+  var tTop=side(true,true), tBot=side(false,true);
+  var tLeft=side(true,false), tRight=side(false,false);
   if(tTop===null||tBot===null||tLeft===null||tRight===null) return null;
 
   var midTop=tTop/2, midBot=h-tBot/2, midLeft=tLeft/2, midRight=w-tRight/2;
@@ -405,6 +409,6 @@ function runAnalysis(){
   showView("resultView");
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="ezHb8LDfUM9doVu4uo8QvQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="6LFvxoEiWHd7Y37mUp9K8A==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
