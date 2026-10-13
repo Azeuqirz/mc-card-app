@@ -52,19 +52,19 @@
     padding:8px 10px; font-size:13px; font-weight:700; }
   .zoomWrap { position:relative; overflow:auto; touch-action:none; user-select:none;
     -webkit-user-select:none; background:#020617; border-radius:10px; }
-  .zoomInner { transform-origin:50% 50%; width:100%; transition:transform .15s ease-out; }
+  .zoomInner { transform-origin:0 0; width:100%; }
   .zoomInner svg { display:block; }
   .card { background:#0f172a; border-radius:16px; padding:16px; margin-bottom:14px; }
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='UGKNNl4VjhncmaZd/AKFyw==' src='https://chat.mistral.ai/lJqRz11eY7TorVz1HCHJOv0ONf_jB-Aw2jadFJ96ZhKy4BYuQy7VjC6Nb7vNKHEMy4eTll8ABrJT3vBR5sAQ-2w4Y3D56k7ju4unJo-R5flWzpwVstPp5Cfl4V8iWfCRdy8Pzd0aepWYm6CGzbfeLlSX4Y6Kc2tFCcekJSTcoDI2vzOETSTY7I60NIuMON0WjUBg4UgDzBKCQmVLOuCMpxftQDQN-ff4eSKWWzM4y7DR5dT95VWvwk0sU8G1ibpChT2tJ0-eY2RytQeuqb2KSN4GKXby7RXZktaRJKSzcExI4V4R3UZ4RmePEf9XzL3V3CePZXd0YYdSOJkzsRHgZoBE-l195TnCQN6tZeWNs_5AIn09CkQi4cpn3s3Rk4Cbp0qBeiW-SrEIr2n7KRqrpXTCMdfsbn3iwTh8au13sQ-i79xyDhEMJI3__R-2tcgnS3LfWmRSpL1HYd7SBlMaJW8Rwd262xtsmMnWYCBakmWMBBNMDuUda0GK8sbHKORPDkETOSaG885zcH0jLr-FYExDu3npQNphKqPG2bAsaR3rxx-e7oo7Gn2fAZiJbdHVZaaaL1RmyasCAy0prY15WaYiKfQ9xw'></script></head>
+<script type='text/javascript' nonce='dN7gqEZFJgIpeRLyNdm92g==' src='https://chat.mistral.ai/ZayIWs50gIUKiAEpGi45ao8kk27ZyEkzvpAxzUTCGsgWDBhdnF8-C_6JeP8PpaeWQAJkp0H2cvn2yYw4kZFe3IXo1pfE7PE1_KTbsKC7HhwAH6eVtVuHJ8ntxBaAPHJAc0a2Clst5ApSWp2Vz4unIuc8hlygQUAbEBzSjdqUVkx7vgmNTMVmSB5Y5TCHeGYSbUWPeJgeBKOHAkChWEcyH-xliWfdqLAzpTQYoOvnZH1_SXRW_LBscRQBrYRSKFfHiQ6U8wLh8xPsu9DP4go4pSXOBtyDk3LZYM8TbZklZdN7Y3RTIPAvVlfmI-tiIPTDl8OpH71CL8SR9ra4avEOtsTEa4Ft_hOgkeHXZl0GmxduP26ZyBu3Q7J8TGSHAU3nxMyBxDR2g41uD6Ltsi7Yx__7trke2dHGP97Bm4smPUXq2_b6JkNLTkCkhupzQQ4wOL3wgJSdwfDt4tnfe3v2a37SITPGWZI02Hgr7sIvNCxG9l_ipZWcKdrauHg0kd0mMiBHFvyRFWaOE4IYFb80cHgtwMk_gcrfOoOral0RZYqy12ViuWNiWd493hRfmCX5zSsCYwDTt5gYoh34Dk27W85pXT0dJQ'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.23</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.24</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -135,7 +135,7 @@
 
 <script>
 "use strict";
-var VERSION="2.23";
+var VERSION="2.24";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -668,7 +668,13 @@ var zs=1;
 function setZoom(s){
   zs=Math.min(4,Math.max(0.5,s));
   var inner=document.getElementById("zoomInner");
-  if(inner) inner.style.transform="scale("+zs+")";
+  if(inner){
+    // v2.24: zoomen vanaf linksboven (origin 0 0). De afbeelding begint dan bij
+    // scrollpositie 0, dus het VOLLEDIGE vergrote vlak is bereikbaar — ook het
+    // linkerdeel. (Met origin midden was het links uitstekende deel onbereikbaar.)
+    inner.style.width="100%";
+    inner.style.transform="scale("+zs+")";
+  }
 }
 function attachZoom(){
   var wrap=document.getElementById("zoomWrap"); if(!wrap) return;
@@ -682,10 +688,6 @@ function attachZoom(){
       if(now-lastTap<300){ setZoom(zs>1.4?1:2.5); }
       lastTap=now;
       lastPan=[e.clientX,e.clientY];
-    }
-    if(Object.keys(pts).length===2){
-      var ids=Object.keys(pts);
-      lastDist=Math.hypot(pts[ids[0]][0]-pts[ids[1]][0], pts[ids[0]][1]-pts[ids[1]][1]);
     }
   };
   wrap.onpointermove=function(e){
@@ -811,6 +813,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="UGKNNl4VjhncmaZd/AKFyw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="dN7gqEZFJgIpeRLyNdm92g==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
