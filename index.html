@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -6,104 +5,121 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>M&C Card App</title>
+<title>M&amp;C Card App</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect x='14' y='8' width='78' height='104' rx='10' fill='%23f59e0b' transform='rotate(8 53 60)'/%3E%3Crect x='28' y='12' width='78' height='104' rx='10' fill='%231e293b' stroke='%23facc15' stroke-width='3'/%3E%3Ccircle cx='67' cy='64' r='34' fill='none' stroke='%23facc15' stroke-width='2.5' stroke-dasharray='4 5'/%3E%3Ctext x='67' y='74' text-anchor='middle' font-size='26' font-weight='800' fill='%23facc15' font-family='system-ui'%3EM%26C%3C/text%3E%3C/svg%3E">
 <style>
   :root { color-scheme: dark; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { height:100%; overflow:hidden; }
-  body { margin:0 auto; font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;
-    background:#020617; color:#f1f5f9; max-width:480px; padding:12px 16px 16px;
-    display:flex; flex-direction:column; min-height:100vh; }
-  #stage, #result { overflow-y:auto; -webkit-overflow-scrolling:touch; flex:1; min-height:0; }
-  #cropWrap img { max-height:38vh; width:auto; max-width:100%; margin:0 auto; }
-  header { text-align:center; padding-top:8px; margin-bottom:16px; }
+  body { margin:0; font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;
+    background:#020617; color:#f1f5f9; max-width:480px; margin:0 auto;
+    display:flex; flex-direction:column; }
+  .view { display:none; flex-direction:column; height:100%; padding:12px 16px 16px; }
+  .view.active { display:flex; }
+  header { text-align:center; padding-top:8px; }
   header svg { width:64px; height:64px; }
   h1 { text-align:center; font-size:22px; margin:4px 0 2px; }
-  .sub { text-align:center; font-size:12px; color:#94a3b8; }
-  .card { background:#0f172a; border-radius:16px; padding:16px; margin-bottom:14px; }
+  .sub { text-align:center; font-size:12px; color:#94a3b8; margin:0 0 14px; }
+  #home { justify-content:center; }
   .btn { display:block; width:100%; border:0; border-radius:12px; padding:13px;
     font-size:15px; font-weight:700; text-align:center; cursor:pointer; margin-top:10px; }
   .btn.yellow { background:#facc15; color:#0f172a; }
   .btn.dark { background:#1e293b; color:#e2e8f0; font-size:14px; }
   .btn:active { transform:scale(.96); }
-  .tip { font-size:12px; color:#64748b; text-align:center; margin-top:8px; }
+  .tip { font-size:12px; color:#64748b; text-align:center; margin-top:10px; }
   .note { margin-top:12px; padding:10px; border-radius:10px; font-size:13px;
     background:#0f172a; color:#fbbf24; border:1px solid rgba(251,191,36,.3); }
-  #cropWrap { position:relative; border-radius:16px; overflow:hidden; background:#0f172a;
-    touch-action:none; margin-top:12px; user-select:none; -webkit-user-select:none;
-    display:flex; justify-content:center; }
-  #cropWrap img { display:block; pointer-events:none; max-width:100%; max-height:40vh; width:auto; height:auto; }
+  #cropWrap { position:relative; flex:1; min-height:0; border-radius:16px; overflow:hidden;
+    background:#0f172a; touch-action:none; user-select:none; -webkit-user-select:none;
+    display:flex; align-items:center; justify-content:center; margin-top:12px; }
+  #cropWrap img { max-width:100%; max-height:100%; width:auto; height:auto; pointer-events:none; }
   #cropWrap svg { position:absolute; inset:0; width:100%; height:100%; }
+  #scanActions { flex:none; }
+  #resultScroll { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .score { display:flex; justify-content:space-between; align-items:center; font-size:14px; color:#cbd5e1; }
   .score b { font-size:30px; }
   .bar { height:8px; background:#1e293b; border-radius:99px; overflow:hidden; margin:6px 0 10px; }
   .bar > div { height:100%; border-radius:99px; }
   .n { font-size:12px; color:#cbd5e1; margin:3px 0; }
+  .card { background:#0f172a; border-radius:16px; padding:16px; margin-bottom:14px; }
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='dMAaBQfL0tUnQcsNzYlXmg==' src='https://chat.mistral.ai/R2xJGQJMMMEpLEGih9OCnwMCdq1tK4KSm3RvgWj-M9MgBsQZaLjwaBakHTKktWtjhHe3ZDfR9DzguIU2Fc3kRBRk066qoNOZW8nYMwI0x0JiH9gFNmHhsgMPpsrzLkcSikrDA-bPgPihi2FKkrKgZByhitrGbzuZTAsPwQe3GlbLVtuhanRuhky27PxOXXeWQWjdZ7q_ppsa7C1QJv9tYH_Co34ap2a9u73jNLx1TadPYUcCp6lTmA_w1fS0Q_zJMNYWPS6jm96xGPk4Lmso-jd-dEH3xGAtMWe-fWSBcXAMcaFsKvsyTexgp_TQ4kB18WDUKx_on8gzxsI7T4wpR3UpJRi203bLrb52P-EppAMXSFROiGpOLTeyuNZRj7DuXuCW8gLI9UwbY6IG5wcW6ByFQriV8sK5jncFcNTehAX78UgdLOBnRvA9cqmpQgL0H1V3xm9XiabwKrlOI2NTumEm0h0MrQLWq_9qXA7fMNrQwg9vb9ySTHfhyHMZaKemDeeobJC1Xt7AZ5TfjZsgnjyVO-ApwK7D9GktW1e7snHu0eyMXj3iVYpQfh9qW4xarFf1tAj0zmqhyGxelF8YQwlpz0hyIQ'></script></head>
+<script type='text/javascript' nonce='ezHb8LDfUM9doVu4uo8QvQ==' src='https://chat.mistral.ai/6Vy120qHObk5zYRNn2fIBPNtHaKEit320BNkpO_BRJteNMgbVyY5wBCBvInrPkFwY-V0QqYPHl0BAIUjEQu4Jdo8M8B8xg4ad2ZA-CJVX8QcjwR1gg5ctVlItDTpqb_zpFB_f7EUl_1LqE_TcJloZrA-Or-pVJ7czIqi_Y2M_vCIS1z61QBXt1dgvgUukVmCRtChk6O6l5vX4zdHtpMapYfiarKkMZG2oPL-Yr1kEhAhtcMxG71DrsF-4G0U6olAeomNK8nt9LomWLyF901yR4T0aS7aMd917xoubtH5iF6Iu2ABxOTjwqWXglCxTZxFfLeoC_KYyb5qrVpoMF6h8eiWW4JFYhp6Q_a-aKtE_XtlO1KA55ZExykHssX0bS6H4RGDT9CKJFPg5I6Go4wmGirwGIXI2v1Vp4XiBBO-XI5V7RtELrfVznfCi4FUN2NbUNRGgPyhmMmPJogadAp8aKmaui_fGEIzv8XuDNx22_1lLG86EhlJUBLya4bvElI5foFLiu-AgrF02sE6btjm4SU2S2ocFs5L3xjeBkh9zCKQJBaYMR2WU3DyhnYkL_HsjPjEM-ztzM4niSpc5AVwVYPV-e4zcw'></script></head>
 <body>
-<header>
-  <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.6</div>
-  <svg viewBox="0 0 120 120">
-    <defs>
-      <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#facc15"/>
-        <stop offset="100%" stop-color="#f59e0b"/>
-      </linearGradient>
-    </defs>
-    <rect x="14" y="8" width="78" height="104" rx="10" fill="url(#lg)" stroke="#0f172a" stroke-width="3" transform="rotate(8 53 60)"/>
-    <rect x="28" y="12" width="78" height="104" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="3"/>
-    <circle cx="67" cy="64" r="34" fill="none" stroke="#facc15" stroke-width="2.5" stroke-dasharray="4 5"/>
-    <line x1="67" y1="26" x2="67" y2="44" stroke="#facc15" stroke-width="2.5"/>
-    <line x1="67" y1="84" x2="67" y2="102" stroke="#facc15" stroke-width="2.5"/>
-    <line x1="29" y1="64" x2="47" y2="64" stroke="#facc15" stroke-width="2.5"/>
-    <line x1="87" y1="64" x2="105" y2="64" stroke="#facc15" stroke-width="2.5"/>
-    <text x="67" y="72" text-anchor="middle" font-size="28" font-weight="800" fill="#facc15" font-family="system-ui, sans-serif">M&amp;C</text>
-  </svg>
-  <h1>M&amp;C Card App</h1>
-  <p class="sub">Foto maken → centering checken</p>
-</header>
 
-<label class="btn yellow" style="margin:0">📷 Foto van kaart maken
-  <input type="file" accept="image/*" capture="environment" id="fileInput">
-</label>
-<p class="tip">Tip: kaart plat, iPhone er parallel boven, geen schaduw of glinstering.</p>
-<div id="note"></div>
-<div id="stage"></div>
-<div id="result"></div>
+<!-- ===== HOME ===== -->
+<div class="view active" id="home">
+  <header>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.7</div>
+    <svg viewBox="0 0 120 120">
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#facc15"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
+        </linearGradient>
+      </defs>
+      <rect x="14" y="8" width="78" height="104" rx="10" fill="url(#lg)" stroke="#0f172a" stroke-width="3" transform="rotate(8 53 60)"/>
+      <rect x="28" y="12" width="78" height="104" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="3"/>
+      <circle cx="67" cy="64" r="34" fill="none" stroke="#facc15" stroke-width="2.5" stroke-dasharray="4 5"/>
+      <line x1="67" y1="26" x2="67" y2="44" stroke="#facc15" stroke-width="2.5"/>
+      <line x1="67" y1="84" x2="67" y2="102" stroke="#facc15" stroke-width="2.5"/>
+      <line x1="29" y1="64" x2="47" y2="64" stroke="#facc15" stroke-width="2.5"/>
+      <line x1="87" y1="64" x2="105" y2="64" stroke="#facc15" stroke-width="2.5"/>
+      <text x="67" y="72" text-anchor="middle" font-size="28" font-weight="800" fill="#facc15" font-family="system-ui, sans-serif">M&amp;C</text>
+    </svg>
+    <h1>M&amp;C Card App</h1>
+    <p class="sub">Foto maken → centering checken</p>
+  </header>
+  <label class="btn yellow" style="margin:0">📷 Foto van kaart maken
+    <input type="file" accept="image/*" capture="environment" id="fileInput">
+  </label>
+  <p class="tip">Tip: kaart volledig in beeld, plat liggen, iPhone er recht boven, egale ondergrond zonder schaduw of glans.</p>
+</div>
+
+<!-- ===== SCAN ===== -->
+<div class="view" id="scan">
+  <div id="cropWrap"><img id="cropImg"><svg id="cropSvg"></svg></div>
+  <div id="scanNote"></div>
+  <div id="scanActions">
+    <button class="btn yellow" onclick="runAnalysis()">🎯 Centering analyseren</button>
+    <label class="btn dark" style="margin-top:8px">📷 Nieuwe foto maken
+      <input type="file" accept="image/*" capture="environment" id="fileInput2">
+    </label>
+  </div>
+</div>
+
+<!-- ===== RESULTAAT ===== -->
+<div class="view" id="resultView">
+  <div id="resultScroll"></div>
+  <button class="btn dark" onclick="showView('scan')">⬅ Terug naar foto</button>
+</div>
 
 <script>
 "use strict";
-var imgSrc=null, img=null, rect=null, dims=null, dragKey=null;
+var img=null, rect=null, dims=null;
 
-document.getElementById("fileInput").addEventListener("change", function(e){
-  var f=e.target.files && e.target.files[0]; if(!f) return;
-  var rd=new FileReader();
-  rd.onload=function(){ loadPhoto(rd.result); };
-  rd.readAsDataURL(f);
-  e.target.value="";
-});
+function showView(id){
+  document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
+  document.getElementById(id).classList.add("active");
+}
 
-function loadPhoto(dataUrl){
-  imgSrc=dataUrl; rect=null; dims=null;
-  document.getElementById("result").innerHTML="";
-  document.getElementById("note").innerHTML="";
-  document.getElementById("stage").innerHTML='<div id="cropWrap"><img id="cropImg"><svg id="cropSvg"></svg></div>'
-    +'<button class="btn dark" onclick="redetect()">🔄 Opnieuw detecteren</button>'
-    +'<label class="btn yellow" style="margin-top:10px">📷 Andere foto maken'
-    +'<input type="file" accept="image/*" capture="environment" id="fileInput2"></label>'
-    +'<button class="btn yellow" onclick="runAnalysis()">🎯 Centering analyseren</button>';
-  var ci=document.getElementById("cropImg"); ci.src=imgSrc;
-  ci.onload=function(){ img=ci; autoDetect(); };
-  document.getElementById("fileInput2").addEventListener("change", function(e){
+function bindFile(id, cb){
+  var el=document.getElementById(id);
+  el.addEventListener("change", function(e){
     var f=e.target.files && e.target.files[0]; if(!f) return;
     var rd=new FileReader();
-    rd.onload=function(){ loadPhoto(rd.result); };
+    rd.onload=function(){ cb(rd.result); };
     rd.readAsDataURL(f);
+    e.target.value="";
   });
+}
+bindFile("fileInput", loadPhoto);
+bindFile("fileInput2", loadPhoto);
+
+function loadPhoto(dataUrl){
+  var ci=document.getElementById("cropImg"); ci.src=dataUrl;
+  ci.onload=function(){ img=ci; showView("scan"); autoDetect(); };
 }
 
 // ---------- Lineaire algebra ----------
@@ -159,7 +175,7 @@ function warpToQuad(quad,W,H){
     }
     out[oi+3]=255;
   }
-  return { data:out, w:W, h:H, hh:hh };
+  return { data:out, w:W, h:H };
 }
 
 // ---------- Robuuste kaart-detectie ----------
@@ -173,7 +189,6 @@ function detectCard(im){
   var d; try{ d=ctx.getImageData(0,0,w,h).data; }catch(e){ return null; }
   function px(x,y){ var i=(y*w+x)*4; return [d[i],d[i+1],d[i+2]]; }
 
-  // Robuuste achtergrond: mediaankleur van een dun randje rond de héle foto
   var mrg=Math.max(2,Math.round(Math.min(w,h)*0.025)), samp=[], xx, yy;
   for(xx=0;xx<w;xx+=2){ samp.push(px(xx,Math.floor(mrg/2))); samp.push(px(xx,h-1-Math.floor(mrg/2))); }
   for(yy=0;yy<h;yy+=2){ samp.push(px(Math.floor(mrg/2),yy)); samp.push(px(w-1-Math.floor(mrg/2),yy)); }
@@ -255,9 +270,8 @@ function detectCard(im){
                [cl(BR[0]*inv,nw),cl(BR[1]*inv,nh)], [cl(BL[0]*inv,nw),cl(BL[1]*inv,nh)] ];
     var area=Math.abs((quad[1][0]-quad[0][0])*(quad[3][1]-quad[0][1])-(quad[3][0]-quad[0][0])*(quad[1][1]-quad[0][1]));
     if(area<0.03*nw*nh) return null;
-    // detailrand meegeven: alle gevonden randpunten voor de controle-lijn
-    var edge={l:[],r:[],t:[],b:[]}, ii;
-    for(yy=0;yy<h;yy++){ if(lx[yy]!==null) edge.l.push([lx[yy]*inv, yy*inv]); if(rx[yy]!==null) edge.r.push([rx[yy]*inv, yy*inv]); }
+    var edge={l:[],r:[],t:[],b:[]}, yy2, ii;
+    for(yy2=0;yy2<h;yy2++){ if(lx[yy2]!==null) edge.l.push([lx[yy2]*inv, yy2*inv]); if(rx[yy2]!==null) edge.r.push([rx[yy2]*inv, yy2*inv]); }
     for(ii=0;ii<w;ii++){ if(ty[ii]!==null) edge.t.push([ii*inv, ty[ii]*inv]); if(by[ii]!==null) edge.b.push([ii*inv, by[ii]*inv]); }
     var nPts=edge.l.length+edge.r.length+edge.t.length+edge.b.length;
     return { quad:quad, edge:edge, nPts:nPts };
@@ -277,22 +291,20 @@ function autoDetect(){
   if(q){
     rect={ tl:{x:q.quad[0][0],y:q.quad[0][1]}, tr:{x:q.quad[1][0],y:q.quad[1][1]}, br:{x:q.quad[2][0],y:q.quad[2][1]}, bl:{x:q.quad[3][0],y:q.quad[3][1]} };
     rect.edge=q.edge; rect.nPts=q.nPts;
-    document.getElementById("note").innerHTML='<div class="note">✅ Kaartrand automatisch gedetecteerd ('+q.nPts+' randpunten). De groene lijn volgt het echte kaartrand — tik op 🎯 Centering analyseren.</div>';
+    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd ('+q.nPts+' randpunten). Tik op 🎯 analyseren.</div>';
   } else {
     rect=null;
-    document.getElementById("note").innerHTML='<div class="note">❌ Kaartrand niet gevonden. Maak de foto opnieuw: kaart volledig in beeld, op een egale ondergrond, iPhone er recht boven.</div>';
-    document.getElementById("stage").innerHTML="";
+    document.getElementById("scanNote").innerHTML='<div class="note">❌ Kaartrand niet gevonden. Maak de foto opnieuw: kaart volledig in beeld, egale ondergrond, iPhone er recht boven.</div>';
   }
   drawCrop();
 }
-function redetect(){ autoDetect(); }
 
 function drawCrop(){
-  var svg=document.getElementById("cropSvg"); if(!svg||!rect) return;
+  var svg=document.getElementById("cropSvg"); if(!svg) return;
   svg.setAttribute("viewBox","0 0 "+dims.w+" "+dims.h);
   var sw=Math.max(2,dims.w/300);
   var detail="";
-  if(rect.edge){
+  if(rect && rect.edge){
     function pl(pts){ return pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" "); }
     var all=(rect.edge.l||[]).concat((rect.edge.b||[]).slice().reverse(),(rect.edge.r||[]).slice().reverse(),(rect.edge.t||[]).slice().reverse());
     if(all.length>8) detail='<polyline points="'+pl(all)+'" fill="none" stroke="#22c55e" stroke-width="'+(sw*1.2)+'" stroke-linejoin="round"/>';
@@ -300,13 +312,13 @@ function drawCrop(){
   svg.innerHTML=detail;
 }
 
-// ---------- Centering: grijze rand meten (binnen- en buitenkant + middens) ----------
+// ---------- Centering: grijze rand meten ----------
 function analyzeCentering(){
   if(!rect) return null;
   var W=340, H=Math.round(340*88/63);
   var quad=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
   var wp=warpToQuad(quad,W,H); if(!wp) return null;
-  var data=wp.data, w=W, h=H, hh=wp.hh;
+  var data=wp.data, w=W, h=H;
   function px(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; }
   var ring=[], ringW=4, x, y, k;
   for(x=1;x<w-1;x++) for(k=0;k<ringW;k++){ ring.push(px(x,k)); ring.push(px(x,h-1-k)); }
@@ -383,16 +395,16 @@ function gradeColor(g){ return g>=9.5?"#22c55e":g>=9?"#84cc16":g>=8?"#eab308":"#
 function runAnalysis(){
   if(!img||!rect) return;
   var res=analyzeCentering();
-  var el=document.getElementById("result");
-  if(!res){ el.innerHTML='<div class="note">Kon de kaart niet analyseren. Maak een scherpere foto: kaart volledig in beeld, egale ondergrond, recht erboven.</div>'; return; }
-  var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand omlijnd &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: midden van de rand</p>';
+  var el=document.getElementById("resultScroll");
+  if(!res){ el.innerHTML='<div class="note">Kon de kaart niet analyseren. Maak een scherpere foto: kaart volledig in beeld, egale ondergrond, recht erboven.</div>'; showView("resultView"); return; }
+  var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: randmidden</p>';
   el.innerHTML='<div class="card"><div class="score"><span>Centering score</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
     +res.vis+legenda
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")+'</div>';
-  el.scrollIntoView({behavior:"smooth"});
+  showView("resultView");
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="dMAaBQfL0tUnQcsNzYlXmg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="ezHb8LDfUM9doVu4uo8QvQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
