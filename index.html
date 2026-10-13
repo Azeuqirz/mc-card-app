@@ -58,13 +58,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='9wcl0J+K2J2scZQmeMfTJg==' src='https://chat.mistral.ai/FWiDYIDxLINTv_PqZtxSf__RjYDWMt-eyaQsfFRzcxfx4Sw3DoTmhkXtAkE_X0ZlevCDPVQDgy4st1y27FTCk7H0XL0Ti4wsdSetDzMgkS2Fd3qIcPojPrGfUPAA2iYd4lXreCTa-mhx3rVJieRRfADYJ9kvgJnGe-KvunbOtjLJL4wHrnHQ8mOYG-i2lQulTN-Z1cvuyrTq1-AOneVaVI9jrTSmJmuXLsRUp2mQSVHXHNOkY6duXqF-7-o_P9xwcQF1ewig9kklQ28BXgNwxxK4_QFCjbXnyIyLGPmFHXnVkCLKLLZIaMqD6ACJxANf-zBawhtXWNNPqaobyvaaSAm1xCKygZaOndA8zrO-k7u7BcXC2v2qlFgRh7-rBP3_5g2fG0q37uXIS_SNKHxypX-WqMXtASwdbc-gZ2EjU7Ez1sN7yET6jxkiA895OpqE9_ZjBKR2_q3hSsCiykpFeuLBh6K_szC1Oi52rSshbwuo2A4AOF_i6_Ena2CFxL_kexZvH270yxhj6aS360PvYCgRHrw7_iOrduWrKrKx3jetiBdH-ZpAqGKYlo0U7l2a2bxjhQMfliohtvIaDx8Ts7Z4pGRbXg'></script></head>
+<script type='text/javascript' nonce='imbOeTpkxb+cSAv+Gt+UCA==' src='https://chat.mistral.ai/3GRxv_YXX_CVuufc3W12oUHZgQUz-iqbSxRf_eUJiAZF0Bz6PYAvJDQIn-zqSJmJlVbiuKsqj7mlnSC47WVH7M0mA8ItN-a4SCm2J-FpoR4uA94RVtPua6HauiP5y2ROIn1uV47VSAkphqA3bHCeC4u-qSI8C2qbfytBFoQp8Apm_gohWmD0ytYfR6ZT5jbfSQYEu_pGolkyHS0BWzxf5jtddJmZvINFGfy4oWuRq-YnrBuyudmwOeBREFRGGfbeIwPrz82gOJsUGzrmGJMv0T8UP3RGkLlab58ZQkYSeiqoqnBzNFMjn-xjxr3pzYbTPhqDDYuUtgRJeDARBzywAKK_RyBz2zBcM_PtNQWNse3y-P1YYw28T2UtKReyKLVrSTHNu6TpsdsgVvTVekKXUPOVuqvOSceNSsjdI7gkR3IMIXkKg58TsnCEGnhCICAmzRBV7zVUoQHGMSZQMi04aoNFP3scULXaN2Kxav3H6ezK8wQ8fJ9PedfyomoBHJeme5Pmo7GAbcHe_E86sUiT6kH1kAJ5Am8IMVYpIZAtaoCPFVE-7iqMiteXx9ZPB22k4i18QhbEoRWNWAfrizUSM1tIm0uVKQ'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.18</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.19</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -135,7 +135,7 @@
 
 <script>
 "use strict";
-var VERSION="2.18";
+var VERSION="2.19";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -568,26 +568,44 @@ function analyzeCentering(){
   var id=vctx.createImageData(w,h);
   for(var ii=0;ii<data.length;ii++) id.data[ii]=data[ii];
   vctx.putImageData(id,0,0);
-  // v2.14: hi-res warp (2x) alleen voor de weergave -> geen wazige kaart
-  var wpHi=warpToQuad(quad,w*2,h*2), imgHref=null;
-  if(wpHi&&wpHi.data&&!wpHi.canvasFail){
-    var vcHi=document.createElement("canvas"); vcHi.width=w*2; vcHi.height=h*2;
-    var vctxHi=vcHi.getContext("2d"); var idHi=vctxHi.createImageData(w*2,h*2);
-    for(var ij=0;ij<wpHi.data.length;ij++) idHi.data[ij]=wpHi.data[ij];
-    vctxHi.putImageData(idHi,0,0);
-    imgHref=vcHi.toDataURL("image/png");
+  // v2.19: weergave met 50px marge rondom de kaart -> gele lijn controleerbaar
+  // tegen de echte fotorand. Omgeving wordt apart gewarpt; de kaart zelf wordt
+  // exact (zonder vervorming) op zijn plek getekend.
+  var M=50;
+  var qc=[(quad[0][0]+quad[1][0]+quad[2][0]+quad[3][0])/4,(quad[0][1]+quad[1][1]+quad[2][1]+quad[3][1])/4];
+  var expQuad=quad.map(function(q){
+    var dx=q[0]-qc[0], dy=q[1]-qc[1], dl=Math.hypot(dx,dy)||1;
+    return [q[0]+dx/dl*50, q[1]+dy/dl*50];
+  });
+  var dispW=w+M*2, dispH=h+M*2;
+  var imgHref=null;
+  var wpHiC=warpToQuad(expQuad,dispW*2,dispH*2);
+  var wpHi=warpToQuad(quad,w*2,h*2);
+  if(wpHi&&wpHi.data&&!wpHi.canvasFail&&wpHiC&&wpHiC.data&&!wpHiC.canvasFail){
+    var dc=document.createElement("canvas"); dc.width=dispW*2; dc.height=dispH*2;
+    var dctx=dc.getContext("2d");
+    var idC=dctx.createImageData(dispW*2,dispH*2);
+    for(var ic=0;ic<wpHiC.data.length;ic++) idC.data[ic]=wpHiC.data[ic];
+    dctx.putImageData(idC,0,0);
+    var cardC=document.createElement("canvas"); cardC.width=w*2; cardC.height=h*2;
+    var cctx=cardC.getContext("2d");
+    var idH=cctx.createImageData(w*2,h*2);
+    for(var ij=0;ij<wpHi.data.length;ij++) idH.data[ij]=wpHi.data[ij];
+    cctx.putImageData(idH,0,0);
+    dctx.drawImage(cardC,M*2,M*2);
+    imgHref=dc.toDataURL("image/png");
   }
   if(!imgHref) imgHref=vc.toDataURL("image/png");
-  var vis='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;display:block">'
-    +'<image href="'+imgHref+'" x="0" y="0" width="'+w+'" height="'+h+'"/>'
-    +'<rect x="1" y="1" width="'+(w-2)+'" height="'+(h-2)+'" fill="none" stroke="#facc15" stroke-width="2"/>'
-    +'<rect x="'+tLeft+'" y="'+tTop+'" width="'+(w-tLeft-tRight)+'" height="'+(h-tTop-tBot)+'" fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-dasharray="5 4"/>'
-    +'<line x1="'+cx+'" y1="0" x2="'+cx+'" y2="'+h+'" stroke="#f87171" stroke-width="1" stroke-dasharray="3 5"/>'
-    +'<line x1="0" y1="'+cy+'" x2="'+w+'" y2="'+cy+'" stroke="#f87171" stroke-width="1" stroke-dasharray="3 5"/>'
-    +'<circle cx="'+midLeft+'" cy="'+cy+'" r="4" fill="#38bdf8"/>'
-    +'<circle cx="'+midRight+'" cy="'+cy+'" r="4" fill="#38bdf8"/>'
-    +'<circle cx="'+cx+'" cy="'+midTop+'" r="4" fill="#38bdf8"/>'
-    +'<circle cx="'+cx+'" cy="'+midBot+'" r="4" fill="#38bdf8"/>'
+  var vis='<svg viewBox="0 0 '+dispW+' '+dispH+'" style="width:100%;display:block">'
+    +'<image href="'+imgHref+'" x="0" y="0" width="'+dispW+'" height="'+dispH+'"/>'
+    +'<rect x="'+(M+1)+'" y="'+(M+1)+'" width="'+(w-2)+'" height="'+(h-2)+'" fill="none" stroke="#facc15" stroke-width="2"/>'
+    +'<rect x="'+(M+tLeft)+'" y="'+(M+tTop)+'" width="'+(w-tLeft-tRight)+'" height="'+(h-tTop-tBot)+'" fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-dasharray="5 4"/>'
+    +'<line x1="'+(M+cx)+'" y1="0" x2="'+(M+cx)+'" y2="'+dispH+'" stroke="#f87171" stroke-width="1" stroke-dasharray="3 5"/>'
+    +'<line x1="0" y1="'+(M+cy)+'" x2="'+dispW+'" y2="'+(M+cy)+'" stroke="#f87171" stroke-width="1" stroke-dasharray="3 5"/>'
+    +'<circle cx="'+(M+midLeft)+'" cy="'+(M+cy)+'" r="4" fill="#38bdf8"/>'
+    +'<circle cx="'+(M+midRight)+'" cy="'+(M+cy)+'" r="4" fill="#38bdf8"/>'
+    +'<circle cx="'+(M+cx)+'" cy="'+(M+midTop)+'" r="4" fill="#38bdf8"/>'
+    +'<circle cx="'+(M+cx)+'" cy="'+(M+midBot)+'" r="4" fill="#38bdf8"/>'
     +'</svg>';
   var tc=document.createElement("canvas"); tc.width=68; tc.height=Math.round(68*h/w*1);
   tc.width=68; tc.height=Math.round(68*(h/w));
@@ -760,6 +778,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="9wcl0J+K2J2scZQmeMfTJg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="imbOeTpkxb+cSAv+Gt+UCA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
