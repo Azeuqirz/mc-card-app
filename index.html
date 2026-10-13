@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="nl">
-<head><script type='text/javascript' nonce='L0dD8sAC+BybpvFeL8E3gg==' src='https://chat.mistral.ai/yBSMJMwEX6prA01gaLQwI5ap5HX2WifBIDXbR4EHVtGpNcKJX-LSH3v4uVvdTB4aC4sPLD9eYiWqNtrV7Tf5VbxtDfT3j-LSJbvzTi_0jaU8JpKqyaXufFBDygYe3HyS6hDeGrp7PsQpShNQexC9twAgnSQwwj-fSjnhDawhVZfzbysySzfWswLwYQpAPDartCNNhRG6cHWTeww117Pl5q4m8wfDVUVZmzH7wWh6Enqbovlc2b4tMQE2nqgxUchVACaz5e2HAOQmSsk_Zs9DHIPJ8T5M9x46-FcGIrZZCYsnkutyefHa5wiwfJqACuueyqZrtJDPYCvW4239m-LKawHhvrPzl_oOZGDnggDQRoVXSgNsBWE6O1FF6LrCpkF8hfJZEAKcLGsNgMMpnK0l2Il3i4FVM_jGmKOKYnWg8CIa4D-YUKz7eKSls2JjPwIXAe-JWBFweDmPB-OQ1_6g9DB5ejzThV0tuBCbfCXiwGEhtLami275xxTVc4FsYvmDr6B9zQhHRkhPE80pmYrx1IsL194zGBsT93iZkwC0m-mnBsYB3FlrQ13XXS5O9RHq6Vz4ueSydzckSwRVxanJQgbCb4CIMQ'></script>
+<head><script type='text/javascript' nonce='45aJgmvxj0GIrsZLcFTO1g==' src='https://chat.mistral.ai/Dg1bnQBjTA-7rYhY_g2lq9JTdp6abWtc_xoWl_n1plCbHI8X6X9obaD7agUjKKjV-wTiWRKGQ2rHD1sIgqp2k7-rVGXd9oWhDRUHFmf5CDuwlAmOMt_LJGXinQW-xal_29RBhAUIJlMwTpgPDJcdW7_ODF0gmQ8C2PviGi8th6mLQ6P9hETYPE99bG6WHAgdIh4T2ixi968S2xp7EIsefzaM35jciFuhny0h9vOt4dZoL05fyEAaOGoPCC9-y_vEbcBzuq2dPG3kXPn4o2ICDrROjTP6cNPTS85NwkDvzJqGujmYp73pnV_G8Rm7dwut3lm63RhkYga8-fWOoASNGPhrJSdJNGGF6XUJq4TnXvBbjjNBqlOPWG18Vs8Erysen9Bw2OlAlKadv-wFWQTCjPhLIJenBeYh9Tgf7V1VadiFfjsYaEuNjpahPCglf_i4zATp8DXMNdmIT01Jt1yucbCarTENysxAKYtTox52AKuavlQq_X-CB4gJAw7nte_nXCFPmTmnfL8jbDnugKzkzgpzq8dcsLgAdv57aWIl1-EZ4boV2B0KJTUJDxs6cDkisi0FTznNFzHyjvAh2BIjez7MWP-Ckg'></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -251,7 +251,12 @@ function detectCard(im){
                [cl(BR[0]*inv,nw),cl(BR[1]*inv,nh)], [cl(BL[0]*inv,nw),cl(BL[1]*inv,nh)] ];
     var area=Math.abs((quad[1][0]-quad[0][0])*(quad[3][1]-quad[0][1])-(quad[3][0]-quad[0][0])*(quad[1][1]-quad[0][1]));
     if(area<0.03*nw*nh) return null; // te klein = ruis (vol beeld is gewoon geldig)
-    return quad;
+    // detailrand meegeven: alle gevonden randpunten (honderden) voor de controle-lijn
+    var edge={l:[],r:[],t:[],b:[]}, yy, ii;
+    for(yy=0;yy<h;yy++){ if(lx[yy]!==null) edge.l.push([lx[yy]*inv, yy*inv]); if(rx[yy]!==null) edge.r.push([rx[yy]*inv, yy*inv]); }
+    for(ii=0;ii<w;ii++){ if(ty[ii]!==null) edge.t.push([ii*inv, ty[ii]*inv]); if(by[ii]!==null) edge.b.push([ii*inv, by[ii]*inv]); }
+    var nPts=edge.l.length+edge.r.length+edge.t.length+edge.b.length;
+    return { quad:quad, edge:edge, nPts:nPts };
   }
 
   // meerdere drempels proberen: van fijn naar grof
@@ -267,8 +272,9 @@ function autoDetect(){
   dims={ w:img.naturalWidth, h:img.naturalHeight };
   var q=detectCard(img);
   if(q){
-    rect={ tl:{x:q[0][0],y:q[0][1]}, tr:{x:q[1][0],y:q[1][1]}, br:{x:q[2][0],y:q[2][1]}, bl:{x:q[3][0],y:q[3][1]} };
-    document.getElementById("note").innerHTML='<div class="note">✅ Kaartrand automatisch gedetecteerd — sleep de hoeken alleen bij als het niet klopt.</div>';
+    rect={ tl:{x:q.quad[0][0],y:q.quad[0][1]}, tr:{x:q.quad[1][0],y:q.quad[1][1]}, br:{x:q.quad[2][0],y:q.quad[2][1]}, bl:{x:q.quad[3][0],y:q.quad[3][1]} };
+    rect.edge=q.edge; rect.nPts=q.nPts;
+    document.getElementById("note").innerHTML='<div class="note">✅ Kaartrand automatisch gedetecteerd ('+q.nPts+' randpunten). De groene lijn volgt het echte kaartrand — alleen verplaatsen als hij duidelijk naast de rand ligt.</div>';
   } else {
     rect={ tl:{x:0,y:0}, tr:{x:dims.w,y:0}, br:{x:dims.w,y:dims.h}, bl:{x:0,y:dims.h} };
     document.getElementById("note").innerHTML='<div class="note">⚠️ Kaartrand niet met zekerheid gevonden — uitgegaan van de fotoranden (kaart vult het beeld). Klopt dit niet? Sleep dan de 4 hoeken op de kaartrand.</div>';
@@ -282,11 +288,18 @@ function drawCrop(){
   svg.setAttribute("viewBox","0 0 "+dims.w+" "+dims.h);
   var sw=Math.max(2,dims.w/300), hr=Math.max(10,dims.w/40);
   var poly=rect.tl.x+","+rect.tl.y+" "+rect.tr.x+","+rect.tr.y+" "+rect.br.x+","+rect.br.y+" "+rect.bl.x+","+rect.bl.y;
+  // detailrand: honderden gedetecteerde randpunten als doorlopende groene lijn
+  var detail="";
+  if(rect.edge){
+    function pl(pts){ return pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" "); }
+    var all=(rect.edge.l||[]).concat((rect.edge.b||[]).slice().reverse(),(rect.edge.r||[]).slice().reverse(),(rect.edge.t||[]).slice().reverse());
+    if(all.length>8) detail='<polyline points="'+pl(all)+'" fill="none" stroke="#22c55e" stroke-width="'+(sw*1.2)+'" stroke-linejoin="round"/>';
+  }
   var hs="";
   ["tl","tr","br","bl"].forEach(function(k){
-    hs+='<circle cx="'+rect[k].x+'" cy="'+rect[k].y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="3" data-k="'+k+'"/>';
+    hs+='<circle cx="'+rect[k].x+'" cy="'+rect[k].y+'" r="'+hr+'" fill="'+(detail?"#0f172a":"#facc15")+'" stroke="'+(detail?"#22c55e":"#facc15")+'" stroke-width="3" data-k="'+k+'"/>';
   });
-  svg.innerHTML='<polygon points="'+poly+'" fill="none" stroke="#facc15" stroke-width="'+sw+'"/>'+hs;
+  svg.innerHTML='<polygon points="'+poly+'" fill="none" stroke="'+(detail?"#22c55e":"#facc15")+'" stroke-width="'+sw+'" opacity="'+(detail?0.9:1)+'"/>'+detail+hs;
   svg.querySelectorAll("circle").forEach(function(c){
     c.addEventListener("pointerdown",function(e){
       e.preventDefault(); dragKey=c.dataset.k; c.setPointerCapture(e.pointerId);
@@ -407,7 +420,7 @@ function runAnalysis(){
   el.scrollIntoView({behavior:"smooth"});
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="L0dD8sAC+BybpvFeL8E3gg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="45aJgmvxj0GIrsZLcFTO1g==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
 
