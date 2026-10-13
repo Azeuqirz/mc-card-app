@@ -58,13 +58,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='GOhRs1wTpyrWrV9BBiVz5g==' src='https://chat.mistral.ai/53uJCQdC10VuAdldup8U6jM4UXO88KNmPP62JPN47bTHXuskltq9qBPU9Z8lkjrse89FdFKaLkxw3iyBvN1WdeRbtyaSVfIuZ5Qc3AEHEF1k-sZ4HX5yrFAkr-neCdyVNHQwfFhhNo6O9q-Xi3NNDxtSaJRCQ8j2QrtBlxdGMOvOrT5qwpuUF6q6qzenCfvtdQ8trZoP21_XgYeT4lhnw8HoQCb438inHdvcXBWf3zXlgsXHJpU5ml8iyurPSGkzRyfrwDuNL_jMMqJ-sBqUmI9WSicexASpOoGe-aIBv5LhqfFQa-BOmYMFbnbf8KBFuYbNZXAzD_OpvHKEAdk93Hx9kDDminenA1cM-dLpy4mW9x-wPGZe99AFZNKWckSJ_LKbwmpHHLiSBbDf8oe_Uux3frE-gQgrWpw39JVwc9rMZpE0ZiovrI2rt6qCf4o5lhDQG07F6J251FqRHLciHnOLTLSvPXZERbnHspTsZQU0TtJNf4bX--wY4gr2Frbd3LxngIseK9lnaHnvzDN0_ypYTih5uMGZx0hX-KkdgMzKpe9u8kdfWILSn6wlKgVurLlz0mSVE_UEzFUxlu50pvhBA1WzwQ'></script></head>
+<script type='text/javascript' nonce='UGKNNl4VjhncmaZd/AKFyw==' src='https://chat.mistral.ai/lJqRz11eY7TorVz1HCHJOv0ONf_jB-Aw2jadFJ96ZhKy4BYuQy7VjC6Nb7vNKHEMy4eTll8ABrJT3vBR5sAQ-2w4Y3D56k7ju4unJo-R5flWzpwVstPp5Cfl4V8iWfCRdy8Pzd0aepWYm6CGzbfeLlSX4Y6Kc2tFCcekJSTcoDI2vzOETSTY7I60NIuMON0WjUBg4UgDzBKCQmVLOuCMpxftQDQN-ff4eSKWWzM4y7DR5dT95VWvwk0sU8G1ibpChT2tJ0-eY2RytQeuqb2KSN4GKXby7RXZktaRJKSzcExI4V4R3UZ4RmePEf9XzL3V3CePZXd0YYdSOJkzsRHgZoBE-l195TnCQN6tZeWNs_5AIn09CkQi4cpn3s3Rk4Cbp0qBeiW-SrEIr2n7KRqrpXTCMdfsbn3iwTh8au13sQ-i79xyDhEMJI3__R-2tcgnS3LfWmRSpL1HYd7SBlMaJW8Rwd262xtsmMnWYCBakmWMBBNMDuUda0GK8sbHKORPDkETOSaG885zcH0jLr-FYExDu3npQNphKqPG2bAsaR3rxx-e7oo7Gn2fAZiJbdHVZaaaL1RmyasCAy0prY15WaYiKfQ9xw'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.22</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.23</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -135,7 +135,7 @@
 
 <script>
 "use strict";
-var VERSION="2.22";
+var VERSION="2.23";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -616,15 +616,17 @@ function runAnalysis(){
   if(img&&rect){
     try{
       var xs=[rect.tl.x,rect.tr.x,rect.br.x,rect.bl.x], ys=[rect.tl.y,rect.tr.y,rect.br.y,rect.bl.y];
-      var bx0=Math.max(0,Math.min.apply(null,xs)-50), by0=Math.max(0,Math.min.apply(null,ys)-50);
-      var bx1=Math.min(img.naturalWidth,Math.max.apply(null,xs)+50), by1=Math.min(img.naturalHeight,Math.max.apply(null,ys)+50);
+      // v2.23: marge 3x zo groot (150px) zodat je ruim buiten de kaart kunt controleren
+      var bx0=Math.max(0,Math.min.apply(null,xs)-150), by0=Math.max(0,Math.min.apply(null,ys)-150);
+      var bx1=Math.min(img.naturalWidth,Math.max.apply(null,xs)+150), by1=Math.min(img.naturalHeight,Math.max.apply(null,ys)+150);
       var bw=bx1-bx0, bh=by1-by0;
       var s2=Math.min(1,1200/Math.max(bw,bh));
       var oc=document.createElement("canvas");
       oc.width=Math.max(1,Math.round(bw*s2)); oc.height=Math.max(1,Math.round(bh*s2));
       oc.getContext("2d").drawImage(img,-bx0*s2,-by0*s2,img.naturalWidth*s2,img.naturalHeight*s2);
       var ohref=oc.toDataURL("image/jpeg",0.85);
-      var sw2=Math.max(2,img.naturalWidth/280);
+      // v2.23: lijndiktes gehalveerd
+      var sw2=Math.max(1,img.naturalWidth/560);
       var poly2=(rect.tl.x-bx0)+","+(rect.tl.y-by0)+" "+(rect.tr.x-bx0)+","+(rect.tr.y-by0)+" "+(rect.br.x-bx0)+","+(rect.br.y-by0)+" "+(rect.bl.x-bx0)+","+(rect.bl.y-by0);
       // v2.22: binnenrand + middenkruis + stippen via homografie terug op de foto mappen
       var CW=340, CH=Math.round(340*88/63);
@@ -637,7 +639,7 @@ function runAnalysis(){
       var iTL=mapPt(tL,tT), iTR=mapPt(CW-tR,tT), iBR=mapPt(CW-tR,CH-tB), iBL=mapPt(tL,CH-tB);
       var cX=mapPt(CW/2,0), cX2=mapPt(CW/2,CH), cY=mapPt(0,CH/2), cY2=mapPt(CW,CH/2);
       var mLC=mapPt(tL/2,CH/2), mRC=mapPt(CW-tR/2,CH/2), mTC=mapPt(CW/2,tT/2), mBC=mapPt(CW/2,CH-tB/2);
-      var sw3=Math.max(1.5,img.naturalWidth/400);
+      var sw3=Math.max(0.75,img.naturalWidth/800);
       vis='<svg viewBox="0 0 '+bw+' '+bh+'" style="width:100%;display:block;border-radius:10px;background:#020617">'
         +'<image href="'+ohref+'" x="0" y="0" width="'+bw+'" height="'+bh+'"/>'
         +'<polygon points="'+poly2+'" fill="none" stroke="#facc15" stroke-width="'+sw2+'" stroke-linejoin="round"/>'
@@ -809,6 +811,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="GOhRs1wTpyrWrV9BBiVz5g==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="UGKNNl4VjhncmaZd/AKFyw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
