@@ -58,13 +58,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='vKNF3uXgXbu7RkURD3OoAA==' src='https://chat.mistral.ai/G3wzeAWcraMdNA78cofjWD50xoMbkckBaa5SkFPAydxcd8WZfshYift55ng5-iIk-qKgqiNV09WRzJAKi7FpMulS3nyElSF5xJtCNAwTT6uyhDPkC3qUGf1m4cDoLleEIV6TyWsMgToqSbXi0AGWtPL_OWLIy0k5VEfF0ykKoVSu0hsYRAttmjlKpdMXhUvtk6Lubmj-UdA0RxDq-vGPjYSgz03CtDPCSCY-k86EAevo2_Ae4hjK7v8SH5XcMqdGDrFhIAA-B2wdmFZELqyBPJCSv2xN9GQ1d8Z0VLBfVx8LseJN-JjDvBAmgQY1FSUM-R0vn1G2MDt7dgantPtk4I1erPOnpxlOm1TP8MxncEXDLx3M9G-QxrQDGS_fHRBORMqstJX0DQJwQCLepfdeTVxw369ve_uz786Sve6lymUfqSnU0VmCXPC5gfyQRyeroUmfza1n9tx3V8zB65tseYXAZYlcthgDcMH2kLvgleyk_QlhSvzn28vQE60uQtzBwaK7sq2eq5pdONpLMSBbbYCR1pTe2km2YTG6tWzd866o11C8seXCsr8RmmkHys6od8ctd6FYWN2TComakAzKtTmhsYrMBQ'></script></head>
+<script type='text/javascript' nonce='J3shJY0PkWUXcElcd6ObAg==' src='https://chat.mistral.ai/gEy_ggzvw9e8-xgZAUXDXdqJlCXYecux8fuz_KD2IAVg4BKaYKiEAF6Asb__Gtlqff1XEYe13ZE2dQV560jgfpuuKPvbg4V0IyTrd25Bpml4V_VPpdc1n2ktvsPnMBp6QzvgpF-pF59LfkY-7QhOYGbChULfJuaFvUn1S2g-pd4B95Rs36ViEVZs620DxqHt40tb2-5nbsBPYQ9nbDcfirbUCMM8_ENJhwe4nqk9LkjOP9E90ocobdMi2snxNZ3OdcT4epyHExS7XRiLqZIGIThbK5e7QsOsYv6FjJYUU9NoOpaNc3yinwhzqJyapy5vA5CQTx72AjM0v6KynX4oFz8q-2LHmRRyRtbq6YI2dOpbJQID75jCMuMqXPAUfnVfPt6zjA3XkpZ6gvBeW3z4wULr31La48FVjQ4ccUq3X_ONabuhGNmxYz-Au8oqqEXxJvlxJ9nDK07XNaEG86cCxwLMNuxmrn2z72-gLeESJqwHcqm-6l8c8bMJ9NQzlOMn34b739yin88kTCek8sOPD3KEHM2FFeaM2xgCbP3nFF_EOjX_NMd0GE0tbrJgaYDHdsdNWFPW-xCyR01FlgYr3fb4A4GMmw'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.16</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.17</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -135,7 +135,7 @@
 
 <script>
 "use strict";
-var VERSION="2.16";
+var VERSION="2.17";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -441,9 +441,11 @@ function analyzeCentering(){
   var lines=[];
   var margin=Math.floor(span*0.15);
   // v2.12: binnenrand zit ALTIJD vlak achter de gele randstrook (~15% van de kaart).
-  // Met de oude 45%-diepte pakte de meting bij zwakke kaderlijn (glans) een
-  // artwork-overgang diep in de kaart -> "heel ver naar binnen". Nu: venster 15%.
   var skip=Math.max(20,Math.floor(len*0.15));
+  // v2.17: donkere-dip-detectie — de kaderlijn rond het artwork-venster is een
+  // DONKERE lijn vlak na de lichte rand. Zoek per meetlijn de EERSTE donkere dip;
+  // holo-glans dieper in het artwork kan die niet afpakken (komt pas later).
+  var dips=[];
   for(var pos=margin;pos<span-margin;pos++){
       // lijn inlezen met 1px marge voor smoothing
       var pts=[], kk, dd;
@@ -451,6 +453,15 @@ function analyzeCentering(){
         dd=fromStart?kk:len-1-kk;
         pts.push(horizontal?px(pos,dd):px(dd,pos));
       }
+      // v2.17: eerste donkere dip (kaderlijn) zoeken
+      var lum=function(p){ return 0.299*p[0]+0.587*p[1]+0.114*p[2]; };
+      var runMax=lum(pts[Math.min(6,pts.length-1)]), dipK=-1;
+      for(kk=6;kk<pts.length-1;kk++){
+        var l=lum(pts[kk]);
+        if(l<runMax*0.68&&l<190){ dipK=kk; break; }
+        if(l>runMax) runMax=l;
+      }
+      if(dipK>0) dips.push(dipK);
       // gesmeerde gradients: verschil tussen 2px-afstand = minder ruisgevoelig
       var grads=[0,0];
       for(kk=2;kk<pts.length;kk++){
@@ -465,6 +476,19 @@ function analyzeCentering(){
       lines.push({ pos:pos, bestK:bestK, bestG:bestG, cands:cands });
     }
     if(lines.length===0) return null;
+    // v2.17: kaderlijn-meting via dip-steun (histogram, 2px-bins)
+    if(dips.length>0){
+      var bins={}, bi;
+      dips.forEach(function(d){ bi=Math.round(d/2)*2; bins[bi]=(bins[bi]||0)+1; });
+      var bestBin=null, bestCnt=0;
+      for(bi in bins) if(bins[bi]>bestCnt){ bestCnt=bins[bi]; bestBin=+bi; }
+      if(bestCnt>=lines.length*0.35){
+        var sel=dips.filter(function(d){ return Math.abs(d-bestBin)<=2; });
+        var sum=0; sel.forEach(function(d){ sum+=d; });
+        return { v:sum/sel.length, medG:0, maxG:0, skip:skip, lines:lines, method:"dip" };
+      }
+    }
+    // terugval: v2.13-gradient-methode
     // kalibratie: mediaan van de sterkste pieken bepaalt de drempel
     var gs=lines.map(function(l){ return l.bestG; }).sort(function(a,b){ return a-b; });
     var medG=gs[Math.floor(gs.length/2)];
@@ -501,12 +525,13 @@ function analyzeCentering(){
   var rTop=measureSide(true,true), rBot=measureSide(false,true);
   var rLeft=measureSide(true,false), rRight=measureSide(false,false);
   // v2.13: pass 2 met kruis-validatie tussen de zijden
+  // (v2.17: alleen voor gradient-metingen; dip-metingen zijn al robuust)
   var okSides=[rTop,rBot,rLeft,rRight].filter(function(r){ return r&&!r.fail; });
   if(okSides.length>=2){
     var expect=okSides.map(function(r){ return r.v; }).sort(function(a,b){ return a-b; });
     var expMed=expect[Math.floor(expect.length/2)];
-    rTop=repick(rTop,expMed); rBot=repick(rBot,expMed);
-    rLeft=repick(rLeft,expMed); rRight=repick(rRight,expMed);
+    function guard(r){ return (r&&!r.fail&&r.method!=="dip")?repick(r,expMed):r; }
+    rTop=guard(rTop); rBot=guard(rBot); rLeft=guard(rLeft); rRight=guard(rRight);
   }
   if(!rTop||!rBot||!rLeft||!rRight||rTop.fail||rBot.fail||rLeft.fail||rRight.fail){
     return { fail:true, tTop:rTop, tBot:rBot, tLeft:rLeft, tRight:rRight,
@@ -753,6 +778,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="vKNF3uXgXbu7RkURD3OoAA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="J3shJY0PkWUXcElcd6ObAg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
