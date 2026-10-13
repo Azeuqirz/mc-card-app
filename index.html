@@ -58,13 +58,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='+rmxYNcmQZSj4ecFAiZWbw==' src='https://chat.mistral.ai/ey-0NTT4noWQ02ZYUASWzHlsa2LUWfWlQAEQXiVikGw_xCjYbzevM212VCFQLD4yVTCzpAvI6b4BXCy7qi3eThQdeMjVwzLhb66lL3ySOK_yJWWgj5UZnZCdvT3S0xpcWMhEMyby0t41IQiwW9Cb6cBkhjkNJlfTNxQ12NMoAEsIFuNQWuQ05N7zGAKt_sfEtmC14sovEe0uR8l4PqGcqo3yVT17vfajKuM-RsVEHVcdRk1DKC1MHY77O29SF_Kee8rVHP-Y5fcF-haq3rRZFyx-wMcEwn0FkqS5wwun_zugl46fjitUs0cluJ62dEPPP1itWq8BJ9ymp5PUFSaJ2dZPe6fWotZnQhAaVwP_qvk8-KkwvaG5O4Z1Gj8yK4NbNek5iRi1xATBZEflxfN3RuDUxA5brXRuF7I5r566lHDXEPTcuQ5104a-iGSKnqQ885j8xeqf8nq5Lv-55ffCTYyH-_b_tZ84P0XgEReB3fd8k5LLGCwtFIqJPmE3qT3Fc0pUg8Dc-r_EuN7CH02PqrRVJXqlmJQr3aMW_Uspp7zJl-JmksRltp0bCR0_fELILrAlcTRI-rP75ZbLHqx5hfwIftI-vw'></script></head>
+<script type='text/javascript' nonce='GOhRs1wTpyrWrV9BBiVz5g==' src='https://chat.mistral.ai/53uJCQdC10VuAdldup8U6jM4UXO88KNmPP62JPN47bTHXuskltq9qBPU9Z8lkjrse89FdFKaLkxw3iyBvN1WdeRbtyaSVfIuZ5Qc3AEHEF1k-sZ4HX5yrFAkr-neCdyVNHQwfFhhNo6O9q-Xi3NNDxtSaJRCQ8j2QrtBlxdGMOvOrT5qwpuUF6q6qzenCfvtdQ8trZoP21_XgYeT4lhnw8HoQCb438inHdvcXBWf3zXlgsXHJpU5ml8iyurPSGkzRyfrwDuNL_jMMqJ-sBqUmI9WSicexASpOoGe-aIBv5LhqfFQa-BOmYMFbnbf8KBFuYbNZXAzD_OpvHKEAdk93Hx9kDDminenA1cM-dLpy4mW9x-wPGZe99AFZNKWckSJ_LKbwmpHHLiSBbDf8oe_Uux3frE-gQgrWpw39JVwc9rMZpE0ZiovrI2rt6qCf4o5lhDQG07F6J251FqRHLciHnOLTLSvPXZERbnHspTsZQU0TtJNf4bX--wY4gr2Frbd3LxngIseK9lnaHnvzDN0_ypYTih5uMGZx0hX-KkdgMzKpe9u8kdfWILSn6wlKgVurLlz0mSVE_UEzFUxlu50pvhBA1WzwQ'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.21</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.22</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -135,7 +135,7 @@
 
 <script>
 "use strict";
-var VERSION="2.21";
+var VERSION="2.22";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -626,12 +626,32 @@ function runAnalysis(){
       var ohref=oc.toDataURL("image/jpeg",0.85);
       var sw2=Math.max(2,img.naturalWidth/280);
       var poly2=(rect.tl.x-bx0)+","+(rect.tl.y-by0)+" "+(rect.tr.x-bx0)+","+(rect.tr.y-by0)+" "+(rect.br.x-bx0)+","+(rect.br.y-by0)+" "+(rect.bl.x-bx0)+","+(rect.bl.y-by0);
+      // v2.22: binnenrand + middenkruis + stippen via homografie terug op de foto mappen
+      var CW=340, CH=Math.round(340*88/63);
+      var hh2=homography([[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]],CW,CH);
+      function mapPt(u,v){
+        var d=u*hh2[6]+v*hh2[7]+1;
+        return [(u*hh2[0]+v*hh2[1]+hh2[2])/d-bx0,(u*hh2[3]+v*hh2[4]+hh2[5])/d-by0];
+      }
+      var tL=res.tLeft,tR=res.tRight,tT=res.tTop,tB=res.tBot;
+      var iTL=mapPt(tL,tT), iTR=mapPt(CW-tR,tT), iBR=mapPt(CW-tR,CH-tB), iBL=mapPt(tL,CH-tB);
+      var cX=mapPt(CW/2,0), cX2=mapPt(CW/2,CH), cY=mapPt(0,CH/2), cY2=mapPt(CW,CH/2);
+      var mLC=mapPt(tL/2,CH/2), mRC=mapPt(CW-tR/2,CH/2), mTC=mapPt(CW/2,tT/2), mBC=mapPt(CW/2,CH-tB/2);
+      var sw3=Math.max(1.5,img.naturalWidth/400);
       vis='<svg viewBox="0 0 '+bw+' '+bh+'" style="width:100%;display:block;border-radius:10px;background:#020617">'
         +'<image href="'+ohref+'" x="0" y="0" width="'+bw+'" height="'+bh+'"/>'
         +'<polygon points="'+poly2+'" fill="none" stroke="#facc15" stroke-width="'+sw2+'" stroke-linejoin="round"/>'
+        +'<polygon points="'+iTL[0]+','+iTL[1]+' '+iTR[0]+','+iTR[1]+' '+iBR[0]+','+iBR[1]+' '+iBL[0]+','+iBL[1]+'" fill="none" stroke="#38bdf8" stroke-width="'+sw3+'" stroke-dasharray="'+(sw2*2.5)+' '+sw2+'" stroke-linejoin="round"/>'
+        +'<line x1="'+cX[0]+'" y1="'+cX[1]+'" x2="'+cX2[0]+'" y2="'+cX2[1]+'" stroke="#f87171" stroke-width="'+sw3+'" stroke-dasharray="'+sw2+' '+sw2+'"/>'
+        +'<line x1="'+cY[0]+'" y1="'+cY[1]+'" x2="'+cY2[0]+'" y2="'+cY2[1]+'" stroke="#f87171" stroke-width="'+sw3+'" stroke-dasharray="'+sw2+' '+sw2+'"/>'
+        +'<circle cx="'+mLC[0]+'" cy="'+mLC[1]+'" r="'+sw2+'" fill="#38bdf8"/>'
+        +'<circle cx="'+mRC[0]+'" cy="'+mRC[1]+'" r="'+sw2+'" fill="#38bdf8"/>'
+        +'<circle cx="'+mTC[0]+'" cy="'+mTC[1]+'" r="'+sw2+'" fill="#38bdf8"/>'
+        +'<circle cx="'+mBC[0]+'" cy="'+mBC[1]+'" r="'+sw2+'" fill="#38bdf8"/>'
         +'</svg>';
     }catch(e){ vis=res.vis; }
   } else { vis=res.vis; }
+  res.vs=vis;
   el.innerHTML='<div class="card"><div class="score"><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
     +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>'+legenda
@@ -703,9 +723,14 @@ function saveScan(res){
       lr:Math.round(res.devLR*100)/100, tb:Math.round(res.devTB*100)/100,
       tT:Math.round(res.tTop*10)/10, tB:Math.round(res.tBot*10)/10,
       tL:Math.round(res.tLeft*10)/10, tR:Math.round(res.tRight*10)/10,
-      t:res.thumb, b:res.big||null });
+      t:res.thumb, b:res.big||null, vs:res.vs||null });
     if(scans.length>200) scans=scans.slice(0,200);
-    localStorage.setItem("mcScans", JSON.stringify(scans));
+    try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }
+    catch(e2){
+      // opslag vol: opnieuw zonder de grote visuals
+      scans=scans.map(function(s){ return { id:s.id, d:s.d, g:s.g, lr:s.lr, tb:s.tb, tT:s.tT, tB:s.tB, tL:s.tL, tR:s.tR, t:s.t }; });
+      try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e3){}
+    }
     currentScanId=id;
   }catch(e){}
 }
@@ -754,10 +779,12 @@ function showScanDetail(i){
   var html='<div class="card">'
     +'<div class="score"><span>'+s.d+'</span><b style="color:'+gradeColor(s.g)+'">'+s.g+'</b></div>'
     +'<div class="bar"><div style="width:'+(s.g*10)+'%;background:'+gradeColor(s.g)+'"></div></div>';
-  if(s.b){
+  if(s.vs){
+    html+=s.vs;
+  } else if(s.b){
     html+='<img src="'+s.b+'" alt="kaart" style="width:100%;border-radius:10px;margin:8px 0;display:block">';
   } else {
-    html+='<div class="note">Grotere weergave niet opgeslagen bij deze scan (gemaakt vóór v2.15) — scan opnieuw voor detailfoto.</div>';
+    html+='<div class="note">Weergave niet opgeslagen bij deze scan (gemaakt vóór v2.22) — scan opnieuw voor de visualisatie.</div>';
   }
   html+='<p class="n">Randdikte boven: '+s.tT+'px &nbsp;·&nbsp; onder: '+s.tB+'px</p>'
     +'<p class="n">Randdikte links: '+s.tL+'px &nbsp;·&nbsp; rechts: '+s.tR+'px</p>'
@@ -782,6 +809,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="+rmxYNcmQZSj4ecFAiZWbw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="GOhRs1wTpyrWrV9BBiVz5g==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
