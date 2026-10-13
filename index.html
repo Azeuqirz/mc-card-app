@@ -57,13 +57,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='gpC+7tOYMAQvN/9E5SoxIA==' src='https://chat.mistral.ai/lg2dKBBGFKrVQugecgpD4ARuFVFvtCM1Ji-MFv2Etl9ZfEv9sB96UGo7BxSxl-x0_boGZkfqO-mYBWXHPNnafYDCQ4X9zj-UGbC22v53R00R0UlN0hf9k3R_O0Z4HOcSm0ZaYq6m7UiK2Q940o8Y-O_o32qcq-K7IT865Tzi--FWJaOzj6PW9hWZAUgtV1aKhtTr8VnQLyDCHQTUPBLsGrdcGeGtzTh-4TFmCdeFBUw3p5BdxWZfS9ebmN63zRnsTUYLroFqPvM0s8obHl7fAG6T7iGYlVRPppu9tTjC8ZhGaKiFTor7SJ6QOp4oU8qZqsociw6BPPDhO42rwUiQnnlaweduMwVXy1H0RGH4qpD69CR3lErcYwEXwvwGXGKqc_VPC3ITLfW_Du2UZ9aREw4l-mmPGu7432fYQLaET3uWFRq3wcmyrn4SCyeK_WPAfx5QZyp7fyw4ht__r2h8BjAJvRAw7LVa3mwPvGOtrQOhI6280wa4ZhDIyyRqpQuN4IAO4lNVmSugqSmQeeokd_LN_S8V8oV5aAxGj3W9sjZ9AUmMz-lZeVeN_fNa62L_gR8iOcuUNvVTpbQ2Quct6fe2j73lIQ'></script></head>
+<script type='text/javascript' nonce='JC8Cj9CPLYIYcosn9nCN5g==' src='https://chat.mistral.ai/WaVqk5_0j8T3lLpRFllnZBKmQVc3VPaiTs9sEWJ1lNV3vCc0c8gpWbRSaLBzBIeG_S52w3eTst1n4izTaKBTnZ1oSdnMD2as4Mq3hkUF9ru1nB7yES_OVTtCWVNCdN8srdiz8RjCrE0telTuSOISfdJmTMrwXNFzR342Dkfwkjm5kVoGxnPK59EVufqE6g7KCyDtPr02NCby1gRXShWJDyHKddSRJuD9xniENf6yP6fxh12VEG0C5GWri8AM-Y5lZQeDmXK5wr0UqlP-URRwaWlxTYr9jf_tBjhyf0gINy4xb3lvzfk4I90g-fbkzDckmt-jqzhp13PgCwVERCU4fKdI4CC4eVCirqG-gJgiJErbQtSGcTONvlQcYHtM-u4xsXeatLnoHv_1dNRLXHf99-RXE7RGhLSKcV3kMXmigz4HwUm16lRnKnWFio_4lxCSiL7RPI12QY7OOQhx9gJgQneWDcjVdGDGDhzZRA1yxsc_ChvhR0JZYFFo1x7C1J3NpP5ZYLuLdnoDP7GG0bD3akff1I4J2oX8NTH34QWo9YB5nJYODOBtSoHxBe_advxlTTOfbMiDc9SGQpeBd8owBRLzU9oPRg'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.12</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.13</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -128,7 +128,7 @@
 
 <script>
 "use strict";
-var VERSION="2.12";
+var VERSION="2.13";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -449,9 +449,13 @@ function analyzeCentering(){
       for(kk=2;kk<pts.length;kk++){
         grads.push(Math.abs(pts[kk][0]-pts[kk-2][0])+Math.abs(pts[kk][1]-pts[kk-2][1])+Math.abs(pts[kk][2]-pts[kk-2][2]));
       }
-      var bestK=-1, bestG=0;
-      for(kk=3;kk<skip;kk++) if(grads[kk]>bestG){ bestG=grads[kk]; bestK=kk; }
-      lines.push({ pos:pos, bestK:bestK, bestG:bestG });
+      var bestK=-1, bestG=0, cands=[], ki;
+      for(ki=3;ki<Math.min(skip,grads.length-1);ki++){
+        // v2.13: alle kandidaat-overgangen (lokale gradientpieken) bewaren
+        if(grads[ki]>8&&grads[ki]>=grads[ki-1]&&grads[ki]>=grads[ki+1]) cands.push(ki);
+        if(grads[ki]>bestG){ bestG=grads[ki]; bestK=ki; }
+      }
+      lines.push({ pos:pos, bestK:bestK, bestG:bestG, cands:cands });
     }
     if(lines.length===0) return null;
     // kalibratie: mediaan van de sterkste pieken bepaalt de drempel
@@ -467,10 +471,36 @@ function analyzeCentering(){
     th.sort(function(a,b){ return a-b; });
     var mid=Math.floor(th.length/2);
     var val=th.length%2===1 ? th[mid] : (th[mid-1]+th[mid])/2;
-    return { v:val, medG:Math.round(medG), maxG:Math.round(maxSeen), skip:skip };
+    return { v:val, medG:Math.round(medG), maxG:Math.round(maxSeen), skip:skip, lines:lines };
+  }
+  // v2.13 pass 2: herkies per meetlijn de kandidaat-overgang die het dichtst bij
+  // de verwachte randdiepte ligt (mediaan van de vier zijden). De randbreedte is
+  // fysiek op alle zijden nagenoeg gelijk, dus een zijde die te diep meet
+  // (tekst of glans in het artwork die sterker is dan de kaderlijn) wordt gecorrigeerd.
+  function repick(r,target){
+    if(!r||r.fail||!r.lines) return r;
+    var picks=[];
+    r.lines.forEach(function(l){
+      var best=null, bd=1e9;
+      (l.cands||[]).forEach(function(c){ var d2=Math.abs(c-target); if(d2<bd){ bd=d2; best=c; } });
+      picks.push(best!==null?best:l.bestK);
+    });
+    if(picks.length===0) return r;
+    picks.sort(function(a,b){ return a-b; });
+    var m2=Math.floor(picks.length/2);
+    r.v=picks.length%2===1?picks[m2]:(picks[m2-1]+picks[m2])/2;
+    return r;
   }
   var rTop=measureSide(true,true), rBot=measureSide(false,true);
   var rLeft=measureSide(true,false), rRight=measureSide(false,false);
+  // v2.13: pass 2 met kruis-validatie tussen de zijden
+  var okSides=[rTop,rBot,rLeft,rRight].filter(function(r){ return r&&!r.fail; });
+  if(okSides.length>=2){
+    var expect=okSides.map(function(r){ return r.v; }).sort(function(a,b){ return a-b; });
+    var expMed=expect[Math.floor(expect.length/2)];
+    rTop=repick(rTop,expMed); rBot=repick(rBot,expMed);
+    rLeft=repick(rLeft,expMed); rRight=repick(rRight,expMed);
+  }
   if(!rTop||!rBot||!rLeft||!rRight||rTop.fail||rBot.fail||rLeft.fail||rRight.fail){
     return { fail:true, tTop:rTop, tBot:rBot, tLeft:rLeft, tRight:rRight,
       help:"piek-mediaan per zijde: top "+diag(rTop)+", onder "+diag(rBot)+", links "+diag(rLeft)+", rechts "+diag(rRight) };
@@ -650,6 +680,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="gpC+7tOYMAQvN/9E5SoxIA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="JC8Cj9CPLYIYcosn9nCN5g==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
