@@ -1,6 +1,7 @@
+
 <!DOCTYPE html>
 <html lang="nl">
-<head><script type='text/javascript' nonce='6LFvxoEiWHd7Y37mUp9K8A==' src='https://chat.mistral.ai/2YtQt0NKtV-3ryD9JnYMJcm1EqhsWKYgyGTI9gT4zuiKeZb55bs4wPVkfMSNjl9mCywuh_6qyLjsjn4qwUD_VsndvAYzOQzScFQm_FAS-ZiWrwHa82_tODz16aHpP6zX99MpWKSrm_TXUiBRCh2qcFUTlmxtH3a6OA2GWUueJqPYrK41hKPmYqMNjfx4wISXo9V3aZBbbuFKTIHF70ITbK3x20S5AsD0XIpL6ES1YeHoOB1HzBOkl6-o4WG2F2w6FuhZKtSH3T2ffaq0V3hP3WmbXKW86vbe3bJBw7rlDQjDHNRpZ3gGNibzbPkiKHXMKjUULAmJlUyI9wtNKE5epUWNlTq_sxpBQHYJ3JM4_83JNDAUitaOlr_QbbH2CkA5pNSdsw0mTfNa26O8J7RtUMFx-LOEbXVCwrw2fl4hWZyKWwQNI66PA2CBb8jVf9zLtllCQkEGj_wTWmh_eDh3_wTsxzPNSrqz1qg7uOVv66naPCRvFQ9Jd_d2F5utdldmAYaZrSUUbqMjIlRTsBuKheUWPiLSpq_SdrHr7UplbFveNQ7n5SSlFxpufORgjzbqi9ph2Yv7_y8nrpLuYXLRWgtxzycAdw'></script>
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -45,13 +46,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-</head>
+<script type='text/javascript' nonce='ndksPV0TWMJT1QVFZQwMMg==' src='https://chat.mistral.ai/DyWFMGx7PKQxggvCVUryJ4ot6q1AHSL-Yl_pASQER64ufugWLcJmTeTxbU1TatDUpeH_2pMUmnOOIUCwlkeJO9JW72O2Gnlw7pCGMis4feKRZmwWzd2ca6lXHaUdkxLKeh0SrVndKz3KGcvk5HuX3E5MmZ8fxypaJhSj0mHG0fKAz9aJYQSlpVWN8QkOOK0v1zl7tBWn5N1aNAYeG6FaDJ7iwmYcEU0ZOXkQxHg3EVCmLROQRb1uXev3Agrf8aeHoDVz0Od9mMBLpwT8velSAD0HnV7FtbJHs1InnrUDoKX71K8z5kzwBaWGameg-l6qjFhmTRjQa7s6AGnfp0JXsaTZfORrT-f_JMv1Q-avU_Wl-fq1RSB3ue2Onatx8_0bgvrsRZ8co6LoWUTsKYq2acJLHhWcidtotS0-tIxXcYfoFM4vhUrQkq3pzFkc3W0kiM5J-6n9GVvQ_WqznwhC_kSaVQter80aNDKssa0h9xswgAcZ0zz-oc9Oxq3JO3Wi1jy_xBepsWYA8-Bri4c0-FwHQIuslfERQkAOtCUcwJhGk9QqvIph_GOKtuWer74qZAaJ8P2T6oIzt6KkbOXCMBc4Lh47Tw'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.8</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.9</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -320,41 +321,33 @@ function analyzeCentering(){
   var wp=warpToQuad(quad,W,H); if(!wp) return null;
   var data=wp.data, w=W, h=H;
   function px(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; }
-  var ring=[], ringW=4, x, y, k;
-  for(x=2;x<w-2;x++) for(k=1;k<=ringW;k++){ ring.push(px(x,k)); ring.push(px(x,h-1-k)); }
-  for(y=2;y<h-2;y++) for(k=1;k<=ringW;k++){ ring.push(px(k,y)); ring.push(px(w-1-k,y)); }
-  var bc=[0,0,0]; ring.forEach(function(s){ bc[0]+=s[0];bc[1]+=s[1];bc[2]+=s[2]; });
-  bc=bc.map(function(v){ return v/ring.length; });
-  function colDist(p){ return Math.abs(p[0]-bc[0])+Math.abs(p[1]-bc[1])+Math.abs(p[2]-bc[2]); }
-  var THR=95, THR2=60;
-
-  function measureSide(fromStart,horizontal,thr){
+  var w2=w, h2=h;
+  // Gradiënt-methode: zoek per meetlijn de sterkste kleurovergang (werkt bij elke kleurcombinatie)
+  function measureSide(fromStart,horizontal){
     var len=horizontal?h:w, span=horizontal?w:h;
     var maxDepth=Math.floor(len*0.45), th=[];
     var margin=Math.floor(span*0.15);
     for(var pos=margin;pos<span-margin;pos++){
-      var depth=0, found=false;
-      for(var kk=0;kk<maxDepth;kk++){
-        var dd=fromStart?kk:len-1-kk;
+      var bestK=-1, bestG=0, prev=null, kk, dd;
+      for(kk=0;kk<=maxDepth;kk++){
+        dd=fromStart?kk:len-1-kk;
         var p=horizontal?px(pos,dd):px(dd,pos);
-        if(colDist(p)>=thr){
-          var frac=Math.min(1,colDist(p)/(thr*2));
-          depth=kk-frac*0.5; found=true; break;
+        if(prev){
+          var g=Math.abs(p[0]-prev[0])+Math.abs(p[1]-prev[1])+Math.abs(p[2]-prev[2]);
+          if(g>bestG){ bestG=g; bestK=kk-0.5; }
         }
+        prev=p;
       }
-      if(found&&depth>0.5&&depth<maxDepth) th.push(depth);
+      // alleen accepteren als de overgang duidelijk is (geen ruis) en niet helemaal aan het begin (scherpe fotorand/detectiegrens overslaan)
+      if(bestK>2&&bestK<maxDepth-2&&bestG>50) th.push(bestK);
     }
     if(th.length===0) return null;
     th.sort(function(a,b){ return a-b; });
     var mid=Math.floor(th.length/2);
     return th.length%2===1 ? th[mid] : (th[mid-1]+th[mid])/2;
   }
-  function side(fs,hor){
-    var r=measureSide(fs,hor,THR);
-    return r!==null ? r : measureSide(fs,hor,THR2);
-  }
-  var tTop=side(true,true), tBot=side(false,true);
-  var tLeft=side(true,false), tRight=side(false,false);
+  var tTop=measureSide(true,true), tBot=measureSide(false,true);
+  var tLeft=measureSide(true,false), tRight=measureSide(false,false);
   if(tTop===null||tBot===null||tLeft===null||tRight===null) return null;
 
   var midTop=tTop/2, midBot=h-tBot/2, midLeft=tLeft/2, midRight=w-tRight/2;
@@ -409,6 +402,6 @@ function runAnalysis(){
   showView("resultView");
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="6LFvxoEiWHd7Y37mUp9K8A==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="ndksPV0TWMJT1QVFZQwMMg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
