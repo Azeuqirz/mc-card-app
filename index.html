@@ -49,17 +49,25 @@
   .scanItem .sg { font-size:18px; font-weight:800; }
   .scanItem button { background:#1e293b; border:0; color:#f87171; border-radius:8px;
     padding:8px 10px; font-size:13px; font-weight:700; }
+  .zoomBar { display:flex; gap:8px; align-items:center; margin:8px 0 4px; }
+  .zoomBar button { background:#1e293b; border:0; color:#e2e8f0; border-radius:8px;
+    padding:6px 12px; font-size:14px; font-weight:700; }
+  .zoomBar span { font-size:12px; color:#64748b; }
+  .zoomWrap { position:relative; overflow:auto; touch-action:none; user-select:none;
+    -webkit-user-select:none; background:#020617; border-radius:10px; max-height:52vh; }
+  .zoomInner { transform-origin:0 0; width:100%; }
+  .zoomInner svg { display:block; }
   .card { background:#0f172a; border-radius:16px; padding:16px; margin-bottom:14px; }
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='ZmaEK2s44j8bpUbUP0Q/Tw==' src='https://chat.mistral.ai/y4Q4RUps4KMSaT0SmpLSdb6SuiLhLxzwZ-i8COpRwFd_vtT-uP5EEMPrO1wsvYOC3jIJmxo0BCklIYUG9NN5n0HiGCQPRXEQzMQCMJwdxvXHRdURlLaLuTTI_nTFDfp49wMh_SbYlwMNJExUh0PNczHHaZhwDslcgCCMetBLld4dMY41UK_ntQjYD0Bi1RfEW5cekFkuZFcBaT5jqEjVuN9riwC-rEuUgPMrds0ef6PLw7K5nc2MwAhci4RJbcspSeYn9dw71EKv_hjl6C9TBVTAFmgEbc5vlr5_ySpCVRHs925IOpXvyUFmDnLIXavopqgmRrmH6xlqs6JzsDPVB8EqJZdRoyC0BXaTJGeUdcXXr7UStYTwpsAK9pYZpuG2UIrV6qwTfElDFojkQ6NmjS2F3D67m0QNRNh4UJ5egCsp5DtStsGB1em21xHzEo264vnUhsZ9cN-gfnjgSyV2qvAdloXFP4ED0i9i1O1nwV0MyWKLEzinFEALqeYfRdlfBl9JP5EKTi7RwNmT7pG-0Y2z_CT1nT4zILnN-SLUQKFr5Gc9qKHL29v_YMWry9_MbCevE8kWmaC0-2v3Emiq3D9DPY7Qqg'></script></head>
+<script type='text/javascript' nonce='LPV94SN3FSGJjDBWs9/ePg==' src='https://chat.mistral.ai/HZwVnyufQeXYJ2bun0T7zNDOb08hcbz212Ywa929yLjKstjOLlh-Ba1vz7i5M8Tk9AZDrqujXSRVTzxUyd9biE5n6InOtnYVMon3pRIBqi_8XPsS8CT4CX1U73Mdpf3yFYYgH7l1rWPiFMH-kQKIQIieRJuUoCWlqIJpXRDZdh9lCW9mQQN-48ueqJYux3a8sezamiq4o_Vacvt9eQRe8pbTgDGmPnsaX8YxS1ABB35T4SOG_qHK4z__5h7QNUTdYEqpv56HDU9E6s0epoVrwsaSgH3nOzjVvi1S_kfHLvvwK_0Z-ORpITxOoyVUa9k2ENyVGMciT61zI0D7x3IuiqBpbswvmROAwGtmqoOT4OAHgY28gAFyJv4NDZ4alN0vt76MdRyZbtjFoZ4mIRbgvQBtQpb2mC-80KTtxnvpAqW48veU_Xo43C3NLDiKoOOrBlWQqhdznF6RY31_DiDH_FZT8hN3RvSC7UQoyeMdV1lyoaqZEfn9N90KiYOY1SjlMtquC6QU_th9W_uMTWZd1WoLvz4J8aeQ0MMldoehxB-g2lhivSdQqnGuxam3NviLMVihyMsf-n0v9jcASEVKYqDqAUeAKQ'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.9</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.11</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -107,7 +115,11 @@
 <!-- ===== RESULTAAT ===== -->
 <div class="view" id="resultView">
   <div id="resultScroll"></div>
-  <button class="btn dark" onclick="showView('scan')">⬅ Terug naar foto</button>
+  <div style="display:flex;gap:8px">
+    <button class="btn dark" style="margin-top:8px" onclick="showView('scan')">⬅ Foto</button>
+    <button class="btn dark" style="margin-top:8px" onclick="renderHistory()">📚 Database</button>
+    <button class="btn dark" style="margin-top:8px" onclick="showView('home')">🏠 Home</button>
+  </div>
 </div>
 
 <!-- ===== HISTORIE & RAPPORT ===== -->
@@ -120,7 +132,7 @@
 
 <script>
 "use strict";
-var VERSION="2.9";
+var VERSION="2.11";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -305,6 +317,44 @@ function detectCard(im){
     }
     var L=fitV(leftPts), R=fitV(rightPts), T=fitH(topPts), B=fitH(botPts);
     if(!L||!R||!T||!B) return null;
+    // v2.10: randverfijning — zoek per zijde de sterkste kleurovergang (de echte
+    // kaart/achtergrond-grens) in een venster rond de gefitte lijn. Een drempel-
+    // detectie kan achtergrond (lichte band, schaduw) ten onrechte als kaart
+    // tellen; de gradiënt-piek ligt altijd op de echte rand.
+    function gradX(x,y){ if(x<1||x>w-2||y<0||y>=h) return 0; var a=px(x-1,y), b=px(x+1,y); return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]); }
+    function gradY(x,y){ if(y<1||y>h-2||x<0||x>=w) return 0; var a=px(x,y-1), b=px(x,y+1); return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]); }
+    function midRange(a,b){
+      var s=[], step=Math.max(1,Math.floor((b-a)/60));
+      for(var i=Math.floor(a+(b-a)*0.15);i<=Math.floor(a+(b-a)*0.85);i+=step) s.push(i);
+      return s;
+    }
+    function refineSide(fit, along, gradAt, offMin, offMax, vertical){
+      if(!fit) return null;
+      var peaks=[], i;
+      for(i=0;i<along.length;i++){
+        var pos=along[i];
+        var c=Math.round(fit.a*pos+fit.b), cc, g, maxG=0;
+        for(cc=c+offMin;cc<=c+offMax;cc++){ g=gradAt(cc,pos); if(g>maxG) maxG=g; }
+        if(maxG<15) continue;
+        var thr=maxG*0.6, pick=-1;
+        if(offMax<=10){
+          // buitenkant = hogere cc: van buiten naar binnen (aflopend) scannen
+          for(cc=c+offMax;cc>=c+offMin;cc--){ if(gradAt(cc,pos)>=thr){ pick=cc; break; } }
+        } else {
+          // buitenkant = lagere cc: van buiten naar binnen (oplopend) scannen
+          for(cc=c+offMin;cc<=c+offMax;cc++){ if(gradAt(cc,pos)>=thr){ pick=cc; break; } }
+        }
+        if(pick>=0) peaks.push({ c:pick, pos:pos, g:maxG });
+      }
+      if(peaks.length<8) return null;
+      var pts=peaks.map(function(p){ return vertical ? [p.c,p.pos] : [p.pos,p.c]; });
+      return vertical ? fitV(pts) : fitH(pts);
+    }
+    var ys=midRange(rows[0],rows[1]), xs=midRange(cols[0],cols[1]);
+    L=refineSide(L, ys, function(cc,pos){ return gradX(cc,pos); }, -10, 35, true) || L;
+    R=refineSide(R, ys, function(cc,pos){ return gradX(cc,pos); }, -35, 10, true) || R;
+    T=refineSide(T, xs, function(cc,pos){ return gradY(pos,cc); }, -10, 35, false) || T;
+    B=refineSide(B, xs, function(cc,pos){ return gradY(pos,cc); }, -35, 10, false) || B;
     function ix(v,hh){
       var den=1-v.a*hh.a;
       if(Math.abs(den)<1e-6) return null;
@@ -483,10 +533,65 @@ function runAnalysis(){
   var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: randmidden</p>';
   el.innerHTML='<div class="card"><div class="score"><span>Centering score</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
-    +res.vis+legenda
+    +'<div class="zoomBar"><button onclick="zoomStep(1.3)">🔍＋</button><button onclick="zoomStep(1/1.3)">➖</button><button onclick="setZoom(1)">⟲</button><span id="zoomLabel">100%</span><span style="margin-left:auto">knijpen = zoomen</span></div>'
+    +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+res.vis+'</div></div>'+legenda
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")+'</div>';
+  attachZoom();
   saveScan(res);
   showView("resultView");
+}
+
+// ---------- Zoom op de analyse-visualisatie ----------
+var zs=1;
+function setZoom(s){
+  zs=Math.min(4,Math.max(0.5,s));
+  var inner=document.getElementById("zoomInner");
+  if(inner) inner.style.transform="scale("+zs+")";
+  var lb=document.getElementById("zoomLabel");
+  if(lb) lb.textContent=Math.round(zs*100)+"%";
+}
+function zoomStep(f){ setZoom(zs*f); }
+function attachZoom(){
+  var wrap=document.getElementById("zoomWrap"); if(!wrap) return;
+  var pts={}, lastDist=0, lastPan=null, lastTap=0;
+  wrap.onpointerdown=function(e){
+    e.preventDefault();
+    pts[e.pointerId]=[e.clientX,e.clientY];
+    try{ wrap.setPointerCapture(e.pointerId); }catch(err){}
+    if(Object.keys(pts).length===1){
+      var now=Date.now();
+      if(now-lastTap<300){ setZoom(zs>1.4?1:2.5); }
+      lastTap=now;
+      lastPan=[e.clientX,e.clientY];
+    }
+    if(Object.keys(pts).length===2){
+      var ids=Object.keys(pts);
+      lastDist=Math.hypot(pts[ids[0]][0]-pts[ids[1]][0], pts[ids[0]][1]-pts[ids[1]][1]);
+    }
+  };
+  wrap.onpointermove=function(e){
+    if(!(e.pointerId in pts)) return;
+    pts[e.pointerId]=[e.clientX,e.clientY];
+    var ids=Object.keys(pts);
+    if(ids.length===2){
+      var d=Math.hypot(pts[ids[0]][0]-pts[ids[1]][0], pts[ids[0]][1]-pts[ids[1]][1]);
+      if(lastDist>0) setZoom(zs*d/lastDist);
+      lastDist=d;
+      lastPan=null;
+    } else if(lastPan){
+      wrap.scrollLeft-=(e.clientX-lastPan[0]);
+      wrap.scrollTop-=(e.clientY-lastPan[1]);
+      lastPan=[e.clientX,e.clientY];
+    }
+  };
+  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
+    wrap.addEventListener(ev,function(e){
+      delete pts[e.pointerId];
+      if(Object.keys(pts).length<2) lastDist=0;
+      lastPan=null;
+    });
+  });
+  setZoom(1);
 }
 
 // ---------- Scan-database (lokaal opgeslagen op deze iPhone) ----------
@@ -551,6 +656,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="ZmaEK2s44j8bpUbUP0Q/Tw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="LPV94SN3FSGJjDBWs9/ePg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
