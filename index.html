@@ -1,6 +1,7 @@
+
 <!DOCTYPE html>
 <html lang="nl">
-<head><script type='text/javascript' nonce='45aJgmvxj0GIrsZLcFTO1g==' src='https://chat.mistral.ai/Dg1bnQBjTA-7rYhY_g2lq9JTdp6abWtc_xoWl_n1plCbHI8X6X9obaD7agUjKKjV-wTiWRKGQ2rHD1sIgqp2k7-rVGXd9oWhDRUHFmf5CDuwlAmOMt_LJGXinQW-xal_29RBhAUIJlMwTpgPDJcdW7_ODF0gmQ8C2PviGi8th6mLQ6P9hETYPE99bG6WHAgdIh4T2ixi968S2xp7EIsefzaM35jciFuhny0h9vOt4dZoL05fyEAaOGoPCC9-y_vEbcBzuq2dPG3kXPn4o2ICDrROjTP6cNPTS85NwkDvzJqGujmYp73pnV_G8Rm7dwut3lm63RhkYga8-fWOoASNGPhrJSdJNGGF6XUJq4TnXvBbjjNBqlOPWG18Vs8Erysen9Bw2OlAlKadv-wFWQTCjPhLIJenBeYh9Tgf7V1VadiFfjsYaEuNjpahPCglf_i4zATp8DXMNdmIT01Jt1yucbCarTENysxAKYtTox52AKuavlQq_X-CB4gJAw7nte_nXCFPmTmnfL8jbDnugKzkzgpzq8dcsLgAdv57aWIl1-EZ4boV2B0KJTUJDxs6cDkisi0FTznNFzHyjvAh2BIjez7MWP-Ckg'></script>
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -36,12 +37,13 @@
   .bar { height:8px; background:#1e293b; border-radius:99px; overflow:hidden; margin:6px 0 10px; }
   .bar > div { height:100%; border-radius:99px; }
   .n { font-size:12px; color:#cbd5e1; margin:3px 0; }
+  input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-</head>
+<script type='text/javascript' nonce='coo8u8Q9DoA0JFSp+2KfmA==' src='https://chat.mistral.ai/x_xgs7XbGhu-rklucBtWX74-YXboUSt_M0-OXEglra2Q7Wf3i-XBfGIpeAW6EiMsqYFRf9QLdWYEp84mx-JvsbCdJch_8kB1nDG_b9orMcrnCcKW_TyYpf3kNXCi-gI7W1cemwo7BdQMPnQ23qpZBkRCyfDSgnxNBEvsrPeC2MppiUp7O03UryOImInf1LGh7oeKBssvSMdipT5qMwXZ42R1nVX71nLZaBAJfPWXFhcs4nR1xmVwv0TNZJ2CciXdbXVvvJfLP7eXnRG0ysNCRuW4stFvM9Lf00JQd_9RnjEQyIuDk5NgB7K28iSW-ABOrHctTufu0IiOa6kNh5EspNou6L_c4llsXD_5ojRd9wXVVjxoUjwljwgv8RlP68F6hqwGy8KiblifLnaxyhZ2NL_a0RDcJuLfQzUgHdVMpDCb5bhkav6HH2z0Q_ImxWejsoAj75KDT3r_BCsSAzVxiRIqGIwr6_45lJYDjYpXMJoOKlTQeQg-vMCmEVEdPdt-FrgmXZnbMzFTADpJ3Rbw3kQN_Ed9HvvYWFo_KeEWrDVMGWV2R3kc66-I1hnHi-xXJRlaq3oSK8NC61p4TrMXmPuuTAWoNQ'></script></head>
 <body>
 <header>
-  <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.4</div>
+  <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.5</div>
   <svg viewBox="0 0 120 120">
     <defs>
       <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -154,10 +156,10 @@ function warpToQuad(quad,W,H){
     }
     out[oi+3]=255;
   }
-  return { data:out, w:W, h:H };
+  return { data:out, w:W, h:H, hh:hh };
 }
 
-// ---------- Detectie met randlijn-fitting ----------
+// ---------- Robuuste kaart-detectie ----------
 function detectCard(im){
   var nw=im.naturalWidth, nh=im.naturalHeight;
   var sc=Math.min(1,600/Math.max(nw,nh));
@@ -177,7 +179,6 @@ function detectCard(im){
            med(samp.map(function(s){ return s[1]; })),
            med(samp.map(function(s){ return s[2]; })) ];
   function bgDist(p){ return Math.abs(p[0]-bg[0])+Math.abs(p[1]-bg[1])+Math.abs(p[2]-bg[2]); }
-  // Hoe uniform is de achtergrond? (lage variatie = betrouwbaar)
   var vary=0; samp.forEach(function(s){ vary=Math.max(vary,bgDist(s)); });
 
   function tryQuad(THR){
@@ -220,7 +221,7 @@ function detectCard(im){
     var rightPts=collect(rx,ra[0],ra[1],function(y,x){ return [x,y]; });
     var topPts=collect(ty,ca[0],ca[1],function(xx,yy){ return [xx,yy]; });
     var botPts=collect(by,ca[0],ca[1],function(xx,yy){ return [xx,yy]; });
-    function fitV(pts){ // x = a*y + b
+    function fitV(pts){
       var n=pts.length, sy=0, sx=0, syy=0, sxy=0;
       pts.forEach(function(p){ sy+=p[1]; sx+=p[0]; syy+=p[1]*p[1]; sxy+=p[0]*p[1]; });
       var det=n*syy-sy*sy;
@@ -228,7 +229,7 @@ function detectCard(im){
       var a=(n*sxy-sx*sy)/det;
       return { a:a, b:(sx-a*sy)/n };
     }
-    function fitH(pts){ // y = a*x + b
+    function fitH(pts){
       var n=pts.length, sx=0, sy=0, sxx=0, sxy=0;
       pts.forEach(function(p){ sx+=p[0]; sy+=p[1]; sxx+=p[0]*p[0]; sxy+=p[0]*p[1]; });
       var det=n*sxx-sx*sx;
@@ -250,16 +251,15 @@ function detectCard(im){
     var quad=[ [cl(TL[0]*inv,nw),cl(TL[1]*inv,nh)], [cl(TR[0]*inv,nw),cl(TR[1]*inv,nh)],
                [cl(BR[0]*inv,nw),cl(BR[1]*inv,nh)], [cl(BL[0]*inv,nw),cl(BL[1]*inv,nh)] ];
     var area=Math.abs((quad[1][0]-quad[0][0])*(quad[3][1]-quad[0][1])-(quad[3][0]-quad[0][0])*(quad[1][1]-quad[0][1]));
-    if(area<0.03*nw*nh) return null; // te klein = ruis (vol beeld is gewoon geldig)
-    // detailrand meegeven: alle gevonden randpunten (honderden) voor de controle-lijn
-    var edge={l:[],r:[],t:[],b:[]}, yy, ii;
+    if(area<0.03*nw*nh) return null;
+    // detailrand meegeven: alle gevonden randpunten voor de controle-lijn
+    var edge={l:[],r:[],t:[],b:[]}, ii;
     for(yy=0;yy<h;yy++){ if(lx[yy]!==null) edge.l.push([lx[yy]*inv, yy*inv]); if(rx[yy]!==null) edge.r.push([rx[yy]*inv, yy*inv]); }
     for(ii=0;ii<w;ii++){ if(ty[ii]!==null) edge.t.push([ii*inv, ty[ii]*inv]); if(by[ii]!==null) edge.b.push([ii*inv, by[ii]*inv]); }
     var nPts=edge.l.length+edge.r.length+edge.t.length+edge.b.length;
     return { quad:quad, edge:edge, nPts:nPts };
   }
 
-  // meerdere drempels proberen: van fijn naar grof
   var candidates = vary<40 ? [45,70,110,150] : [70,110,150,45];
   for(var ti=0; ti<candidates.length; ti++){
     var q=tryQuad(candidates[ti]);
@@ -277,6 +277,7 @@ function autoDetect(){
     document.getElementById("note").innerHTML='<div class="note">✅ Kaartrand automatisch gedetecteerd ('+q.nPts+' randpunten). De groene lijn volgt het echte kaartrand — alleen verplaatsen als hij duidelijk naast de rand ligt.</div>';
   } else {
     rect={ tl:{x:0,y:0}, tr:{x:dims.w,y:0}, br:{x:dims.w,y:dims.h}, bl:{x:0,y:dims.h} };
+    rect.edge=null;
     document.getElementById("note").innerHTML='<div class="note">⚠️ Kaartrand niet met zekerheid gevonden — uitgegaan van de fotoranden (kaart vult het beeld). Klopt dit niet? Sleep dan de 4 hoeken op de kaartrand.</div>';
   }
   drawCrop();
@@ -288,7 +289,6 @@ function drawCrop(){
   svg.setAttribute("viewBox","0 0 "+dims.w+" "+dims.h);
   var sw=Math.max(2,dims.w/300), hr=Math.max(10,dims.w/40);
   var poly=rect.tl.x+","+rect.tl.y+" "+rect.tr.x+","+rect.tr.y+" "+rect.br.x+","+rect.br.y+" "+rect.bl.x+","+rect.bl.y;
-  // detailrand: honderden gedetecteerde randpunten als doorlopende groene lijn
   var detail="";
   if(rect.edge){
     function pl(pts){ return pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" "); }
@@ -297,9 +297,9 @@ function drawCrop(){
   }
   var hs="";
   ["tl","tr","br","bl"].forEach(function(k){
-    hs+='<circle cx="'+rect[k].x+'" cy="'+rect[k].y+'" r="'+hr+'" fill="'+(detail?"#0f172a":"#facc15")+'" stroke="'+(detail?"#22c55e":"#facc15")+'" stroke-width="3" data-k="'+k+'"/>';
+    hs+='<circle cx="'+rect[k].x+'" cy="'+rect[k].y+'" r="'+hr+'" fill="'+(rect.edge?"#0f172a":"#facc15")+'" stroke="'+(rect.edge?"#22c55e":"#facc15")+'" stroke-width="3" data-k="'+k+'"/>';
   });
-  svg.innerHTML='<polygon points="'+poly+'" fill="none" stroke="'+(detail?"#22c55e":"#facc15")+'" stroke-width="'+sw+'" opacity="'+(detail?0.9:1)+'"/>'+detail+hs;
+  svg.innerHTML='<polygon points="'+poly+'" fill="none" stroke="'+(rect.edge?"#22c55e":"#facc15")+'" stroke-width="'+sw+'" opacity="'+(rect.edge?0.9:1)+'"/>'+detail+hs;
   svg.querySelectorAll("circle").forEach(function(c){
     c.addEventListener("pointerdown",function(e){
       e.preventDefault(); dragKey=c.dataset.k; c.setPointerCapture(e.pointerId);
@@ -311,6 +311,7 @@ function drawCrop(){
     var x=(e.clientX-r.left)*(img.naturalWidth/r.width);
     var y=(e.clientY-r.top)*(img.naturalHeight/r.height);
     rect[dragKey]={ x:Math.min(Math.max(x,0),img.naturalWidth), y:Math.min(Math.max(y,0),img.naturalHeight) };
+    rect.edge=null;
     drawCrop();
   };
   ["pointerup","pointerleave","pointercancel"].forEach(function(ev){
@@ -324,10 +325,9 @@ function analyzeCentering(){
   var W=340, H=Math.round(340*88/63);
   var quad=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
   var wp=warpToQuad(quad,W,H); if(!wp) return null;
-  var data=wp.data, w=W, h=H;
+  var data=wp.data, w=W, h=H, hh=wp.hh;
   function px(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; }
-  // grijze randkleur: ring van 3px net binnen de buitenrand
-  var ring=[], ringW=3, x, y, k;
+  var ring=[], ringW=4, x, y, k;
   for(x=1;x<w-1;x++) for(k=0;k<ringW;k++){ ring.push(px(x,k)); ring.push(px(x,h-1-k)); }
   for(y=1;y<h-1;y++) for(k=0;k<ringW;k++){ ring.push(px(k,y)); ring.push(px(w-1-k,y)); }
   var bc=[0,0,0]; ring.forEach(function(s){ bc[0]+=s[0];bc[1]+=s[1];bc[2]+=s[2]; });
@@ -335,7 +335,6 @@ function analyzeCentering(){
   function colDist(p){ return Math.abs(p[0]-bc[0])+Math.abs(p[1]-bc[1])+Math.abs(p[2]-bc[2]); }
   var THR=95;
 
-  // binnenrand van de grijze strip: per zijde, élke pixel-lijn in de kernzone meten (sub-pixel), mediaan
   function measureSide(fromStart,horizontal){
     var len=horizontal?h:w, span=horizontal?w:h;
     var maxDepth=Math.floor(len*0.45), th=[];
@@ -361,12 +360,9 @@ function analyzeCentering(){
   var tLeft=measureSide(true,false), tRight=measureSide(false,false);
   if(tTop===null||tBot===null||tLeft===null||tRight===null) return null;
 
-  // middens van de randstrook (positie vanaf buitenrand)
   var midTop=tTop/2, midBot=h-tBot/2, midLeft=tLeft/2, midRight=w-tRight/2;
   var cx=w/2, cy=h/2;
-
-  // afwijking: midden links vs rechts, boven vs onder t.o.v. kaartmidden
-  var offX=((midRight-cx)-(cx-midLeft)); // positief = rand rechts dikker
+  var offX=((midRight-cx)-(cx-midLeft));
   var offY=((midBot-cy)-(cy-midTop));
   var devLR=Math.abs(offX)/w*100, devTB=Math.abs(offY)/h*100;
 
@@ -383,16 +379,15 @@ function analyzeCentering(){
   else if(grade>=8) notes.push("Acceptabel gecenterd, kans op 8-9.");
   else notes.push("Zichtbaar off-center — beïnvloedt de grade flink.");
 
-  // visualisatie: gecorrigeerde kaart + binnen-/buitenomlijning + middens
   var vc=document.createElement("canvas"); vc.width=w; vc.height=h;
   var vctx=vc.getContext("2d");
   var id=vctx.createImageData(w,h);
   for(var ii=0;ii<data.length;ii++) id.data[ii]=data[ii];
   vctx.putImageData(id,0,0);
-  var svg='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;display:block">'
+  var vis='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;display:block">'
     +'<image href="'+vc.toDataURL("image/png")+'" x="0" y="0" width="'+w+'" height="'+h+'"/>'
-    +'<rect x="1" y="1" width="'+(w-2)+'" height="'+(h-2)+'" fill="none" stroke="#facc15" stroke-width="2"/>' // buiten
-    +'<rect x="'+tLeft+'" y="'+tTop+'" width="'+(w-tLeft-tRight)+'" height="'+(h-tTop-tBot)+'" fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-dasharray="5 4"/>' // binnen
+    +'<rect x="1" y="1" width="'+(w-2)+'" height="'+(h-2)+'" fill="none" stroke="#facc15" stroke-width="2"/>'
+    +'<rect x="'+tLeft+'" y="'+tTop+'" width="'+(w-tLeft-tRight)+'" height="'+(h-tTop-tBot)+'" fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-dasharray="5 4"/>'
     +'<line x1="'+cx+'" y1="0" x2="'+cx+'" y2="'+h+'" stroke="#f87171" stroke-width="1" stroke-dasharray="3 5"/>'
     +'<line x1="0" y1="'+cy+'" x2="'+w+'" y2="'+cy+'" stroke="#f87171" stroke-width="1" stroke-dasharray="3 5"/>'
     +'<circle cx="'+midLeft+'" cy="'+cy+'" r="4" fill="#38bdf8"/>'
@@ -400,10 +395,7 @@ function analyzeCentering(){
     +'<circle cx="'+cx+'" cy="'+midTop+'" r="4" fill="#38bdf8"/>'
     +'<circle cx="'+cx+'" cy="'+midBot+'" r="4" fill="#38bdf8"/>'
     +'</svg>';
-  return { grade:grade, notes:notes, vis:svg,
-           meting:{ tTop:tTop, tBot:tBot, tLeft:tLeft, tRight:tRight,
-                    mTop:midTop, mBot:midBot, mLeft:midLeft, mRight:midRight,
-                    cx:cx, cy:cy, w:w, h:h } };
+  return { grade:grade, notes:notes, vis:vis };
 }
 
 function gradeColor(g){ return g>=9.5?"#22c55e":g>=9?"#84cc16":g>=8?"#eab308":"#f97316"; }
@@ -420,7 +412,6 @@ function runAnalysis(){
   el.scrollIntoView({behavior:"smooth"});
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="45aJgmvxj0GIrsZLcFTO1g==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="coo8u8Q9DoA0JFSp+2KfmA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
-
