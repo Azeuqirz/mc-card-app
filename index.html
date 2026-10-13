@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="nl">
-<head><script type='text/javascript' nonce='IffM6i38xzxHOTLIOzpPXw==' src='https://chat.mistral.ai/fDMIur4fU3Nsp-07nyET-8bnSyAt7kIEkZ1Ra5Zfq29g2_vrXs264mNel9kHkV5DGqsExEZ0zXR_iZIKIthBHWxTWghZos-RcuPvRpeLIdayJimlD041YTek-yk9wo7RfECkwewd9CwbQOgOYDDgFplP7vFrCadJDC4ATJqw2RhLV5E3lwIdz9ak3Fs0o0ogSs-YD8CNLkEtrhKfxGpbHtN7lh-kvPU9SB2gCuZOKX1cZEzudPE4vmvcycUZ-BgyB1bHTdTf1pl0MjQib52O2NhJB5pNRpGS-AOJ2moRmTlrWzTRTaT-QHWpLaAQyxc4qm7SD3oC-JEUDW_LtV2-9S9xA5fRfMzPQiW4V9Oz2J-9jdNfVUcQUFqwjLRUjJ7axA9yFKJT3I9f41mSgTfq7rhnyiJ9ejfXmL4kKP4ODiD_DKA9iNyP_4bVD0dNlvI5IbrB_CYR7PpAoKmPa1iqPvtKHf6GCCo7r91UFK8YFayW2zr0-d1aFFWklWdW8H5vOBkFag2TU32kHfmqBI_lU6JRWnN4d_ULqiEZO7nO7vAf9XgPTfz8wGo6Bbo6iaa2uNqSk4Ctc6VjDE1v_mjxCOXxwS_Vsg'></script>
+<head><script type='text/javascript' nonce='L0dD8sAC+BybpvFeL8E3gg==' src='https://chat.mistral.ai/yBSMJMwEX6prA01gaLQwI5ap5HX2WifBIDXbR4EHVtGpNcKJX-LSH3v4uVvdTB4aC4sPLD9eYiWqNtrV7Tf5VbxtDfT3j-LSJbvzTi_0jaU8JpKqyaXufFBDygYe3HyS6hDeGrp7PsQpShNQexC9twAgnSQwwj-fSjnhDawhVZfzbysySzfWswLwYQpAPDartCNNhRG6cHWTeww117Pl5q4m8wfDVUVZmzH7wWh6Enqbovlc2b4tMQE2nqgxUchVACaz5e2HAOQmSsk_Zs9DHIPJ8T5M9x46-FcGIrZZCYsnkutyefHa5wiwfJqACuueyqZrtJDPYCvW4239m-LKawHhvrPzl_oOZGDnggDQRoVXSgNsBWE6O1FF6LrCpkF8hfJZEAKcLGsNgMMpnK0l2Il3i4FVM_jGmKOKYnWg8CIa4D-YUKz7eKSls2JjPwIXAe-JWBFweDmPB-OQ1_6g9DB5ejzThV0tuBCbfCXiwGEhtLami275xxTVc4FsYvmDr6B9zQhHRkhPE80pmYrx1IsL194zGBsT93iZkwC0m-mnBsYB3FlrQ13XXS5O9RHq6Vz4ueSydzckSwRVxanJQgbCb4CIMQ'></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -41,7 +41,7 @@
 </head>
 <body>
 <header>
-  <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.1</div>
+  <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v1.4</div>
   <svg viewBox="0 0 120 120">
     <defs>
       <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -62,8 +62,8 @@
   <p class="sub">Foto maken → centering checken</p>
 </header>
 
-<label class="btn yellow" style="margin:0">📷 Foto van kaart maken / kiezen
-  <input type="file" accept="image/*" id="fileInput">
+<label class="btn yellow" style="margin:0">📷 Foto van kaart maken
+  <input type="file" accept="image/*" capture="environment" id="fileInput">
 </label>
 <p class="tip">Tip: kaart plat, iPhone er parallel boven, geen schaduw of glinstering.</p>
 <div id="note"></div>
@@ -88,8 +88,8 @@ function loadPhoto(dataUrl){
   document.getElementById("note").innerHTML="";
   document.getElementById("stage").innerHTML='<div id="cropWrap"><img id="cropImg"><svg id="cropSvg"></svg></div>'
     +'<button class="btn dark" onclick="redetect()">🔄 Opnieuw detecteren</button>'
-    +'<label class="btn yellow" style="margin-top:10px">📷 Andere foto maken / kiezen'
-    +'<input type="file" accept="image/*" id="fileInput2"></label>'
+    +'<label class="btn yellow" style="margin-top:10px">📷 Andere foto maken'
+    +'<input type="file" accept="image/*" capture="environment" id="fileInput2"></label>'
     +'<button class="btn yellow" onclick="runAnalysis()">🎯 Centering analyseren</button>';
   var ci=document.getElementById("cropImg"); ci.src=imgSrc;
   ci.onload=function(){ img=ci; autoDetect(); };
@@ -167,84 +167,100 @@ function detectCard(im){
   ctx.drawImage(im,0,0,w,h);
   var d; try{ d=ctx.getImageData(0,0,w,h).data; }catch(e){ return null; }
   function px(x,y){ var i=(y*w+x)*4; return [d[i],d[i+1],d[i+2]]; }
-  var pat=6, ss=[];
-  [[0,0],[w-pat,0],[0,h-pat],[w-pat,h-pat]].forEach(function(o){
-    for(var yy=o[1];yy<o[1]+pat;yy++) for(var xx=o[0];xx<o[0]+pat;xx++)
-      ss.push(px(Math.max(0,Math.min(xx,w-1)),Math.max(0,Math.min(yy,h-1))));
-  });
-  var bg=[0,0,0]; ss.forEach(function(s){ bg[0]+=s[0];bg[1]+=s[1];bg[2]+=s[2]; });
-  bg=bg.map(function(v){ return v/ss.length; });
-  function isCard(x,y){ var p=px(x,y); return Math.abs(p[0]-bg[0])+Math.abs(p[1]-bg[1])+Math.abs(p[2]-bg[2])>70; }
-  var rowF=[], colF=[], y, x;
-  for(y=0;y<h;y++){ var n=0; for(x=0;x<w;x++) if(isCard(x,y)) n++; rowF.push(n/w); }
-  for(x=0;x<w;x++){ var m=0; for(y=0;y<h;y++) if(isCard(x,y)) m++; colF.push(m/h); }
-  function fl(f){ var a=-1,b=-1; for(var i=0;i<f.length;i++) if(f[i]>0.55){ if(a<0)a=i; b=i; } return (a>=0&&b>a)?[a,b]:null; }
-  var rows=fl(rowF), cols=fl(colF); if(!rows||!cols) return null;
-  var run=3, lx=new Array(h).fill(null), rx=new Array(h).fill(null);
-  for(y=rows[0];y<=rows[1];y++){
-    for(x=cols[0];x<=cols[1]-run;x++){
-      var ok=true; for(var k=0;k<run;k++) if(!isCard(x+k,y)){ ok=false; break; }
-      if(ok){ lx[y]=x; break; }
+
+  // Robuuste achtergrond: mediaankleur van een dun randje rond de héle foto
+  var mrg=Math.max(2,Math.round(Math.min(w,h)*0.025)), samp=[], xx, yy;
+  for(xx=0;xx<w;xx+=2){ samp.push(px(xx,Math.floor(mrg/2))); samp.push(px(xx,h-1-Math.floor(mrg/2))); }
+  for(yy=0;yy<h;yy+=2){ samp.push(px(Math.floor(mrg/2),yy)); samp.push(px(w-1-Math.floor(mrg/2),yy)); }
+  function med(arr){ arr.sort(function(a,b){ return a-b; }); return arr[Math.floor(arr.length/2)]; }
+  var bg=[ med(samp.map(function(s){ return s[0]; })),
+           med(samp.map(function(s){ return s[1]; })),
+           med(samp.map(function(s){ return s[2]; })) ];
+  function bgDist(p){ return Math.abs(p[0]-bg[0])+Math.abs(p[1]-bg[1])+Math.abs(p[2]-bg[2]); }
+  // Hoe uniform is de achtergrond? (lage variatie = betrouwbaar)
+  var vary=0; samp.forEach(function(s){ vary=Math.max(vary,bgDist(s)); });
+
+  function tryQuad(THR){
+    function isCard(x,y){ return bgDist(px(x,y))>THR; }
+    var rowF=[], colF=[], y, x;
+    for(y=0;y<h;y++){ var n=0; for(x=0;x<w;x++) if(isCard(x,y)) n++; rowF.push(n/w); }
+    for(x=0;x<w;x++){ var m=0; for(y=0;y<h;y++) if(isCard(x,y)) m++; colF.push(m/h); }
+    function fl(f){ var a=-1,b=-1; for(var i=0;i<f.length;i++) if(f[i]>0.4){ if(a<0)a=i; b=i; } return (a>=0&&b>a)?[a,b]:null; }
+    var rows=fl(rowF), cols=fl(colF); if(!rows||!cols) return null;
+    var run=3, lx=new Array(h).fill(null), rx=new Array(h).fill(null);
+    for(y=rows[0];y<=rows[1];y++){
+      for(x=cols[0];x<=cols[1]-run;x++){
+        var ok=true; for(var k=0;k<run;k++) if(!isCard(x+k,y)){ ok=false; break; }
+        if(ok){ lx[y]=x; break; }
+      }
+      for(x=cols[1];x>=cols[0]+run;x--){
+        var ok2=true; for(var k2=0;k2<run;k2++) if(!isCard(x-k2,y)){ ok2=false; break; }
+        if(ok2){ rx[y]=x; break; }
+      }
     }
-    for(x=cols[1];x>=cols[0]+run;x--){
-      var ok2=true; for(var k2=0;k2<run;k2++) if(!isCard(x-k2,y)){ ok2=false; break; }
-      if(ok2){ rx[y]=x; break; }
+    var ty=new Array(w).fill(null), by=new Array(w).fill(null);
+    for(x=cols[0];x<=cols[1];x++){
+      for(y=rows[0];y<=rows[1]-run;y++){
+        var ok3=true; for(var k3=0;k3<run;k3++) if(!isCard(x,y+k3)){ ok3=false; break; }
+        if(ok3){ ty[x]=y; break; }
+      }
+      for(y=rows[1];y>=rows[0]+run;y--){
+        var ok4=true; for(var k4=0;k4<run;k4++) if(!isCard(x,y-k4)){ ok4=false; break; }
+        if(ok4){ by[x]=y; break; }
+      }
     }
-  }
-  var ty=new Array(w).fill(null), by=new Array(w).fill(null);
-  for(x=cols[0];x<=cols[1];x++){
-    for(y=rows[0];y<=rows[1]-run;y++){
-      var ok3=true; for(var k3=0;k3<run;k3++) if(!isCard(x,y+k3)){ ok3=false; break; }
-      if(ok3){ ty[x]=y; break; }
+    function marge(a,b){ var m=Math.floor((b-a)*0.15); return [a+m,b-m]; }
+    function collect(arr,a,b,out){
+      var pts=[];
+      for(var i=a;i<=b;i++) if(arr[i]!==null) pts.push(out(i,arr[i]));
+      return pts;
     }
-    for(y=rows[1];y>=rows[0]+run;y--){
-      var ok4=true; for(var k4=0;k4<run;k4++) if(!isCard(x,y-k4)){ ok4=false; break; }
-      if(ok4){ by[x]=y; break; }
+    var ra=marge(rows[0],rows[1]), ca=marge(cols[0],cols[1]);
+    var leftPts=collect(lx,ra[0],ra[1],function(y,x){ return [x,y]; });
+    var rightPts=collect(rx,ra[0],ra[1],function(y,x){ return [x,y]; });
+    var topPts=collect(ty,ca[0],ca[1],function(xx,yy){ return [xx,yy]; });
+    var botPts=collect(by,ca[0],ca[1],function(xx,yy){ return [xx,yy]; });
+    function fitV(pts){ // x = a*y + b
+      var n=pts.length, sy=0, sx=0, syy=0, sxy=0;
+      pts.forEach(function(p){ sy+=p[1]; sx+=p[0]; syy+=p[1]*p[1]; sxy+=p[0]*p[1]; });
+      var det=n*syy-sy*sy;
+      if(pts.length<8||Math.abs(det)<1e-6) return null;
+      var a=(n*sxy-sx*sy)/det;
+      return { a:a, b:(sx-a*sy)/n };
     }
+    function fitH(pts){ // y = a*x + b
+      var n=pts.length, sx=0, sy=0, sxx=0, sxy=0;
+      pts.forEach(function(p){ sx+=p[0]; sy+=p[1]; sxx+=p[0]*p[0]; sxy+=p[0]*p[1]; });
+      var det=n*sxx-sx*sx;
+      if(pts.length<8||Math.abs(det)<1e-6) return null;
+      var a=(n*sxy-sx*sy)/det;
+      return { a:a, b:(sy-a*sx)/n };
+    }
+    var L=fitV(leftPts), R=fitV(rightPts), T=fitH(topPts), B=fitH(botPts);
+    if(!L||!R||!T||!B) return null;
+    function ix(v,hh){
+      var den=1-v.a*hh.a;
+      if(Math.abs(den)<1e-6) return null;
+      var xq=(v.a*hh.b+v.b)/den;
+      return [xq, hh.a*xq+hh.b];
+    }
+    var TL=ix(L,T), TR=ix(R,T), BR=ix(R,B), BL=ix(L,B);
+    if(!TL||!TR||!BR||!BL) return null;
+    var inv=1/sc, cl=function(v,mx){ return Math.min(Math.max(v,0),mx); };
+    var quad=[ [cl(TL[0]*inv,nw),cl(TL[1]*inv,nh)], [cl(TR[0]*inv,nw),cl(TR[1]*inv,nh)],
+               [cl(BR[0]*inv,nw),cl(BR[1]*inv,nh)], [cl(BL[0]*inv,nw),cl(BL[1]*inv,nh)] ];
+    var area=Math.abs((quad[1][0]-quad[0][0])*(quad[3][1]-quad[0][1])-(quad[3][0]-quad[0][0])*(quad[1][1]-quad[0][1]));
+    if(area<0.03*nw*nh) return null; // te klein = ruis (vol beeld is gewoon geldig)
+    return quad;
   }
-  function marge(a,b){ var m=Math.floor((b-a)*0.15); return [a+m,b-m]; }
-  function collect(arr,a,b,out){
-    var pts=[];
-    for(var i=a;i<=b;i++) if(arr[i]!==null) pts.push(out(i,arr[i]));
-    return pts;
+
+  // meerdere drempels proberen: van fijn naar grof
+  var candidates = vary<40 ? [45,70,110,150] : [70,110,150,45];
+  for(var ti=0; ti<candidates.length; ti++){
+    var q=tryQuad(candidates[ti]);
+    if(q) return q;
   }
-  var ra=marge(rows[0],rows[1]), ca=marge(cols[0],cols[1]);
-  var leftPts=collect(lx,ra[0],ra[1],function(y,x){ return [x,y]; });
-  var rightPts=collect(rx,ra[0],ra[1],function(y,x){ return [x,y]; });
-  var topPts=collect(ty,ca[0],ca[1],function(xx,yy){ return [xx,yy]; });
-  var botPts=collect(by,ca[0],ca[1],function(xx,yy){ return [xx,yy]; });
-  function fitV(pts){ // x = a*y + b
-    var n=pts.length, sy=0, sx=0, syy=0, sxy=0;
-    pts.forEach(function(p){ sy+=p[1]; sx+=p[0]; syy+=p[1]*p[1]; sxy+=p[0]*p[1]; });
-    var det=n*syy-sy*sy;
-    if(pts.length<8||Math.abs(det)<1e-6) return null;
-    var a=(n*sxy-sx*sy)/det;
-    return { a:a, b:(sx-a*sy)/n };
-  }
-  function fitH(pts){ // y = a*x + b
-    var n=pts.length, sx=0, sy=0, sxx=0, sxy=0;
-    pts.forEach(function(p){ sx+=p[0]; sy+=p[1]; sxx+=p[0]*p[0]; sxy+=p[0]*p[1]; });
-    var det=n*sxx-sx*sx;
-    if(pts.length<8||Math.abs(det)<1e-6) return null;
-    var a=(n*sxy-sx*sy)/det;
-    return { a:a, b:(sy-a*sx)/n };
-  }
-  var L=fitV(leftPts), R=fitV(rightPts), T=fitH(topPts), B=fitH(botPts);
-  if(!L||!R||!T||!B) return null;
-  function ix(v,hh){
-    var den=1-v.a*hh.a;
-    if(Math.abs(den)<1e-6) return null;
-    var xx=(v.a*hh.b+v.b)/den;
-    return [xx, hh.a*xx+hh.b];
-  }
-  var TL=ix(L,T), TR=ix(R,T), BR=ix(R,B), BL=ix(L,B);
-  if(!TL||!TR||!BR||!BL) return null;
-  var inv=1/sc, cl=function(v,mx){ return Math.min(Math.max(v,0),mx); };
-  var quad=[ [cl(TL[0]*inv,nw),cl(TL[1]*inv,nh)], [cl(TR[0]*inv,nw),cl(TR[1]*inv,nh)],
-             [cl(BR[0]*inv,nw),cl(BR[1]*inv,nh)], [cl(BL[0]*inv,nw),cl(BL[1]*inv,nh)] ];
-  var area=Math.abs((quad[1][0]-quad[0][0])*(quad[3][1]-quad[0][1])-(quad[3][0]-quad[0][0])*(quad[1][1]-quad[0][1]));
-  if(area<0.05*nw*nh||area>0.98*nw*nh) return null;
-  return quad;
+  return null;
 }
 
 function autoDetect(){
@@ -254,9 +270,8 @@ function autoDetect(){
     rect={ tl:{x:q[0][0],y:q[0][1]}, tr:{x:q[1][0],y:q[1][1]}, br:{x:q[2][0],y:q[2][1]}, bl:{x:q[3][0],y:q[3][1]} };
     document.getElementById("note").innerHTML='<div class="note">✅ Kaartrand automatisch gedetecteerd — sleep de hoeken alleen bij als het niet klopt.</div>';
   } else {
-    rect={ tl:{x:dims.w*.06,y:dims.h*.06}, tr:{x:dims.w*.94,y:dims.h*.06},
-           br:{x:dims.w*.94,y:dims.h*.94}, bl:{x:dims.w*.06,y:dims.h*.94} };
-    document.getElementById("note").innerHTML='<div class="note">⚠️ Kaart niet automatisch gevonden — sleep de 4 hoeken op de kaartrand.</div>';
+    rect={ tl:{x:0,y:0}, tr:{x:dims.w,y:0}, br:{x:dims.w,y:dims.h}, bl:{x:0,y:dims.h} };
+    document.getElementById("note").innerHTML='<div class="note">⚠️ Kaartrand niet met zekerheid gevonden — uitgegaan van de fotoranden (kaart vult het beeld). Klopt dit niet? Sleep dan de 4 hoeken op de kaartrand.</div>';
   }
   drawCrop();
 }
@@ -307,13 +322,12 @@ function analyzeCentering(){
   function colDist(p){ return Math.abs(p[0]-bc[0])+Math.abs(p[1]-bc[1])+Math.abs(p[2]-bc[2]); }
   var THR=95;
 
-  // binnenrand van de grijze strip: per zijde meten, 9 meetlijnen, sub-pixel, mediaan
+  // binnenrand van de grijze strip: per zijde, élke pixel-lijn in de kernzone meten (sub-pixel), mediaan
   function measureSide(fromStart,horizontal){
     var len=horizontal?h:w, span=horizontal?w:h;
-    var maxDepth=Math.floor(len*0.45), th=[], LINES=9;
-    for(var li=0;li<LINES;li++){
-      var margin=Math.floor(span*0.15);
-      var pos=margin+Math.floor((span-2*margin)*li/(LINES-1));
+    var maxDepth=Math.floor(len*0.45), th=[];
+    var margin=Math.floor(span*0.15);
+    for(var pos=margin;pos<span-margin;pos++){
       var depth=0, found=false;
       for(var kk=0;kk<maxDepth;kk++){
         var dd=fromStart?kk:len-1-kk;
@@ -323,8 +337,7 @@ function analyzeCentering(){
           depth=kk-frac*0.5; found=true; break;
         }
       }
-      if(!found) depth=maxDepth;
-      if(depth>1&&depth<maxDepth) th.push(depth);
+      if(found&&depth>1&&depth<maxDepth) th.push(depth);
     }
     if(th.length===0) return null;
     th.sort(function(a,b){ return a-b; });
@@ -394,7 +407,7 @@ function runAnalysis(){
   el.scrollIntoView({behavior:"smooth"});
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="IffM6i38xzxHOTLIOzpPXw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="L0dD8sAC+BybpvFeL8E3gg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
 
