@@ -47,6 +47,7 @@
   .scanItem .si { flex:1; min-width:0; }
   .scanItem .sd { font-size:11px; color:#64748b; }
   .scanItem .sg { font-size:18px; font-weight:800; }
+  .scanItem:active { background:#1e293b; }
   .scanItem button { background:#1e293b; border:0; color:#f87171; border-radius:8px;
     padding:8px 10px; font-size:13px; font-weight:700; }
   .zoomWrap { position:relative; overflow:auto; touch-action:none; user-select:none;
@@ -57,13 +58,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='cl4n6OajoX4xzyDn8xjqtw==' src='https://chat.mistral.ai/29KNtxzkCbLRmgQRA-pHxYJBIEpV2MdFfH8wOD67PhNpAomcJPbMEzExH2f3YeSXf_K6NmmKtJcwXscXGskjrUw8MJFCNVvS__JvcLVscclPZqzfAKO0I-XhWTYH4Un33f0bQ-tDm7fEdKempJ67gQ2ZCjBucTTrxkZ1Zo53mErLnA5o3dPk9-kReKfg4hIPTNyCR8HpO05k9eFAFCoLj55wLIrSdt4DCVWRpmw1j928l6DBHKYJREOwJx4ap970Q3Mb9_o9k14ATRG07EYX3BYQFjjC_jx_NcIcGXB9YfyxCfYpHUGhGPZH3_eejqi64Hmv74Km3eTfmRy0qfUo4BJohJ8vOKwz8HUl9HnE_1LWBmyU_AFN1DULOCye28C1ArwaCootKLCuH7qRfHiSfCIyn78Jm-5GzV7-QW-mhbqBXkjeel5oNlVxGewICZQbEanrQildsYf12iR9BgXsCX9dqovfI4xEc8tWrHJh5b2MvR2VcDnbRfMoJTP3v1xqpF2GAvTMKDMfkqcLPLRmEF1nJcSQxBuDDM0NKm-vqRA36S9W3zmFy80RHiZjSypwlZDnINFvXxGrE82Eg8bL105q0eRisA'></script></head>
+<script type='text/javascript' nonce='1STriwCnVJPviyZN2FmYCg==' src='https://chat.mistral.ai/HdACDMWkPXko0fNw4uCiUqw4uJRDZfJPfU3yVKamBEDpGTd0ZoTeFkF-VpzaqrPwzRZeDFwUe2s9f1wGAQ3p4ISpxP-hzSuBuloaD-b4Kdx3pSUdVF2JOZCO_WApgKw5l6jtn3L78PMQoyfLvFE2jJGEjxx2UO_yA7NUH1E-pWpqjobmz1lVsbgWLxg4hgjHk2uIrbbR1DZb-_IC2-2MVL-IG5Va4Vyz7O7asoRS8fCoYA3iYqnppkUJSp33FKVYWfD4iN1bRx9jQPnL9NHQql8jBKH2IVWlI7ZMmFf5jcfLY8xnMY7zWkQKMQ750lNzgv1jxyz_tn-3iVAu7dnJDPd0NIyukM5G-RKNmrD7JDvxIlpKEAtVsC8pP-0cUuyJHm7qdZLYdZUPWlbMQV_WS8m5HZsqnwYUEhp6_mvg6FxmbGD9kPjANXK28RZwhyqtr_R1M_4-_gy4nxNemgUhgMhJtdQ-ekg6dLwILEvfbwOWSO1E9IObfhJZ-1mhEqszEjZVZXHW4lnFM8l-4uUcyQYNuxjwmTmeXkJBEpwLtvXGpk-gKkSpnLdmnnf6m3x_h-XROXvyuGdjakn-nHfE5JRYap2oIg'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.14</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.15</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -118,6 +119,12 @@
   </div>
 </div>
 
+<!-- ===== SCAN-DETAIL ===== -->
+<div class="view" id="detailView">
+  <div id="detailScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <button class="btn dark" onclick="showView('historyView')">⬅ Terug naar database</button>
+</div>
+
 <!-- ===== HISTORIE & RAPPORT ===== -->
 <div class="view" id="historyView">
   <div id="histScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
@@ -128,7 +135,7 @@
 
 <script>
 "use strict";
-var VERSION="2.14";
+var VERSION="2.15";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -556,7 +563,11 @@ function analyzeCentering(){
   tc.width=68; tc.height=Math.round(68*(h/w));
   tc.getContext("2d").drawImage(vc,0,0,tc.width,tc.height);
   var thumb=tc.toDataURL("image/jpeg",0.5);
-  return { grade:grade, notes:notes, vis:vis, thumb:thumb, devLR:devLR, devTB:devTB,
+  // v2.15: grotere preview voor de detail-weergave (300px breed)
+  var pc=document.createElement("canvas"); pc.width=300; pc.height=Math.round(300*(h/w));
+  pc.getContext("2d").drawImage(vc,0,0,pc.width,pc.height);
+  var big=pc.toDataURL("image/jpeg",0.75);
+  return { grade:grade, notes:notes, vis:vis, thumb:thumb, big:big, devLR:devLR, devTB:devTB,
            tTop:tTop, tBot:tBot, tLeft:tLeft, tRight:tRight };
 }
 
@@ -639,7 +650,7 @@ function saveScan(res){
       lr:Math.round(res.devLR*100)/100, tb:Math.round(res.devTB*100)/100,
       tT:Math.round(res.tTop*10)/10, tB:Math.round(res.tBot*10)/10,
       tL:Math.round(res.tLeft*10)/10, tR:Math.round(res.tRight*10)/10,
-      t:res.thumb });
+      t:res.thumb, b:res.big||null });
     if(scans.length>200) scans=scans.slice(0,200);
     localStorage.setItem("mcScans", JSON.stringify(scans));
   }catch(e){}
@@ -669,16 +680,41 @@ function renderHistory(){
       +'<p class="n">🏆 Beste: '+best.g+' ('+best.d+')</p>'
       +'<p class="n">⚠️ Slechtste: '+worst.g+' ('+worst.d+')</p></div>';
     scans.forEach(function(s,i){
-      html+='<div class="scanItem">'
+      html+='<div class="scanItem" onclick="showScanDetail('+i+')">'
         +'<img src="'+(s.t||"")+'" alt="scan">'
         +'<div class="si"><div class="sd">'+s.d+'</div>'
         +'<div class="sg" style="color:'+gColor(s.g)+'">'+s.g+'</div>'
         +'<div class="sd">afw. LR '+s.lr+'% · TB '+s.tb+'%</div></div>'
-        +'<button onclick="delScan('+i+')">✕</button></div>';
+        +'<button onclick="event.stopPropagation();delScan('+i+')">✕</button></div>';
     });
   }
   el.innerHTML=html;
   showView("historyView");
+}
+// v2.15: detailweergave van één scan
+function showScanDetail(i){
+  var s=getScans()[i];
+  if(!s) return;
+  var el=document.getElementById("detailScroll");
+  var html='<div class="card">'
+    +'<div class="score"><span>'+s.d+'</span><b style="color:'+gradeColor(s.g)+'">'+s.g+'</b></div>'
+    +'<div class="bar"><div style="width:'+(s.g*10)+'%;background:'+gradeColor(s.g)+'"></div></div>';
+  if(s.b){
+    html+='<img src="'+s.b+'" alt="kaart" style="width:100%;border-radius:10px;margin:8px 0;display:block">';
+  } else {
+    html+='<div class="note">Grotere weergave niet opgeslagen bij deze scan (gemaakt vóór v2.15) — scan opnieuw voor detailfoto.</div>';
+  }
+  html+='<p class="n">Randdikte boven: '+s.tT+'px &nbsp;·&nbsp; onder: '+s.tB+'px</p>'
+    +'<p class="n">Randdikte links: '+s.tL+'px &nbsp;·&nbsp; rechts: '+s.tR+'px</p>'
+    +'<p class="n">Middenafwijking links-rechts: '+s.lr+'%</p>'
+    +'<p class="n">Middenafwijking boven-onder: '+s.tb+'%</p>';
+  if(s.g>=9.5) html+='<p class="n">Praktisch perfect gecenterd 🎉</p>';
+  else if(s.g>=9) html+='<p class="n">Goed gecenterd — scoort doorgaans 9-10 bij grading.</p>';
+  else if(s.g>=8) html+='<p class="n">Acceptabel gecenterd, kans op 8-9.</p>';
+  else html+='<p class="n">Zichtbaar off-center — beïnvloedt de grade flink.</p>';
+  html+='</div>';
+  el.innerHTML=html;
+  showView("detailView");
 }
 function exportCSV(){
   var scans=getScans();
@@ -690,6 +726,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="cl4n6OajoX4xzyDn8xjqtw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="1STriwCnVJPviyZN2FmYCg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
