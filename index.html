@@ -53,13 +53,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='xMhwrTlLi/xzl8GSkFkZAQ==' src='https://chat.mistral.ai/pMy_BVD127fgir9IlV35-VFPe84Nio9RGuwfhdL3AQh7ucFxpbmF5g-IFR5MuYSBF_MIZ33BWcNHttD3_cIlfGrncqSxPKGXtDRmcrEFWlP3d-VSupgu703iwtuBSRedvf27hR1HO-64g7a7ieYxQeJMLGHaxwcDrXUKSkVNXzO7gRoTmzMaZLBRdKuHzyYI7Fy_v-gV1ALT3AXMIPC6fL0JuhhLkex5x04LT7Q0PtLvWkQOetGD-h7XDMCrSVKmx5O_a5OPCqXyPyrpENCXqdkvsCxHpUnvstrJlo62cAzq_aPlsq4tGCVN4P-aKPxqw_-6O9fTBLOHbVybwn7s-szshDcbq0w3swkaLr2Ekjy8ZCUHtg0B8klckNuMI853ejrKYCWef1ZXLLjEbDuWsv7wjAZOrN3QzpdsjifCh7IRFFIDgeDcnK4PYPM90DPb5QFz1_FqCmYM0CdBKlqMDSudlP-cdA-Fn9PA0yBhrs_9j2JPqpokR1vBwNYaKwYLaKpatVS1yOoYduj_rxK28ms7TCVKdV5ktt0ZfaW4JXw0iYXOB1HP6QdwjRcd9l22j6NoCuFEkUbEEDlFF7UoCn9jb2NsrA'></script></head>
+<script type='text/javascript' nonce='SSij3UcXpBJfsQu6QxGHkQ==' src='https://chat.mistral.ai/i6msQEcDrsN80UHhvWR7EtrH6Vp5rsAkKSvRktjmHJ_mP-zOsKSHS_kL3Q5yJfAKSqLcwNFatFKkKC-7t96mGPUYXUHtqSXkEaZ1e418vDU5iiUa_LkcGwi43CJD4nM7uu8DIOADkYZCZZsAZLFImvuYOulaHhsu03VaMg__HWdFFYG2z2CqeejLAfC7t8udt3fgu6LNtb0um-iWH9vjnRMv4nM6gmkTutEFUK8cAk0BOC_4y9bcmnkBlJVhOQnIwN2tUfeLOBSQFIlboHS9X-ysEz9lVzrVTi_Xacu4IN1HChcXUE11yGmDjolxSsuvL-kjS3OhA7IjCTse2tBgxqeNjdZLPxmStkM4O3mhj08BFdQGQmm952cLn0xH5Ul5WQaQ8VIJbap2hgZG9QsQY0h6Uyc5lNxjZWNhVBhOorxi7b9ge1UqyZzbsmqAej8-MepmR7hByOjh0lWibYqZVe9vvUmKffQLw0hzuTlcmH0S0UQNk0BklrMrSFkDxBUdncRN_p85bIpzF3scOYfGUcnbasLtW4c8JP4nSRI1S6WMiNRGiZ-KZYfhc4pxswMGiWVxHfmWpc9VHG0ybZcMoAeY_j7Q6w'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.4</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.5</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -82,6 +82,9 @@
   <label class="btn yellow" style="margin:0">📷 Foto van kaart maken
     <input type="file" accept="image/*" capture="environment" id="fileInput">
   </label>
+  <label class="btn dark" style="margin-top:8px">🖼 Kies foto uit je bibliotheek
+    <input type="file" accept="image/*" id="fileInputLib">
+  </label>
   <button class="btn dark" onclick="renderHistory()">📚 Mijn gescande kaarten &amp; rapport</button>
   <p class="tip">Tip: kaart volledig in beeld, plat liggen, iPhone er recht boven, egale ondergrond zonder schaduw of glans.</p>
 </div>
@@ -92,6 +95,9 @@
   <div id="scanNote"></div>
   <div id="scanActions">
     <button class="btn yellow" onclick="runAnalysis()">🎯 Centering analyseren</button>
+    <label class="btn dark" style="margin-top:8px">🖼 Foto uit bibliotheek kiezen
+      <input type="file" accept="image/*" id="fileInputLib2">
+    </label>
     <label class="btn dark" style="margin-top:8px">📷 Nieuwe foto maken
       <input type="file" accept="image/*" capture="environment" id="fileInput2">
     </label>
@@ -133,6 +139,8 @@ function bindFile(id, cb){
 }
 bindFile("fileInput", loadPhoto);
 bindFile("fileInput2", loadPhoto);
+bindFile("fileInputLib", loadPhoto);
+bindFile("fileInputLib2", loadPhoto);
 
 function loadPhoto(dataUrl){
   var ci=document.getElementById("cropImg"); ci.src=dataUrl;
@@ -507,6 +515,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="xMhwrTlLi/xzl8GSkFkZAQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="SSij3UcXpBJfsQu6QxGHkQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
