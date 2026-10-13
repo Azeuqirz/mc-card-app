@@ -58,13 +58,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='J3shJY0PkWUXcElcd6ObAg==' src='https://chat.mistral.ai/gEy_ggzvw9e8-xgZAUXDXdqJlCXYecux8fuz_KD2IAVg4BKaYKiEAF6Asb__Gtlqff1XEYe13ZE2dQV560jgfpuuKPvbg4V0IyTrd25Bpml4V_VPpdc1n2ktvsPnMBp6QzvgpF-pF59LfkY-7QhOYGbChULfJuaFvUn1S2g-pd4B95Rs36ViEVZs620DxqHt40tb2-5nbsBPYQ9nbDcfirbUCMM8_ENJhwe4nqk9LkjOP9E90ocobdMi2snxNZ3OdcT4epyHExS7XRiLqZIGIThbK5e7QsOsYv6FjJYUU9NoOpaNc3yinwhzqJyapy5vA5CQTx72AjM0v6KynX4oFz8q-2LHmRRyRtbq6YI2dOpbJQID75jCMuMqXPAUfnVfPt6zjA3XkpZ6gvBeW3z4wULr31La48FVjQ4ccUq3X_ONabuhGNmxYz-Au8oqqEXxJvlxJ9nDK07XNaEG86cCxwLMNuxmrn2z72-gLeESJqwHcqm-6l8c8bMJ9NQzlOMn34b739yin88kTCek8sOPD3KEHM2FFeaM2xgCbP3nFF_EOjX_NMd0GE0tbrJgaYDHdsdNWFPW-xCyR01FlgYr3fb4A4GMmw'></script></head>
+<script type='text/javascript' nonce='9wcl0J+K2J2scZQmeMfTJg==' src='https://chat.mistral.ai/FWiDYIDxLINTv_PqZtxSf__RjYDWMt-eyaQsfFRzcxfx4Sw3DoTmhkXtAkE_X0ZlevCDPVQDgy4st1y27FTCk7H0XL0Ti4wsdSetDzMgkS2Fd3qIcPojPrGfUPAA2iYd4lXreCTa-mhx3rVJieRRfADYJ9kvgJnGe-KvunbOtjLJL4wHrnHQ8mOYG-i2lQulTN-Z1cvuyrTq1-AOneVaVI9jrTSmJmuXLsRUp2mQSVHXHNOkY6duXqF-7-o_P9xwcQF1ewig9kklQ28BXgNwxxK4_QFCjbXnyIyLGPmFHXnVkCLKLLZIaMqD6ACJxANf-zBawhtXWNNPqaobyvaaSAm1xCKygZaOndA8zrO-k7u7BcXC2v2qlFgRh7-rBP3_5g2fG0q37uXIS_SNKHxypX-WqMXtASwdbc-gZ2EjU7Ez1sN7yET6jxkiA895OpqE9_ZjBKR2_q3hSsCiykpFeuLBh6K_szC1Oi52rSshbwuo2A4AOF_i6_Ena2CFxL_kexZvH270yxhj6aS360PvYCgRHrw7_iOrduWrKrKx3jetiBdH-ZpAqGKYlo0U7l2a2bxjhQMfliohtvIaDx8Ts7Z4pGRbXg'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.17</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.18</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -135,7 +135,7 @@
 
 <script>
 "use strict";
-var VERSION="2.17";
+var VERSION="2.18";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -441,7 +441,12 @@ function analyzeCentering(){
   var lines=[];
   var margin=Math.floor(span*0.15);
   // v2.12: binnenrand zit ALTIJD vlak achter de gele randstrook (~15% van de kaart).
+  // v2.18: fysieke begrenzing — het randvlak van een standaard kaart (buitenrand +
+  // kaderlijn) is nooit meer dan ~8,5% van de kaartbreedte. Metingen dieper dan
+  // dat (zoals de 35px holo-glans op de Primarina) zijn dus per definitie fout
+  // en vallen buiten het zoekvenster.
   var skip=Math.max(20,Math.floor(len*0.15));
+  skip=Math.min(skip,Math.round(Math.min(w,h)*0.085));
   // v2.17: donkere-dip-detectie — de kaderlijn rond het artwork-venster is een
   // DONKERE lijn vlak na de lichte rand. Zoek per meetlijn de EERSTE donkere dip;
   // holo-glans dieper in het artwork kan die niet afpakken (komt pas later).
@@ -608,12 +613,6 @@ function runAnalysis(){
   el.innerHTML='<div class="card"><div class="score"><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
     +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+res.vis+'</div></div>'+legenda
-    +'<p class="n" style="margin:6px 0 2px;color:#94a3b8">Kaartnaam en nummer (optioneel):</p>'
-    +'<div style="display:flex;gap:8px;margin-bottom:6px">'
-    +'<input id="cardName" placeholder="bijv. Fomantis" style="flex:2;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:14px">'
-    +'<input id="cardNo" placeholder="nr. bijv. 123/197" style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:14px">'
-    +'</div>'
-    +'<button class="btn dark" style="margin:0 0 4px;padding:8px" onclick="saveNameNumber()">💾 Naam &amp; nummer opslaan</button>'
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")+'</div>';
   attachZoom();
   saveScan(res);
@@ -682,28 +681,13 @@ function saveScan(res){
       lr:Math.round(res.devLR*100)/100, tb:Math.round(res.devTB*100)/100,
       tT:Math.round(res.tTop*10)/10, tB:Math.round(res.tBot*10)/10,
       tL:Math.round(res.tLeft*10)/10, tR:Math.round(res.tRight*10)/10,
-      t:res.thumb, b:res.big||null, nm:"", no:"" });
+      t:res.thumb, b:res.big||null });
     if(scans.length>200) scans=scans.slice(0,200);
     localStorage.setItem("mcScans", JSON.stringify(scans));
     currentScanId=id;
   }catch(e){}
 }
-var currentScanId=null, currentResIndex=null;
-function saveNameNumber(){
-  var nmEl=document.getElementById("cardName"), noEl=document.getElementById("cardNo");
-  if(!nmEl) return;
-  var scans=getScans();
-  for(var i=0;i<scans.length;i++){
-    if(scans[i].id===currentScanId){
-      scans[i].nm=nmEl.value.trim();
-      scans[i].no=noEl?noEl.value.trim():"";
-      try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e){}
-      var btn=event?event.target:null;
-      if(btn){ var old=btn.textContent; btn.textContent="✓ Opgeslagen"; setTimeout(function(){ btn.textContent=old; },1200); }
-      break;
-    }
-  }
-}
+var currentScanId=null;
 function delScan(i){
   var scans=getScans(); scans.splice(i,1);
   try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e){}
@@ -732,7 +716,6 @@ function renderHistory(){
       html+='<div class="scanItem" onclick="showScanDetail('+i+')">'
         +'<img src="'+(s.t||"")+'" alt="scan">'
         +'<div class="si"><div class="sd">'+s.d+'</div>'
-        +((s.nm||s.no)?'<div class="sd" style="color:#e2e8f0;font-weight:600">'+(s.nm||"")+(s.no?' · '+s.no:'')+'</div>':'')
         +'<div class="sg" style="color:'+gColor(s.g)+'">'+s.g+'</div>'
         +'<div class="sd">afw. LR '+s.lr+'% · TB '+s.tb+'%</div></div>'
         +'<button onclick="event.stopPropagation();delScan('+i+')">✕</button></div>';
@@ -748,7 +731,6 @@ function showScanDetail(i){
   var el=document.getElementById("detailScroll");
   var html='<div class="card">'
     +'<div class="score"><span>'+s.d+'</span><b style="color:'+gradeColor(s.g)+'">'+s.g+'</b></div>'
-    +((s.nm||s.no)?'<p class="n" style="font-size:15px;color:#e2e8f0;font-weight:700;margin:2px 0 6px">'+(s.nm||"")+(s.no?' · '+s.no:'')+'</p>':'')
     +'<div class="bar"><div style="width:'+(s.g*10)+'%;background:'+gradeColor(s.g)+'"></div></div>';
   if(s.b){
     html+='<img src="'+s.b+'" alt="kaart" style="width:100%;border-radius:10px;margin:8px 0;display:block">';
@@ -770,14 +752,14 @@ function showScanDetail(i){
 function exportCSV(){
   var scans=getScans();
   if(scans.length===0){ alert("Nog geen scans om te exporteren."); return; }
-  var csv="datum;tijd;kaartnaam;nummer;score;afwijking_LR_%;afwijking_TB_%;rand_boven_px;rand_onder_px;rand_links_px;rand_rechts_px\n";
+  var csv="datum;tijd;score;afwijking_LR_%;afwijking_TB_%;rand_boven_px;rand_onder_px;rand_links_px;rand_rechts_px\n";
   scans.forEach(function(s){
     var dt=s.d.split(", ");
-    csv+=[dt[0]||s.d, dt[1]||"", s.nm||"", s.no||"", s.g, s.lr, s.tb, s.tT, s.tB, s.tL, s.tR].join(";")+"\n";
+    csv+=[dt[0]||s.d, dt[1]||"", s.g, s.lr, s.tb, s.tT, s.tB, s.tL, s.tR].join(";")+"\n";
   });
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="J3shJY0PkWUXcElcd6ObAg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="9wcl0J+K2J2scZQmeMfTJg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
