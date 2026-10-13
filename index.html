@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>M&amp;C AI Card App</title>
+<title>M&amp;C ai Card App</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect x='14' y='8' width='78' height='104' rx='10' fill='%23f59e0b' transform='rotate(8 53 60)'/%3E%3Crect x='28' y='12' width='78' height='104' rx='10' fill='%231e293b' stroke='%23facc15' stroke-width='3'/%3E%3Ccircle cx='67' cy='64' r='34' fill='none' stroke='%23facc15' stroke-width='2.5' stroke-dasharray='4 5'/%3E%3Ctext x='67' y='74' text-anchor='middle' font-size='26' font-weight='800' fill='%23facc15' font-family='system-ui'%3EM%26C%3C/text%3E%3C/svg%3E">
 <style>
   :root { color-scheme: dark; }
@@ -45,13 +45,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='yhYvci62cbqk9DQxb9YX2A==' src='https://chat.mistral.ai/-RHN3RCktISUsU_6pvGBQrjRgKZSwCjYG0KNxIk6N2nebZxnN_bklOpas-J3GJP5pOSr6N6iIi4lKViCIEGFoLVp2ZA0TNR-GL8q3VFV6cu6oQiQTJ45sjdpVttEZxKWqy_ZduZajXNUiWbveG-tRfzBVliY-oXunPeYCEAa9fRYDBxX2zsDOjwbwgUdOtf7xQp7376wo6XPWHGsMs0YgeEje1QY9QlCHWOyy0C2D4jMXWCMg_zjnTlIefNBxNwyatLP3MTcKPKtOYwXE53KmxaBhlMvTJ5KBEYtmT9p9t-f2_qsZkHLSvjU85WofrjGdb7GFJZ1_VuzPIVmh11XcHj9PoyiRkV7kQSaBssUc1MVFdzN0p319Xmz_mIR_2bxaPFTc7w6tGUVuaHLGUI06jxBgsLS5B8N6R7pvXcZbdhM41UlAp0k2r5vvxkUTuqbAT1cChtizDQkFYmh0kE6pffiHSCX7vhu-_RATcskiR_BwteM4nG4X6tTSivraiIGofNQIdv3razAff6pmpvvJ26de_CLws39Rge1MYk444pwJe9IC1ecAfeFx2KLNQCR6IVHTKPFUARlom55dX66Hzggz8oWIg'></script></head>
+<script type='text/javascript' nonce='0K6KfVa3xFx6PIIFbadGyQ==' src='https://chat.mistral.ai/fch-8-6XDQM0jVsnb-Xybqn9NjiNHv-jx-N3lu6yl291AYFfvBpM9JG9tcDgED9_QmVLZ6DdlHdDBXC3x-ihkJfI8KOpfeRORlM66tEo0L9bqu2LL6EBw64ouN2th8ZwXmYKBxBzGWqSQzICfRON0-TAaUgOYy4pYEWXwzwPNJaWuVQu_g3jUtFXFpxneht0oYA_JkVwlm3yeqaUNqWNzzmdok00OZwgL5_QX_4mJFf8tl_Vpzlvj6e6J-BXWdD6Ww6kSkmvLXLBINRrWuNglNp2qHFu-hNufTldO_HLb_YdfUDfeJJck5JYjHH8lgh9V_uI3Pnjk20Zs8CwcxKVddn3h_mBhwEy_XhI9TtkiI3lsvAKINpEykQaMNquRYStetqPZWM5L_nIzS0-hVAiAZtviSvLzIpzKTFVv8FHYTUw37GImCwxOauAdUH0oaHGQtEx_41fPCPAgOf6Tw3w0p-Pju2VikNAbiKECaM9zWvFmS0LJzsAUgT7YcX0RN8pZ_62TuRuDlC1GqDwRI1H2laI1FlR_tr3mbIrMnCUEkhDTSWIAzlnf_AybsWQBHfMJlR2WJOvSrtCdYJSGApT_aauY7Lozg'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.0</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.1</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -68,7 +68,7 @@
       <line x1="87" y1="64" x2="105" y2="64" stroke="#facc15" stroke-width="2.5"/>
       <text x="67" y="72" text-anchor="middle" font-size="28" font-weight="800" fill="#facc15" font-family="system-ui, sans-serif">M&amp;C</text>
     </svg>
-    <h1>M&amp;C AI Card App</h1>
+    <h1>M&amp;C ai Card App</h1>
     <p class="sub">Foto maken → centering checken</p>
   </header>
   <label class="btn yellow" style="margin:0">📷 Foto van kaart maken
@@ -321,24 +321,29 @@ function analyzeCentering(){
   var data=wp.data, w=W, h=H;
   function px(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; }
   var w2=w, h2=h;
-  // Gradiënt-methode: zoek per meetlijn de sterkste kleurovergang (werkt bij elke kleurcombinatie)
+  // Gradiënt-methode: per meetlijn eerst de buitenrand van de kaart overslaan,
+  // daarna de EERSTE sterke overgang pakken (= binnenrand van de grijze strook)
   function measureSide(fromStart,horizontal){
     var len=horizontal?h:w, span=horizontal?w:h;
     var maxDepth=Math.floor(len*0.45), th=[];
     var margin=Math.floor(span*0.15);
+    var skip=Math.floor(maxDepth*0.18); // zone waarin de kaart-buitenrand ligt
     for(var pos=margin;pos<span-margin;pos++){
-      var bestK=-1, bestG=0, prev=null, kk, dd;
+      var prev=null, kk, dd, grads=[];
       for(kk=0;kk<=maxDepth;kk++){
         dd=fromStart?kk:len-1-kk;
         var p=horizontal?px(pos,dd):px(dd,pos);
-        if(prev){
-          var g=Math.abs(p[0]-prev[0])+Math.abs(p[1]-prev[1])+Math.abs(p[2]-prev[2]);
-          if(g>bestG){ bestG=g; bestK=kk-0.5; }
-        }
+        grads.push(prev?Math.abs(p[0]-prev[0])+Math.abs(p[1]-prev[1])+Math.abs(p[2]-prev[2]):0);
         prev=p;
       }
-      // alleen accepteren als de overgang duidelijk is (geen ruis) en niet helemaal aan het begin (scherpe fotorand/detectiegrens overslaan)
-      if(bestK>2&&bestK<maxDepth-2&&bestG>50) th.push(bestK);
+      // buitenrand = sterkste gradiënt in de skip-zone
+      var edgeK=-1, edgeG=0;
+      for(kk=1;kk<skip;kk++) if(grads[kk]>edgeG){ edgeG=grads[kk]; edgeK=kk; }
+      // eerste sterke overgang ná de buitenrand (+2px marge)
+      var found=-1;
+      var startK=Math.max(edgeK+2, 3);
+      for(kk=startK;kk<maxDepth-1;kk++) if(grads[kk]>50){ found=kk; break; }
+      if(found>0) th.push(found);
     }
     if(th.length===0) return null;
     th.sort(function(a,b){ return a-b; });
@@ -347,7 +352,7 @@ function analyzeCentering(){
   }
   var tTop=measureSide(true,true), tBot=measureSide(false,true);
   var tLeft=measureSide(true,false), tRight=measureSide(false,false);
-  if(tTop===null||tBot===null||tLeft===null||tRight===null) return null;
+  if(tTop===null||tBot===null||tLeft===null||tRight===null) return { fail:true, tTop:tTop, tBot:tBot, tLeft:tLeft, tRight:tRight };
 
   var midTop=tTop/2, midBot=h-tBot/2, midLeft=tLeft/2, midRight=w-tRight/2;
   var cx=w/2, cy=h/2;
@@ -392,7 +397,8 @@ function runAnalysis(){
   if(!img||!rect) return;
   var res=analyzeCentering();
   var el=document.getElementById("resultScroll");
-  if(!res){ el.innerHTML='<div class="note">Kon de kaart niet analyseren. Maak een scherpere foto: kaart volledig in beeld, egale ondergrond, recht erboven.</div>'; showView("resultView"); return; }
+  if(!res){ el.innerHTML='<div class="note">Analyse mislukt — diagnostiek: top='+(res&&res.tTop!==undefined?res.tTop:"-")+', onder='+(res&&res.tBot!==undefined?res.tBot:"-")+', links='+(res&&res.tLeft!==undefined?res.tLeft:"-")+', rechts='+(res&&res.tRight!==undefined?res.tRight:"-")+'. Stuur deze tekst even mee als je weer hulp vraagt.</div>'; showView("resultView"); return; }
+  if(res.fail){ el.innerHTML='<div class="note">Rand niet gevonden op: top='+(res.tTop===null?"✗":Math.round(res.tTop*10)/10)+', onder='+(res.tBot===null?"✗":Math.round(res.tBot*10)/10)+', links='+(res.tLeft===null?"✗":Math.round(res.tLeft*10)/10)+', rechts='+(res.tRight===null?"✗":Math.round(res.tRight*10)/10)+'px. Stuur deze regel even mee als het niet lukt.</div>'; showView("resultView"); return; }
   var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: randmidden</p>';
   el.innerHTML='<div class="card"><div class="score"><span>Centering score</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
@@ -401,6 +407,6 @@ function runAnalysis(){
   showView("resultView");
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="yhYvci62cbqk9DQxb9YX2A==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="0K6KfVa3xFx6PIIFbadGyQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
