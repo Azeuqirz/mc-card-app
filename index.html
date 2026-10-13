@@ -58,13 +58,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='1STriwCnVJPviyZN2FmYCg==' src='https://chat.mistral.ai/HdACDMWkPXko0fNw4uCiUqw4uJRDZfJPfU3yVKamBEDpGTd0ZoTeFkF-VpzaqrPwzRZeDFwUe2s9f1wGAQ3p4ISpxP-hzSuBuloaD-b4Kdx3pSUdVF2JOZCO_WApgKw5l6jtn3L78PMQoyfLvFE2jJGEjxx2UO_yA7NUH1E-pWpqjobmz1lVsbgWLxg4hgjHk2uIrbbR1DZb-_IC2-2MVL-IG5Va4Vyz7O7asoRS8fCoYA3iYqnppkUJSp33FKVYWfD4iN1bRx9jQPnL9NHQql8jBKH2IVWlI7ZMmFf5jcfLY8xnMY7zWkQKMQ750lNzgv1jxyz_tn-3iVAu7dnJDPd0NIyukM5G-RKNmrD7JDvxIlpKEAtVsC8pP-0cUuyJHm7qdZLYdZUPWlbMQV_WS8m5HZsqnwYUEhp6_mvg6FxmbGD9kPjANXK28RZwhyqtr_R1M_4-_gy4nxNemgUhgMhJtdQ-ekg6dLwILEvfbwOWSO1E9IObfhJZ-1mhEqszEjZVZXHW4lnFM8l-4uUcyQYNuxjwmTmeXkJBEpwLtvXGpk-gKkSpnLdmnnf6m3x_h-XROXvyuGdjakn-nHfE5JRYap2oIg'></script></head>
+<script type='text/javascript' nonce='vKNF3uXgXbu7RkURD3OoAA==' src='https://chat.mistral.ai/G3wzeAWcraMdNA78cofjWD50xoMbkckBaa5SkFPAydxcd8WZfshYift55ng5-iIk-qKgqiNV09WRzJAKi7FpMulS3nyElSF5xJtCNAwTT6uyhDPkC3qUGf1m4cDoLleEIV6TyWsMgToqSbXi0AGWtPL_OWLIy0k5VEfF0ykKoVSu0hsYRAttmjlKpdMXhUvtk6Lubmj-UdA0RxDq-vGPjYSgz03CtDPCSCY-k86EAevo2_Ae4hjK7v8SH5XcMqdGDrFhIAA-B2wdmFZELqyBPJCSv2xN9GQ1d8Z0VLBfVx8LseJN-JjDvBAmgQY1FSUM-R0vn1G2MDt7dgantPtk4I1erPOnpxlOm1TP8MxncEXDLx3M9G-QxrQDGS_fHRBORMqstJX0DQJwQCLepfdeTVxw369ve_uz786Sve6lymUfqSnU0VmCXPC5gfyQRyeroUmfza1n9tx3V8zB65tseYXAZYlcthgDcMH2kLvgleyk_QlhSvzn28vQE60uQtzBwaK7sq2eq5pdONpLMSBbbYCR1pTe2km2YTG6tWzd866o11C8seXCsr8RmmkHys6od8ctd6FYWN2TComakAzKtTmhsYrMBQ'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.15</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.16</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -135,7 +135,7 @@
 
 <script>
 "use strict";
-var VERSION="2.15";
+var VERSION="2.16";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -583,6 +583,12 @@ function runAnalysis(){
   el.innerHTML='<div class="card"><div class="score"><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
     +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+res.vis+'</div></div>'+legenda
+    +'<p class="n" style="margin:6px 0 2px;color:#94a3b8">Kaartnaam en nummer (optioneel):</p>'
+    +'<div style="display:flex;gap:8px;margin-bottom:6px">'
+    +'<input id="cardName" placeholder="bijv. Fomantis" style="flex:2;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:14px">'
+    +'<input id="cardNo" placeholder="nr. bijv. 123/197" style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:14px">'
+    +'</div>'
+    +'<button class="btn dark" style="margin:0 0 4px;padding:8px" onclick="saveNameNumber()">💾 Naam &amp; nummer opslaan</button>'
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")+'</div>';
   attachZoom();
   saveScan(res);
@@ -646,14 +652,32 @@ function getScans(){
 function saveScan(res){
   try{
     var scans=getScans();
-    scans.unshift({ d:new Date().toLocaleString("nl-NL"), g:res.grade,
+    var id=Date.now();
+    scans.unshift({ id:id, d:new Date().toLocaleString("nl-NL"), g:res.grade,
       lr:Math.round(res.devLR*100)/100, tb:Math.round(res.devTB*100)/100,
       tT:Math.round(res.tTop*10)/10, tB:Math.round(res.tBot*10)/10,
       tL:Math.round(res.tLeft*10)/10, tR:Math.round(res.tRight*10)/10,
-      t:res.thumb, b:res.big||null });
+      t:res.thumb, b:res.big||null, nm:"", no:"" });
     if(scans.length>200) scans=scans.slice(0,200);
     localStorage.setItem("mcScans", JSON.stringify(scans));
+    currentScanId=id;
   }catch(e){}
+}
+var currentScanId=null, currentResIndex=null;
+function saveNameNumber(){
+  var nmEl=document.getElementById("cardName"), noEl=document.getElementById("cardNo");
+  if(!nmEl) return;
+  var scans=getScans();
+  for(var i=0;i<scans.length;i++){
+    if(scans[i].id===currentScanId){
+      scans[i].nm=nmEl.value.trim();
+      scans[i].no=noEl?noEl.value.trim():"";
+      try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e){}
+      var btn=event?event.target:null;
+      if(btn){ var old=btn.textContent; btn.textContent="✓ Opgeslagen"; setTimeout(function(){ btn.textContent=old; },1200); }
+      break;
+    }
+  }
 }
 function delScan(i){
   var scans=getScans(); scans.splice(i,1);
@@ -683,6 +707,7 @@ function renderHistory(){
       html+='<div class="scanItem" onclick="showScanDetail('+i+')">'
         +'<img src="'+(s.t||"")+'" alt="scan">'
         +'<div class="si"><div class="sd">'+s.d+'</div>'
+        +((s.nm||s.no)?'<div class="sd" style="color:#e2e8f0;font-weight:600">'+(s.nm||"")+(s.no?' · '+s.no:'')+'</div>':'')
         +'<div class="sg" style="color:'+gColor(s.g)+'">'+s.g+'</div>'
         +'<div class="sd">afw. LR '+s.lr+'% · TB '+s.tb+'%</div></div>'
         +'<button onclick="event.stopPropagation();delScan('+i+')">✕</button></div>';
@@ -698,6 +723,7 @@ function showScanDetail(i){
   var el=document.getElementById("detailScroll");
   var html='<div class="card">'
     +'<div class="score"><span>'+s.d+'</span><b style="color:'+gradeColor(s.g)+'">'+s.g+'</b></div>'
+    +((s.nm||s.no)?'<p class="n" style="font-size:15px;color:#e2e8f0;font-weight:700;margin:2px 0 6px">'+(s.nm||"")+(s.no?' · '+s.no:'')+'</p>':'')
     +'<div class="bar"><div style="width:'+(s.g*10)+'%;background:'+gradeColor(s.g)+'"></div></div>';
   if(s.b){
     html+='<img src="'+s.b+'" alt="kaart" style="width:100%;border-radius:10px;margin:8px 0;display:block">';
@@ -719,13 +745,14 @@ function showScanDetail(i){
 function exportCSV(){
   var scans=getScans();
   if(scans.length===0){ alert("Nog geen scans om te exporteren."); return; }
-  var csv="datum;tijd;score;afwijking_LR_%;afwijking_TB_%;rand_boven_px;rand_onder_px;rand_links_px;rand_rechts_px\n";
+  var csv="datum;tijd;kaartnaam;nummer;score;afwijking_LR_%;afwijking_TB_%;rand_boven_px;rand_onder_px;rand_links_px;rand_rechts_px\n";
   scans.forEach(function(s){
-    csv+=[s.d.replace(", ",";"), s.g, s.lr, s.tb, s.tT, s.tB, s.tL, s.tR].join(";")+"\n";
+    var dt=s.d.split(", ");
+    csv+=[dt[0]||s.d, dt[1]||"", s.nm||"", s.no||"", s.g, s.lr, s.tb, s.tT, s.tB, s.tL, s.tR].join(";")+"\n";
   });
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="1STriwCnVJPviyZN2FmYCg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="vKNF3uXgXbu7RkURD3OoAA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
