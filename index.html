@@ -53,13 +53,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='uRAqLJpbeeXG/cYaSYvvrQ==' src='https://chat.mistral.ai/zXoNEdSBQNboRHZwC143hO7RsPV5Xb2oW64MgiVrGfvsPFxYfKe_UmaX-lUPYkFF3LWE5aPJUtAFeylEBJu0Lm4j1_D6H_J0Ds2TLck-OEUV7c589_VLDa8CVXdsZo2bFnc7W9AxX0KHTNNhaSXq3PtK6XWb1K1j6HEMzR5r4fB_cwpRfCYX7y98fg8O0wd_DyfJTscfChkT2JMZZb964nTxcLIjwhKr9S1seKMOPDdlAqbRgSMOv2D8Sq5A4nQTCK8ehYBxcerjxL5FAWmIv0S0qnFHo6SXtgN151ekG6I69AGFF1Aa9eM-fk9sPBnQzmwUF88kiY2GMsB1kUHGV9mJ4IVcEyRMbo-PIXSg5UpWfRyJ2Z5wIWRn51WkcFvXjhZqipDrEGQPIAw3HEZIlgT7K99bDg4E-l_rpZqJLTuo1d2Vx4q43ny4UKZBMB9e0R3SoPQaKERiRLJ6BSA-wjdoo90ObUpJyfNib307IAUBIGTwW0n_NwxJsnk3lHzOgsWQywZgP5FXLQI_ANWbYMZDNNHM2qxr_CXBIxQbkonPa8d3fRvrBIbwxyqwQRYrrM8hciBz64XPA3ZWiONPV89TT7felg'></script></head>
+<script type='text/javascript' nonce='2jEGSS7gxuCfqJ5RjNKWOg==' src='https://chat.mistral.ai/ZDpxmLPXPH1tmRVOEkX4siA5bYRHrPdIAdnNUKiBZ1gO3SJdFTkQSLUiJycnfqTA7rkx3hXtpl1ssnzuf8U9NhNARSq4rWoPNOFnxzguoY3DEbyXMFxzkT5y7KLAJpow4h-zSjD4BaNrQu_OstlL6gh14QWpl6aaPscNdC2kVrmt8igy-3zekHIgyVZIh6ySu0FPCnLcOL2ni9yzWC7iqOxTpexpH_i5tu0Id5r7viQhNSi9b5Inj6vvNcWZioyNb5faotIM4xAqMOB-Rwocx_MoQL6li-GTgXWsu0KqNZ86TAnqzUyCfCyJXAoO0vJgtJTfNwKPWSu6_MAQDfKIEdLB2BpCkNrFgQTkpqZPiiRZ-16yOBGrOz4yxWrwscjO3V_zkrjj5pOKDf44f6vHGl6vnIlOgXhQe5C7gRhWszbCf8iHMcqdZ0MwpExqsz1nQB0LHEbBNShiJAe-oT2ibAZhbwbdKOcPixCwpKA49UZoJCYHe1y8elBMO3LL60QSeOTH1bdZYAoN_zxG_fFsLMPq4npzwP63DN_DLDKNGhJLXfz3_0ibIxOgHRJnJA0VmTbMbR0BNBiVsWMG7i8JluET-O6o1A'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.6</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.7</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -120,7 +120,7 @@
 
 <script>
 "use strict";
-var VERSION="2.6";
+var VERSION="2.7";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -170,11 +170,14 @@ function solveLin(A,b){
   return x;
 }
 function homography(quad,W,H){
+  // v2.7 FIX: stelsel omgekeerd — we lossen OP: output (u,v) -> foto (x,y),
+  // omdat de warp per OUTPUT-pixel de bron bemonstert. (Eerdere versies
+  // berekenden foto->output en gebruikten die achterstevoren: warp was zwart.)
   var dst=[[0,0],[W,0],[W,H],[0,H]], A=[], b=[], i;
   for(i=0;i<4;i++){
-    var x=quad[i][0], y=quad[i][1], u=dst[i][0], v=dst[i][1];
-    A.push([x,y,1,0,0,0,-x*u,-y*u]); b.push(u);
-    A.push([0,0,0,x,y,1,-x*v,-y*v]); b.push(v);
+    var u=dst[i][0], v=dst[i][1], x=quad[i][0], y=quad[i][1];
+    A.push([u,v,1,0,0,0,-u*x,-v*x]); b.push(x);
+    A.push([0,0,0,u,v,1,-u*y,-v*y]); b.push(y);
   }
   return solveLin(A,b);
 }
@@ -517,6 +520,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="uRAqLJpbeeXG/cYaSYvvrQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="2jEGSS7gxuCfqJ5RjNKWOg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
