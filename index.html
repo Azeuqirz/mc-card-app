@@ -38,7 +38,7 @@
   .n { font-size:12px; color:#cbd5e1; margin:3px 0; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='NMOmp/buuXZqDuAydraWpg==' src='https://chat.mistral.ai/VpzAo-RvRUfkvmEzDFzpY8JxPgOpekpdf9TGcYBsG8BPxZM3-OmmoPg0DRItq2emfXtorBTv8QH51zNARFC83fDZiDlvhoqhmPeMV_UoJzQNQhJtLRfiulVycRzouI9PP9VkPgXST_BSmTU1CpsV9ImWpMi6PpReltsNGxIGCBFNMN1Zx30Iyh_pQZxUGwl30rBLWc-hDt8UFL3wXNtvtCtuqlmA9JR7rEjckDEFwDzGG6T4rS5j4D3gWpo76riOFnKVvy0n-x55xdEnKMesUjeouUZLzA2VLV4vQ7DLKsVSRAzZAQ5n0CgiPaOBDB9Z2jJJBiEo_qOMA_cqTbrpf6CFW13znKGa9VxH7AJGGviIlue8_N1-uZ2q_vpdEn837dRVnW3D35w9XuxO1UY57zhWFHmR4bssyFJu4ZpVqXVbnPnhkXGfjrO_yQ6TWv4ZF1kzHE-ZE1ObXtb-wQCOy1szDjN_E3WBIdxljTo7JRIIDW2fSeKxuuh6sISsZuWZQsUzeN1cXKUoEE8DUNvxYypdouf59kO3Lwsd6wPD4HAK4ndDaOIyBoYhStzSZS8umkrHIsCL02Ts_1PUsPcna0N5lmOHHw'></script></head>
+<script type='text/javascript' nonce='+mRR9bsVLGUwT1O6v4z8YA==' src='https://chat.mistral.ai/KNiJlsAX-RWDcrM5tSZp5zpTVC4rwpZcgloHYO4nhLAyFk9RrRLqVijiJ61KQeoGZ-tiRe4l4mLIoQsOLzG6RauKQWADlaDKU_6z4NztW3-pKxFrtZlf5CYJ00lDcWgJat56aODa9JTuJOgOcANWruWdvh12kVw84_kWg-Y9ncYrXdBpZ07t3uV9fe6vNLzMZdCqWMiLf50DSEOy5BATHDWnsq-iy3zq5ZrpGbXh118vDt6ouh8BESbT1Posf5fjlVKnjy4yZ69QLEzAnuLTbhu_oE4u6XHOLBTSVgc7qFoVsTFF7TMNV7r3s3RL6qHeb6HBHxTyjmMlpJeCuz97-2kPVB72qiqAtUW5lddaqwROcYi6iCzcATwYYiv2SA6K2DJp7f2xTWjg8qrj5TPn7ExH2PS6Lpb_cIxxuQqZXsFvO1tvOFUNNiIgYi2GkGzuQ0S9wQs84pA6stqudwJqvD3iMW7h5k1M6EPu8ECYl3yj67joA4lrMu_0ZzfbqHQn6mGHy155ozFGiNeIozdkP3hv-s4h-3EX8Qza6-xvPwKHVGt9HWBT8zHBF4TO9hkfy5Yaj6vyAPmXp9M2T7KzFtpP6BBrBQ'></script></head>
 <body>
 <header>
   <svg viewBox="0 0 120 120">
@@ -289,7 +289,7 @@ function drawCrop(){
   });
 }
 
-// ---------- Centering: randdikte op perspectief-gecorrigeerde kaart ----------
+// ---------- Centering: grijze rand meten (binnen- en buitenkant + middens) ----------
 function analyzeCentering(){
   if(!rect) return null;
   var W=340, H=Math.round(340*88/63);
@@ -297,13 +297,16 @@ function analyzeCentering(){
   var wp=warpToQuad(quad,W,H); if(!wp) return null;
   var data=wp.data, w=W, h=H;
   function px(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; }
-  var ring=[], ringW=4, x, y, k;
+  // grijze randkleur: ring van 3px net binnen de buitenrand
+  var ring=[], ringW=3, x, y, k;
   for(x=1;x<w-1;x++) for(k=0;k<ringW;k++){ ring.push(px(x,k)); ring.push(px(x,h-1-k)); }
   for(y=1;y<h-1;y++) for(k=0;k<ringW;k++){ ring.push(px(k,y)); ring.push(px(w-1-k,y)); }
   var bc=[0,0,0]; ring.forEach(function(s){ bc[0]+=s[0];bc[1]+=s[1];bc[2]+=s[2]; });
   bc=bc.map(function(v){ return v/ring.length; });
   function colDist(p){ return Math.abs(p[0]-bc[0])+Math.abs(p[1]-bc[1])+Math.abs(p[2]-bc[2]); }
   var THR=95;
+
+  // binnenrand van de grijze strip: per zijde meten, 9 meetlijnen, sub-pixel, mediaan
   function measureSide(fromStart,horizontal){
     var len=horizontal?h:w, span=horizontal?w:h;
     var maxDepth=Math.floor(len*0.45), th=[], LINES=9;
@@ -322,27 +325,58 @@ function analyzeCentering(){
       if(!found) depth=maxDepth;
       if(depth>1&&depth<maxDepth) th.push(depth);
     }
-    if(th.length===0) return maxDepth;
+    if(th.length===0) return null;
     th.sort(function(a,b){ return a-b; });
     var mid=Math.floor(th.length/2);
     return th.length%2===1 ? th[mid] : (th[mid-1]+th[mid])/2;
   }
-  var top=measureSide(true,true), bottom=measureSide(false,true);
-  var left=measureSide(true,false), right=measureSide(false,false);
-  var mT=top/h*100, mB=bottom/h*100, mL=left/w*100, mR=right/w*100;
+  var tTop=measureSide(true,true), tBot=measureSide(false,true);
+  var tLeft=measureSide(true,false), tRight=measureSide(false,false);
+  if(tTop===null||tBot===null||tLeft===null||tRight===null) return null;
+
+  // middens van de randstrook (positie vanaf buitenrand)
+  var midTop=tTop/2, midBot=h-tBot/2, midLeft=tLeft/2, midRight=w-tRight/2;
+  var cx=w/2, cy=h/2;
+
+  // afwijking: midden links vs rechts, boven vs onder t.o.v. kaartmidden
+  var offX=((midRight-cx)-(cx-midLeft)); // positief = rand rechts dikker
+  var offY=((midBot-cy)-(cy-midTop));
+  var devLR=Math.abs(offX)/w*100, devTB=Math.abs(offY)/h*100;
+
   function fmt(p,q){ var t=Math.round(p*10)/10,u=Math.round(q*10)/10; return Math.max(t,u).toFixed(1)+"/"+Math.min(t,u).toFixed(1); }
-  var tb=fmt(mT,mB), lr=fmt(mL,mR);
-  function dev(p,q){ return Math.abs(p-q)/(p+q)*100; }
-  var maxDev=Math.max(dev(mT,mB),dev(mL,mR));
+  var maxDev=Math.max(devLR,devTB);
   var grade=10;
-  if(maxDev>20) grade=6; else if(maxDev>14) grade=7; else if(maxDev>10) grade=8; else if(maxDev>5.5) grade=9; else if(maxDev>2) grade=9.5;
-  var notes=[ "Randdikte boven/onder: "+mT.toFixed(1)+"% / "+mB.toFixed(1)+"%  ("+tb+")",
-             "Randdikte links/rechts: "+mL.toFixed(1)+"% / "+mR.toFixed(1)+"%  ("+lr+")" ];
+  if(maxDev>6) grade=6; else if(maxDev>4) grade=7; else if(maxDev>2.5) grade=8; else if(maxDev>1.2) grade=9; else if(maxDev>0.4) grade=9.5;
+  var notes=[ "Randdikte boven/onder: "+(Math.round(tTop*10)/10)+"px / "+(Math.round(tBot*10)/10)+"px  ("+fmt(tTop,tBot)+")",
+          "Randdikte links/rechts: "+(Math.round(tLeft*10)/10)+"px / "+(Math.round(tRight*10)/10)+"px  ("+fmt(tLeft,tRight)+")",
+          "Middenafwijking links-rechts: "+(Math.round(devLR*100)/100)+"%"+(offX>0?" (rand rechts dikker)":" (rand links dikker)"),
+          "Middenafwijking boven-onder: "+(Math.round(devTB*100)/100)+"%"+(offY>0?" (rand onder dikker)":" (rand boven dikker)") ];
   if(grade>=9.5) notes.push("Praktisch perfect gecenterd 🎉");
   else if(grade>=9) notes.push("Goed gecenterd — scoort doorgaans 9-10 bij grading.");
   else if(grade>=8) notes.push("Acceptabel gecenterd, kans op 8-9.");
   else notes.push("Zichtbaar off-center — beïnvloedt de grade flink.");
-  return { grade:grade, notes:notes };
+
+  // visualisatie: gecorrigeerde kaart + binnen-/buitenomlijning + middens
+  var vc=document.createElement("canvas"); vc.width=w; vc.height=h;
+  var vctx=vc.getContext("2d");
+  var id=vctx.createImageData(w,h);
+  for(var ii=0;ii<data.length;ii++) id.data[ii]=data[ii];
+  vctx.putImageData(id,0,0);
+  var svg='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;display:block">'
+    +'<image href="'+vc.toDataURL("image/png")+'" x="0" y="0" width="'+w+'" height="'+h+'"/>'
+    +'<rect x="1" y="1" width="'+(w-2)+'" height="'+(h-2)+'" fill="none" stroke="#facc15" stroke-width="2"/>' // buiten
+    +'<rect x="'+tLeft+'" y="'+tTop+'" width="'+(w-tLeft-tRight)+'" height="'+(h-tTop-tBot)+'" fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-dasharray="5 4"/>' // binnen
+    +'<line x1="'+cx+'" y1="0" x2="'+cx+'" y2="'+h+'" stroke="#f87171" stroke-width="1" stroke-dasharray="3 5"/>'
+    +'<line x1="0" y1="'+cy+'" x2="'+w+'" y2="'+cy+'" stroke="#f87171" stroke-width="1" stroke-dasharray="3 5"/>'
+    +'<circle cx="'+midLeft+'" cy="'+cy+'" r="4" fill="#38bdf8"/>'
+    +'<circle cx="'+midRight+'" cy="'+cy+'" r="4" fill="#38bdf8"/>'
+    +'<circle cx="'+cx+'" cy="'+midTop+'" r="4" fill="#38bdf8"/>'
+    +'<circle cx="'+cx+'" cy="'+midBot+'" r="4" fill="#38bdf8"/>'
+    +'</svg>';
+  return { grade:grade, notes:notes, vis:svg,
+           meting:{ tTop:tTop, tBot:tBot, tLeft:tLeft, tRight:tRight,
+                    mTop:midTop, mBot:midBot, mLeft:midLeft, mRight:midRight,
+                    cx:cx, cy:cy, w:w, h:h } };
 }
 
 function gradeColor(g){ return g>=9.5?"#22c55e":g>=9?"#84cc16":g>=8?"#eab308":"#f97316"; }
@@ -351,12 +385,15 @@ function runAnalysis(){
   var res=analyzeCentering();
   var el=document.getElementById("result");
   if(!res){ el.innerHTML='<div class="note">Kon de kaart niet analyseren. Zet de hoeken precies op de kaartrand.</div>'; return; }
+  var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand omlijnd &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: midden van de rand</p>';
   el.innerHTML='<div class="card"><div class="score"><span>Centering score</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
+    +res.vis+legenda
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")+'</div>';
   el.scrollIntoView({behavior:"smooth"});
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="NMOmp/buuXZqDuAydraWpg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="+mRR9bsVLGUwT1O6v4z8YA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
+
