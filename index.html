@@ -53,13 +53,13 @@
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='SSij3UcXpBJfsQu6QxGHkQ==' src='https://chat.mistral.ai/i6msQEcDrsN80UHhvWR7EtrH6Vp5rsAkKSvRktjmHJ_mP-zOsKSHS_kL3Q5yJfAKSqLcwNFatFKkKC-7t96mGPUYXUHtqSXkEaZ1e418vDU5iiUa_LkcGwi43CJD4nM7uu8DIOADkYZCZZsAZLFImvuYOulaHhsu03VaMg__HWdFFYG2z2CqeejLAfC7t8udt3fgu6LNtb0um-iWH9vjnRMv4nM6gmkTutEFUK8cAk0BOC_4y9bcmnkBlJVhOQnIwN2tUfeLOBSQFIlboHS9X-ysEz9lVzrVTi_Xacu4IN1HChcXUE11yGmDjolxSsuvL-kjS3OhA7IjCTse2tBgxqeNjdZLPxmStkM4O3mhj08BFdQGQmm952cLn0xH5Ul5WQaQ8VIJbap2hgZG9QsQY0h6Uyc5lNxjZWNhVBhOorxi7b9ge1UqyZzbsmqAej8-MepmR7hByOjh0lWibYqZVe9vvUmKffQLw0hzuTlcmH0S0UQNk0BklrMrSFkDxBUdncRN_p85bIpzF3scOYfGUcnbasLtW4c8JP4nSRI1S6WMiNRGiZ-KZYfhc4pxswMGiWVxHfmWpc9VHG0ybZcMoAeY_j7Q6w'></script></head>
+<script type='text/javascript' nonce='uRAqLJpbeeXG/cYaSYvvrQ==' src='https://chat.mistral.ai/zXoNEdSBQNboRHZwC143hO7RsPV5Xb2oW64MgiVrGfvsPFxYfKe_UmaX-lUPYkFF3LWE5aPJUtAFeylEBJu0Lm4j1_D6H_J0Ds2TLck-OEUV7c589_VLDa8CVXdsZo2bFnc7W9AxX0KHTNNhaSXq3PtK6XWb1K1j6HEMzR5r4fB_cwpRfCYX7y98fg8O0wd_DyfJTscfChkT2JMZZb964nTxcLIjwhKr9S1seKMOPDdlAqbRgSMOv2D8Sq5A4nQTCK8ehYBxcerjxL5FAWmIv0S0qnFHo6SXtgN151ekG6I69AGFF1Aa9eM-fk9sPBnQzmwUF88kiY2GMsB1kUHGV9mJ4IVcEyRMbo-PIXSg5UpWfRyJ2Z5wIWRn51WkcFvXjhZqipDrEGQPIAw3HEZIlgT7K99bDg4E-l_rpZqJLTuo1d2Vx4q43ny4UKZBMB9e0R3SoPQaKERiRLJ6BSA-wjdoo90ObUpJyfNib307IAUBIGTwW0n_NwxJsnk3lHzOgsWQywZgP5FXLQI_ANWbYMZDNNHM2qxr_CXBIxQbkonPa8d3fRvrBIbwxyqwQRYrrM8hciBz64XPA3ZWiONPV89TT7felg'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.5</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.6</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -120,6 +120,7 @@
 
 <script>
 "use strict";
+var VERSION="2.6";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -350,10 +351,11 @@ function analyzeCentering(){
   // + ruis-onderdrukking via gesmeerde gradient (buren-middeling)
   function measureSide(fromStart,horizontal){
     var len=horizontal?h:w, span=horizontal?w:h;
-    var margin=Math.floor(span*0.15);
-    var skip=Math.min(30,Math.floor(len*0.45)-5);
-    var lines=[];
-    for(var pos=margin;pos<span-margin;pos++){
+  var lines=[];
+  var margin=Math.floor(span*0.15);
+  var maxDepth=Math.floor(len*0.45);
+  var skip=maxDepth; // v2.6: hele diepte afzoeken — rand kan verder weg liggen (bijv. bij ruime detectie)
+  for(var pos=margin;pos<span-margin;pos++){
       // lijn inlezen met 1px marge voor smoothing
       var pts=[], kk, dd;
       for(kk=0;kk<=skip+2;kk++){
@@ -443,7 +445,7 @@ function runAnalysis(){
   var res=analyzeCentering();
   var el=document.getElementById("resultScroll");
   if(!res){ el.innerHTML='<div class="note">Analyse mislukt — diagnostiek: top='+(res&&res.tTop!==undefined?res.tTop:"-")+', onder='+(res&&res.tBot!==undefined?res.tBot:"-")+', links='+(res&&res.tLeft!==undefined?res.tLeft:"-")+', rechts='+(res&&res.tRight!==undefined?res.tRight:"-")+'. Stuur deze tekst even mee als je weer hulp vraagt.</div>'; showView("resultView"); return; }
-  if(res.fail){ el.innerHTML='<div class="note">Rand niet gevonden — '+res.help+'<br><br>📱 Kopieer deze regel en stuur hem in de chat: <br><small style="color:#94a3b8">v2.4 | '+diag(res.tTop)+' | '+diag(res.tBot)+' | '+diag(res.tLeft)+' | '+diag(res.tRight)+'</small></div>'; showView("resultView"); return; }
+  if(res.fail){ el.innerHTML='<div class="note">Rand niet gevonden — '+res.help+'<br><br>📱 Kopieer deze regel en stuur hem in de chat: <br><small style="color:#94a3b8">v'+VERSION+' | '+diag(res.tTop)+' | '+diag(res.tBot)+' | '+diag(res.tLeft)+' | '+diag(res.tRight)+'</small></div>'; showView("resultView"); return; }
   var legenda='<p class="n" style="margin-top:8px">🟡 buitenrand &nbsp;·&nbsp; 🔵 gestippeld: binnenrand &nbsp;·&nbsp; 🔴 kaartmidden &nbsp;·&nbsp; 🔵 stippen: randmidden</p>';
   el.innerHTML='<div class="card"><div class="score"><span>Centering score</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
@@ -515,6 +517,6 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="SSij3UcXpBJfsQu6QxGHkQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="uRAqLJpbeeXG/cYaSYvvrQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
