@@ -73,7 +73,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.41</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.42</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -144,7 +144,7 @@
 
 <script>
 "use strict";
-var VERSION="2.41";
+var VERSION="2.42";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 
 function showView(id){
@@ -430,6 +430,26 @@ function quadPt(u,v){
   return [ TL[0]+(TR[0]-TL[0])*u+(BL[0]-TL[0])*v+(TL[0]-TR[0]-BL[0]+BR[0])*u*v,
            TL[1]+(TR[1]-TL[1])*u+(BL[1]-TL[1])*v+(TL[1]-TR[1]-BL[1]+BR[1])*u*v ];
 }
+function invertQuad(px,py){
+  // v2.42: inverse van quadPt - van foto-pixel terug naar kaart-fractie (u,v)
+  var u=.5,v=.5,e=1e-3;
+  for(var i=0;i<12;i++){
+    var p=quadPt(u,v), pu=quadPt(u+e,v), pv=quadPt(u,v+e);
+    var j11=(pu[0]-p[0])/e, j12=(pv[0]-p[0])/e, j21=(pu[1]-p[1])/e, j22=(pv[1]-p[1])/e;
+    var det=j11*j22-j12*j21;
+    if(!det) break;
+    var du=(j22*(px-p[0])-j12*(py-p[1]))/det, dv=(-j21*(px-p[0])+j11*(py-p[1]))/det;
+    u+=du; v+=dv;
+    u=Math.max(-.3,Math.min(1.3,u)); v=Math.max(-.3,Math.min(1.3,v));
+  }
+  return [u,v];
+}
+function freezeInner(){
+  // v2.42: zet de binnenrand vast op zijn plek in de FOTO, zodat hij niet meer meeschuift met de gele kaartrand
+  if(!inner||inner.mode==="abs"||!rect) return;
+  var a=quadPt(inner.l,inner.t), b=quadPt(1-inner.r,inner.t), c=quadPt(1-inner.r,1-inner.b), d=quadPt(inner.l,1-inner.b);
+  inner={mode:"abs",user:true,tl:a,tr:b,br:c,bl:d};
+}
 function drawCrop(){
   var svg=document.getElementById("cropSvg"); if(!svg) return;
   svg.setAttribute("viewBox","0 0 "+dims.w+" "+dims.h);
@@ -451,10 +471,11 @@ function drawCrop(){
     +'<circle data-edge="bottom" cx="'+midBot.x+'" cy="'+midBot.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ns-resize"/>'
     +'<circle data-edge="left" cx="'+midLeft.x+'" cy="'+midLeft.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ew-resize"/>'
     +'<circle data-edge="right" cx="'+midRight.x+'" cy="'+midRight.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ew-resize"/>';
-  // v2.40: blauwe binnenrand (kaderlijn rond het artwork) - standaard 5%, zelf te verschuiven
-  if(!inner) inner={t:.05,b:.05,l:.05,r:.05,user:false};
-  var qTL=quadPt(inner.l,inner.t), qTR=quadPt(1-inner.r,inner.t),
-      qBR=quadPt(1-inner.r,1-inner.b), qBL=quadPt(inner.l,1-inner.b);
+  // v2.42: blauwe binnenrand - 'frac' volgt de kaartrand, 'abs' ligt vast in de foto
+  if(!inner||!inner.mode) inner={mode:"frac",t:.05,b:.05,l:.05,r:.05,user:false};
+  var qTL,qTR,qBR,qBL;
+  if(inner.mode==="abs"){ qTL=inner.tl; qTR=inner.tr; qBR=inner.br; qBL=inner.bl; }
+  else { qTL=quadPt(inner.l,inner.t); qTR=quadPt(1-inner.r,inner.t); qBR=quadPt(1-inner.r,1-inner.b); qBL=quadPt(inner.l,1-inner.b); }
   var ip=qTL[0]+','+qTL[1]+' '+qTR[0]+','+qTR[1]+' '+qBR[0]+','+qBR[1]+' '+qBL[0]+','+qBL[1];
   html+='<polygon points="'+ip+'" fill="none" stroke="#38bdf8" stroke-width="'+sw+'" stroke-dasharray="'+(sw*2.5)+' '+sw+'" stroke-linejoin="round"/>';
   var hrb=Math.max(9,dims.w*0.014)/zc;
@@ -500,8 +521,9 @@ function setupCornerDrag(){
       right:{x:(rect.tr.x+rect.br.x)/2,y:(rect.tr.y+rect.br.y)/2}
     };
     if(inner){
-      var qTL2=quadPt(inner.l,inner.t), qTR2=quadPt(1-inner.r,inner.t),
-          qBR2=quadPt(1-inner.r,1-inner.b), qBL2=quadPt(inner.l,1-inner.b);
+      var qTL2,qTR2,qBR2,qBL2;
+      if(inner.mode==="abs"){ qTL2=inner.tl; qTR2=inner.tr; qBR2=inner.br; qBL2=inner.bl; }
+      else { qTL2=quadPt(inner.l,inner.t); qTR2=quadPt(1-inner.r,inner.t); qBR2=quadPt(1-inner.r,1-inner.b); qBL2=quadPt(inner.l,1-inner.b); }
       mids.it={x:(qTL2[0]+qTR2[0])/2,y:(qTL2[1]+qTR2[1])/2};
       mids.ib={x:(qBL2[0]+qBR2[0])/2,y:(qBL2[1]+qBR2[1])/2};
       mids.il={x:(qTL2[0]+qBL2[0])/2,y:(qTL2[1]+qBL2[1])/2};
@@ -519,9 +541,10 @@ function setupCornerDrag(){
       active=best;
       try{ svg.setPointerCapture(e.pointerId); }catch(err){}
       if(best.charAt(0)==="i"){
-        if(inner) inner.user=true;
+        freezeInner();
         document.getElementById("scanNote").innerHTML='<div class="note">✋ Blauwe binnenrand verschuiven — leg hem precies op de kaderlijn rond het artwork. Tik daarna op 🎯 analyseren.</div>';
       } else {
+        if(inner&&inner.user) freezeInner(); // v2.42: blauw blijft op zijn plek wanneer je daarna geel verschuift
         document.getElementById("scanNote").innerHTML='<div class="note">✋ Lijn verschuiven — boven/onder gaan verticaal, links/rechts horizontaal. Tik daarna op 🎯 analyseren.</div>';
       }
     } else {
@@ -559,10 +582,10 @@ function setupCornerDrag(){
       else if(active==="bottom"){ rect.bl.y=y; rect.br.y=y; }
       else if(active==="left"){ rect.tl.x=x; rect.bl.x=x; }
       else if(active==="right"){ rect.tr.x=x; rect.br.x=x; }
-      else if(active==="it"&&inner){ inner.t=Math.min(.45,Math.max(.005,(p[1]-rect.tl.y)/Math.max(1,rect.bl.y-rect.tl.y))); inner.user=true; }
-      else if(active==="ib"&&inner){ inner.b=Math.min(.45,Math.max(.005,(rect.bl.y-p[1])/Math.max(1,rect.bl.y-rect.tl.y))); inner.user=true; }
-      else if(active=="il"&&inner){ inner.l=Math.min(.45,Math.max(.005,(p[0]-rect.tl.x)/Math.max(1,rect.tr.x-rect.tl.x))); inner.user=true; }
-      else if(active==="ir"&&inner){ inner.r=Math.min(.45,Math.max(.005,(rect.tr.x-p[0])/Math.max(1,rect.tr.x-rect.tl.x))); inner.user=true; }
+      else if(active==="it"&&inner&&inner.mode==="abs"){ inner.tl[1]=p[1]; inner.tr[1]=p[1]; }
+      else if(active==="ib"&&inner&&inner.mode==="abs"){ inner.bl[1]=p[1]; inner.br[1]=p[1]; }
+      else if(active=="il"&&inner&&inner.mode==="abs"){ inner.tl[0]=p[0]; inner.bl[0]=p[0]; }
+      else if(active==="ir"&&inner&&inner.mode==="abs"){ inner.tr[0]=p[0]; inner.br[0]=p[0]; }
       rect.edge=null;
       drawCrop();
       return;
@@ -720,9 +743,20 @@ function analyzeCentering(){
     rTop=guard(rTop); rBot=guard(rBot); rLeft=guard(rLeft); rRight=guard(rRight);
   }
   if(inner&&inner.user){
-    // v2.40: gebruiker heeft de blauwe binnenrand zelf geplaatst -> die waarden gelden
-    var tTop=Math.min(H*0.45,inner.t*H), tBot=Math.min(H*0.45,inner.b*H),
-        tLeft=Math.min(W*0.45,inner.l*W), tRight=Math.min(W*0.45,inner.r*W);
+    // v2.42: blauwe binnenrand vast in de foto -> terugrekenen naar diktes op de kaart
+    var tTop,tBot,tLeft,tRight;
+    if(inner.mode==="abs"){
+      var ivTL=invertQuad(inner.tl[0],inner.tl[1]), ivTR=invertQuad(inner.tr[0],inner.tr[1]),
+          ivBL=invertQuad(inner.bl[0],inner.bl[1]), ivBR=invertQuad(inner.br[0],inner.br[1]);
+      var vT=(ivTL[1]+ivTR[1])/2, vB=(ivBL[1]+ivBR[1])/2, uL=(ivTL[0]+ivBL[0])/2, uR=(ivTR[0]+ivBR[0])/2;
+      tTop=Math.max(1,Math.min(H*0.45,vT*H));
+      tBot=Math.max(1,Math.min(H*0.45,(1-vB)*H));
+      tLeft=Math.max(1,Math.min(W*0.45,uL*W));
+      tRight=Math.max(1,Math.min(W*0.45,(1-uR)*W));
+    } else {
+      tTop=Math.min(H*0.45,inner.t*H); tBot=Math.min(H*0.45,inner.b*H);
+      tLeft=Math.min(W*0.45,inner.l*W); tRight=Math.min(W*0.45,inner.r*W);
+    }
   } else {
     if(!rTop||!rBot||!rLeft||!rRight||rTop.fail||rBot.fail||rLeft.fail||rRight.fail){
       return { fail:true, tTop:rTop, tBot:rBot, tLeft:rLeft, tRight:rRight,
