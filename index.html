@@ -91,6 +91,9 @@
   /* v2.91: alleen de rasterlijnen uitzetten - gele rand en dimming blijven */
   #camFrame.nogrid::before { display:none; }
   #camBar { flex:none; display:flex; gap:8px; padding:10px; }
+  /* v2.94: stabiliteits-balk - loopt in 3s vol bij een stilstaande kaart, loopt terug bij beweging */
+  #capBar { flex:none; height:10px; margin:10px 10px 0; border-radius:99px; background:#1e293b; overflow:hidden; }
+  #capFill { height:100%; width:0%; border-radius:99px; background:#facc15; transition:width .15s linear; }
   /* v2.89: ronde schakelknopjes op het camerascherm (raster + lamp) */
   .camToggle { position:absolute; width:42px; height:42px; border-radius:50%;
     border:2px solid rgba(250,204,21,.6); background:rgba(2,6,23,.55); color:#facc15;
@@ -132,7 +135,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.93</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.94</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -171,6 +174,7 @@
     <button class="camToggle" id="gridBtn" onclick="toggleGrid()" aria-label="Raster aan/uit">#</button>
     <button class="camToggle" id="torchBtn" onclick="toggleTorch()" aria-label="Lamp aan/uit">🔦</button>
   </div>
+  <div id="capBar"><div id="capFill"></div></div>
   <div id="camBar">
     <button class="btn dark" style="flex:1;margin:0" onclick="closeCam()">⬅ Annuleren</button>
     <button class="btn yellow" style="flex:1;margin:0" onclick="captureCam()">📷 Foto maken</button>
@@ -222,7 +226,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.93";
+var VERSION="2.94";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -293,6 +297,7 @@ function openCam(){
       camStream=s;
       var v=document.getElementById("camVideo");
       v.srcObject=s; v.play().catch(function(){});
+      startCapMonitor(); // v2.94: auto-foto na 3s stabiliteit
     })
     .catch(function(){ closeCam(true); }); // geen toegang: terug naar native fallback
 }
@@ -314,12 +319,47 @@ function toggleTorch(){
   if(!track||!track.applyConstraints){ return; }
   track.applyConstraints({ advanced:[{ torch:torchOn }] }).catch(function(){ btn.classList.add("off"); torchOn=false; });
 }
+// v2.94: automatische foto - beeld ~6x/sec vergelijken; stabiel = balk loopt in 3s vol,
+// beweging = balk loopt terug. Vol = automatisch captureCam().
+var capTimer=null, capPrev=null, capProg=0;
+function setCapBar(p){
+  var f=document.getElementById("capFill");
+  if(f) f.style.width=(p*100)+"%";
+}
+function stopCapMonitor(){
+  if(capTimer){ clearInterval(capTimer); capTimer=null; }
+  capPrev=null; capProg=0; setCapBar(0);
+}
+function startCapMonitor(){
+  stopCapMonitor();
+  var c=document.createElement("canvas"); c.width=64; c.height=48;
+  var cctx=c.getContext("2d",{willReadFrequently:true});
+  var v=document.getElementById("camVideo");
+  capTimer=setInterval(function(){
+    if(curView!=="camView"||!v.videoWidth){ return; }
+    try{ cctx.drawImage(v,0,0,64,48); }catch(e){ return; }
+    var d=cctx.getImageData(0,0,64,48).data;
+    if(capPrev){
+      var diff=0, n=d.length/4;
+      for(var i=0;i<d.length;i+=4){ diff+=Math.abs(d[i]-capPrev[i])+Math.abs(d[i+1]-capPrev[i+1]); }
+      diff/=(n*510); // 0..1
+      if(diff<0.022){ capProg=Math.min(1,capProg+0.05); }        // stabiel: 20 ticks = 3s
+      else if(diff<0.05){ capProg=Math.max(0,capProg-0.03); }    // lichte trilling: langzaam terug
+      else { capProg=Math.max(0,capProg-0.12); }                 // veel beweging: snel terug
+      setCapBar(capProg);
+      if(capProg>=1){ stopCapMonitor(); captureCam(); return; }
+    }
+    capPrev=new Uint8Array(d);
+  },150);
+}
 function closeCam(fallback){
+  stopCapMonitor(); // v2.94
   if(camStream){ camStream.getTracks().forEach(function(tr){ tr.stop(); }); camStream=null; }
   if(fallback){ document.getElementById("fileInput").click(); return; } // v2.78: native camera
   showView("home");
 }
 function captureCam(){
+  stopCapMonitor(); // v2.94: monitor stoppen bij een (auto-)foto
   var v=document.getElementById("camVideo");
   if(!v||!v.videoWidth){ return; }
   // v2.80: foto = precies het ZICHTBARE deel van het camerascherm (preview is
