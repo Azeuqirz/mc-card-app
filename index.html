@@ -72,7 +72,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.37</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.38</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -143,7 +143,7 @@
 
 <script>
 "use strict";
-var VERSION="2.37";
+var VERSION="2.38";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -408,14 +408,14 @@ function autoDetect(){
   if(q){
     rect={ tl:{x:q.quad[0][0],y:q.quad[0][1]}, tr:{x:q.quad[1][0],y:q.quad[1][1]}, br:{x:q.quad[2][0],y:q.quad[2][1]}, bl:{x:q.quad[3][0],y:q.quad[3][1]} };
     rect.edge=q.edge; rect.nPts=q.nPts;
-    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd ('+q.nPts+' randpunten). Kloppen de gele hoekjes niet? Sleep ze dan eerst goed — daarna 🎯 analyseren.</div>';
+    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd ('+q.nPts+' randpunten). Kloppen de lijnen niet? Schuif ze met de gele handvatten (midden van elke lijn) goed — daarna 🎯 analyseren.</div>';
   } else {
     // v2.37: detectie mislukt -> standaard-hoekjes die de gebruiker zelf op de kaart legt
     var m=0.14;
     rect={ tl:{x:dims.w*m,y:dims.h*m}, tr:{x:dims.w*(1-m),y:dims.h*m},
            br:{x:dims.w*(1-m),y:dims.h*(1-m)}, bl:{x:dims.w*m,y:dims.h*(1-m)} };
     rect.edge=null;
-    document.getElementById("scanNote").innerHTML='<div class="note">⚠️ Automatische detectie mislukt. Sleep de gele hoekjes naar de 4 hoeken van de kaart en tik op 🎯 analyseren.</div>';
+    document.getElementById("scanNote").innerHTML='<div class="note">⚠️ Automatische detectie mislukt. Sleep de gele lijnhandvatten naar de kaartranden — boven/onder verticaal, links/rechts horizontaal — en tik op 🎯 analyseren.</div>';
   }
   setupCornerDrag();
   drawCrop();
@@ -428,13 +428,19 @@ function drawCrop(){
   if(!rect){ svg.innerHTML=""; return; }
   // v2.37: kaartrand + SLEEPBARE hoekjes
   var poly=rect.tl.x+","+rect.tl.y+" "+rect.tr.x+","+rect.tr.y+" "+rect.br.x+","+rect.br.y+" "+rect.bl.x+","+rect.bl.y;
-  var hr=Math.max(10,dims.w*0.016);
+  var hr=Math.max(12,dims.w*0.02);
   var hs=rect.tl.x+","+rect.tl.y+" "+rect.tr.x+","+rect.tr.y+" "+rect.br.x+","+rect.br.y+" "+rect.bl.x+","+rect.bl.y;
   var html='<polygon points="'+poly+'" fill="none" stroke="#22c55e" stroke-width="'+sw+'" stroke-linejoin="round"/>'
     +'<polygon points="'+hs+'" fill="rgba(250,204,21,0.06)" stroke="none"/>';
-  ["tl","tr","br","bl"].forEach(function(nm){
-    html+='<circle data-corner="'+nm+'" cx="'+rect[nm].x+'" cy="'+rect[nm].y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:pointer"/>';
-  });
+  // v2.38: handles in het MIDDEN van elke lijn - boven/onder verticaal, links/rechts horizontaal
+  var midTop={x:(rect.tl.x+rect.tr.x)/2,y:(rect.tl.y+rect.tr.y)/2};
+  var midBot={x:(rect.bl.x+rect.br.x)/2,y:(rect.bl.y+rect.br.y)/2};
+  var midLeft={x:(rect.tl.x+rect.bl.x)/2,y:(rect.tl.y+rect.bl.y)/2};
+  var midRight={x:(rect.tr.x+rect.br.x)/2,y:(rect.tr.y+rect.br.y)/2};
+  html+='<circle data-edge="top" cx="'+midTop.x+'" cy="'+midTop.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ns-resize"/>'
+    +'<circle data-edge="bottom" cx="'+midBot.x+'" cy="'+midBot.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ns-resize"/>'
+    +'<circle data-edge="left" cx="'+midLeft.x+'" cy="'+midLeft.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ew-resize"/>'
+    +'<circle data-edge="right" cx="'+midRight.x+'" cy="'+midRight.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ew-resize"/>';
   svg.innerHTML=html;
 }
 // v2.37: hoekjes slepen met vinger/muis
@@ -453,23 +459,37 @@ function setupCornerDrag(){
   svg.addEventListener("pointerdown", function(e){
     if(!rect||!dims) return;
     var p=toImg(e);
-    var names=["tl","tr","br","bl"], best=null, bd=1e9;
-    names.forEach(function(nm){
-      var d=Math.hypot(rect[nm].x-p[0], rect[nm].y-p[1]);
+    var mids={
+      top:{x:(rect.tl.x+rect.tr.x)/2,y:(rect.tl.y+rect.tr.y)/2},
+      bottom:{x:(rect.bl.x+rect.br.x)/2,y:(rect.bl.y+rect.br.y)/2},
+      left:{x:(rect.tl.x+rect.bl.x)/2,y:(rect.tl.y+rect.bl.y)/2},
+      right:{x:(rect.tr.x+rect.br.x)/2,y:(rect.tr.y+rect.br.y)/2}
+    };
+    var best=null, bd=1e9;
+    for(var nm in mids){
+      var d=Math.hypot(mids[nm].x-p[0], mids[nm].y-p[1]);
       if(d<bd){ bd=d; best=nm; }
-    });
-    var grabR=Math.max(34, dims.w*0.045);
+    }
+    var grabR=Math.max(40, dims.w*0.05);
     if(bd<=grabR){
       active=best; e.preventDefault();
       try{ svg.setPointerCapture(e.pointerId); }catch(err){}
-      document.getElementById("scanNote").innerHTML='<div class="note">✋ Hoekje verschoven — leg alle 4 hoekjes exact op de kaarthoeken en tik op 🎯 analyseren.</div>';
+      document.getElementById("scanNote").innerHTML='<div class="note">✋ Lijn verschuiven — boven/onder gaan verticaal, links/rechts horizontaal. Tik daarna op 🎯 analyseren.</div>';
     }
   });
   svg.addEventListener("pointermove", function(e){
     if(!active) return;
     var p=toImg(e);
-    rect[active].x=Math.min(Math.max(p[0],0),dims.w);
-    rect[active].y=Math.min(Math.max(p[1],0),dims.h);
+    var x=Math.min(Math.max(p[0],0),dims.w), y=Math.min(Math.max(p[1],0),dims.h);
+    if(active==="top"){
+      rect.tl.y=y; rect.tr.y=y;
+    } else if(active==="bottom"){
+      rect.bl.y=y; rect.br.y=y;
+    } else if(active==="left"){
+      rect.tl.x=x; rect.bl.x=x;
+    } else if(active==="right"){
+      rect.tr.x=x; rect.br.x=x;
+    }
     rect.edge=null;
     drawCrop();
   });
