@@ -14,7 +14,7 @@
   body { margin:0; font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;
     background:#020617; color:#f1f5f9; max-width:480px; margin:0 auto;
     display:flex; flex-direction:column; }
-  .view { display:none; flex-direction:column; height:100%; padding:12px 16px 16px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .view { display:none; flex-direction:column; height:100%; padding:12px 16px 16px; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior-x:none; }
   .view.active { display:flex; }
   header { text-align:center; padding-top:8px; }
   header svg { width:64px; height:64px; }
@@ -76,7 +76,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.49</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.50</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -150,7 +150,7 @@
 
 <script>
 "use strict";
-var VERSION="2.49";
+var VERSION="2.50";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 
 function showView(id){
