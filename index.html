@@ -34,6 +34,7 @@
     display:flex; align-items:center; justify-content:center; margin-top:12px; }
   #cropWrap img { max-width:100%; max-height:100%; width:auto; height:auto; pointer-events:none; }
   #cropWrap svg { position:absolute; inset:0; width:100%; height:100%; }
+  #cropZoom { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; will-change:transform; }
   #scanActions { flex:none; }
   #resultScroll { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .score { display:flex; justify-content:space-between; align-items:center; font-size:14px; color:#cbd5e1; }
@@ -72,7 +73,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.38</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.39</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -104,7 +105,7 @@
 
 <!-- ===== SCAN ===== -->
 <div class="view" id="scan">
-  <div id="cropWrap"><img id="cropImg"><svg id="cropSvg"></svg></div>
+  <div id="cropWrap"><div id="cropZoom"><img id="cropImg"><svg id="cropSvg"></svg></div></div>
   <div id="scanNote"></div>
   <div id="scanActions">
     <button class="btn yellow" onclick="runAnalysis()">🎯 Centering analyseren</button>
@@ -143,7 +144,7 @@
 
 <script>
 "use strict";
-var VERSION="2.38";
+var VERSION="2.39";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -408,7 +409,7 @@ function autoDetect(){
   if(q){
     rect={ tl:{x:q.quad[0][0],y:q.quad[0][1]}, tr:{x:q.quad[1][0],y:q.quad[1][1]}, br:{x:q.quad[2][0],y:q.quad[2][1]}, bl:{x:q.quad[3][0],y:q.quad[3][1]} };
     rect.edge=q.edge; rect.nPts=q.nPts;
-    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd ('+q.nPts+' randpunten). Kloppen de lijnen niet? Schuif ze met de gele handvatten (midden van elke lijn) goed — daarna 🎯 analyseren.</div>';
+    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd ('+q.nPts+' randpunten). Kloppen de lijnen niet? Knijp met 2 vingers om te zoomen (dubbel-tik = 2,5x), sleep met 1 vinger om te pannen, en schuif de gele handvatten precies op de rand — daarna 🎯 analyseren.</div>';
   } else {
     // v2.37: detectie mislukt -> standaard-hoekjes die de gebruiker zelf op de kaart legt
     var m=0.14;
@@ -417,6 +418,7 @@ function autoDetect(){
     rect.edge=null;
     document.getElementById("scanNote").innerHTML='<div class="note">⚠️ Automatische detectie mislukt. Sleep de gele lijnhandvatten naar de kaartranden — boven/onder verticaal, links/rechts horizontaal — en tik op 🎯 analyseren.</div>';
   }
+  cropResetZoom();
   setupCornerDrag();
   drawCrop();
 }
@@ -443,13 +445,20 @@ function drawCrop(){
     +'<circle data-edge="right" cx="'+midRight.x+'" cy="'+midRight.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ew-resize"/>';
   svg.innerHTML=html;
 }
-// v2.37: hoekjes slepen met vinger/muis
+// v2.39: lijnen slepen + pan + pinch-zoom in het scan-scherm
 var _cornerDragSetup=false;
+var cropZoom={ z:1, tx:0, ty:0 };
+function cropApplyZoom(){
+  var el=document.getElementById("cropZoom");
+  if(el) el.style.transform="translate("+cropZoom.tx+"px,"+cropZoom.ty+"px) scale("+cropZoom.z+")";
+}
+function cropResetZoom(){ cropZoom.z=1; cropZoom.tx=0; cropZoom.ty=0; cropApplyZoom(); }
 function setupCornerDrag(){
   if(_cornerDragSetup) return; _cornerDragSetup=true;
   var svg=document.getElementById("cropSvg");
+  var wrap=document.getElementById("cropWrap");
   svg.style.pointerEvents="auto"; svg.style.touchAction="none";
-  var active=null;
+  var active=null, pts={}, lastDist=0, lastPan=null, pinchP=null, lastTap=0;
   function toImg(e){
     var r=svg.getBoundingClientRect();
     var s=Math.min(r.width/dims.w, r.height/dims.h);
@@ -458,6 +467,7 @@ function setupCornerDrag(){
   }
   svg.addEventListener("pointerdown", function(e){
     if(!rect||!dims) return;
+    e.preventDefault();
     var p=toImg(e);
     var mids={
       top:{x:(rect.tl.x+rect.tr.x)/2,y:(rect.tl.y+rect.tr.y)/2},
@@ -470,31 +480,81 @@ function setupCornerDrag(){
       var d=Math.hypot(mids[nm].x-p[0], mids[nm].y-p[1]);
       if(d<bd){ bd=d; best=nm; }
     }
-    var grabR=Math.max(40, dims.w*0.05);
+    var r0=svg.getBoundingClientRect();
+    var s0=Math.min(r0.width/dims.w, r0.height/dims.h);
+    var grabR=Math.max(44/s0, dims.w*0.02);
     if(bd<=grabR){
-      active=best; e.preventDefault();
+      active=best;
       try{ svg.setPointerCapture(e.pointerId); }catch(err){}
       document.getElementById("scanNote").innerHTML='<div class="note">✋ Lijn verschuiven — boven/onder gaan verticaal, links/rechts horizontaal. Tik daarna op 🎯 analyseren.</div>';
+    } else {
+      pts[e.pointerId]=[e.clientX,e.clientY];
+      try{ svg.setPointerCapture(e.pointerId); }catch(err){}
+      var ids=Object.keys(pts);
+      if(ids.length===1){
+        lastPan=[e.clientX,e.clientY];
+        var now=Date.now();
+        if(now-lastTap<300){
+          if(cropZoom.z>1.4){ cropResetZoom(); }
+          else{
+            var wr=wrap.getBoundingClientRect();
+            cropZoom.z=2.5;
+            cropZoom.tx=wrap.clientWidth/2-cropZoom.z*(e.clientX-wr.left);
+            cropZoom.ty=wrap.clientHeight/2-cropZoom.z*(e.clientY-wr.top);
+            cropApplyZoom();
+          }
+        }
+        lastTap=now;
+      } else if(ids.length===2){
+        lastPan=null;
+        var wr2=wrap.getBoundingClientRect();
+        var mx=(pts[ids[0]][0]+pts[ids[1]][0])/2, my=(pts[ids[0]][1]+pts[ids[1]][1])/2;
+        pinchP=[(mx-wr2.left-cropZoom.tx)/cropZoom.z, (my-wr2.top-cropZoom.ty)/cropZoom.z];
+        lastDist=Math.hypot(pts[ids[0]][0]-pts[ids[1]][0], pts[ids[0]][1]-pts[ids[1]][1]);
+      }
     }
   });
   svg.addEventListener("pointermove", function(e){
-    if(!active) return;
-    var p=toImg(e);
-    var x=Math.min(Math.max(p[0],0),dims.w), y=Math.min(Math.max(p[1],0),dims.h);
-    if(active==="top"){
-      rect.tl.y=y; rect.tr.y=y;
-    } else if(active==="bottom"){
-      rect.bl.y=y; rect.br.y=y;
-    } else if(active==="left"){
-      rect.tl.x=x; rect.bl.x=x;
-    } else if(active==="right"){
-      rect.tr.x=x; rect.br.x=x;
+    if(active){
+      var p=toImg(e);
+      var x=Math.min(Math.max(p[0],0),dims.w), y=Math.min(Math.max(p[1],0),dims.h);
+      if(active==="top"){ rect.tl.y=y; rect.tr.y=y; }
+      else if(active==="bottom"){ rect.bl.y=y; rect.br.y=y; }
+      else if(active==="left"){ rect.tl.x=x; rect.bl.x=x; }
+      else if(active==="right"){ rect.tr.x=x; rect.br.x=x; }
+      rect.edge=null;
+      drawCrop();
+      return;
     }
-    rect.edge=null;
-    drawCrop();
+    if(!(e.pointerId in pts)) return;
+    pts[e.pointerId]=[e.clientX,e.clientY];
+    var ids=Object.keys(pts);
+    if(ids.length===2&&pinchP){
+      var wr=wrap.getBoundingClientRect();
+      var mx=(pts[ids[0]][0]+pts[ids[1]][0])/2, my=(pts[ids[0]][1]+pts[ids[1]][1])/2;
+      var d=Math.hypot(pts[ids[0]][0]-pts[ids[1]][0], pts[ids[0]][1]-pts[ids[1]][1]);
+      if(lastDist>0&&d>0){
+        var nz=Math.min(6,Math.max(1,cropZoom.z*d/lastDist));
+        cropZoom.z=nz;
+        cropZoom.tx=(mx-wr.left)-nz*pinchP[0];
+        cropZoom.ty=(my-wr.top)-nz*pinchP[1];
+        cropApplyZoom();
+      }
+      lastDist=d;
+    } else if(lastPan){
+      cropZoom.tx+=e.clientX-lastPan[0];
+      cropZoom.ty+=e.clientY-lastPan[1];
+      cropApplyZoom();
+      lastPan=[e.clientX,e.clientY];
+    }
   });
   ["pointerup","pointercancel"].forEach(function(ev){
-    svg.addEventListener(ev,function(){ active=null; });
+    svg.addEventListener(ev,function(e){
+      delete pts[e.pointerId];
+      if(Object.keys(pts).length<2){ lastDist=0; pinchP=null; }
+      if(Object.keys(pts).length<1) lastPan=null;
+      active=null;
+    });
   });
 }
 
@@ -1072,16 +1132,19 @@ function runAnalysis(){
 
 // ---------- Zoom op de analyse-visualisatie ----------
 var zs=1;
-function setZoom(s){
-  zs=Math.min(4,Math.max(0.5,s));
-  var inner=document.getElementById("zoomInner");
-  if(inner){
-    // v2.24: zoomen vanaf linksboven (origin 0 0). De afbeelding begint dan bij
-    // scrollpositie 0, dus het VOLLEDIGE vergrote vlak is bereikbaar — ook het
-    // linkerdeel. (Met origin midden was het links uitstekende deel onbereikbaar.)
-    inner.style.width="100%";
-    inner.style.transform="scale("+zs+")";
-  }
+function setZoom(s, ax, ay){
+  var wrap=document.getElementById("zoomWrap"), inner=document.getElementById("zoomInner");
+  if(!wrap||!inner) return;
+  // v2.39: zoom vanuit het MIDDEN (of het ankerpunt van je knijpgebare).
+  // Het punt onder het anker blijft op zijn plek in beeld — niet meer
+  // alles vanaf linksboven uitrekken.
+  if(ax===undefined||ax===null){ ax=wrap.clientWidth/2; ay=wrap.clientHeight/2; }
+  var cx=(wrap.scrollLeft+ax)/zs, cy=(wrap.scrollTop+ay)/zs;
+  zs=Math.min(6,Math.max(0.5,s));
+  inner.style.width="100%";
+  inner.style.transform="scale("+zs+")";
+  wrap.scrollLeft=cx*zs-ax;
+  wrap.scrollTop=cy*zs-ay;
 }
 function attachZoom(){
   var wrap=document.getElementById("zoomWrap"); if(!wrap) return;
@@ -1092,7 +1155,10 @@ function attachZoom(){
     try{ wrap.setPointerCapture(e.pointerId); }catch(err){}
     if(Object.keys(pts).length===1){
       var now=Date.now();
-      if(now-lastTap<300){ setZoom(zs>1.4?1:2.5); }
+      if(now-lastTap<300){
+        var wr0=wrap.getBoundingClientRect();
+        setZoom(zs>1.4?1:2.5, e.clientX-wr0.left, e.clientY-wr0.top);
+      }
       lastTap=now;
       lastPan=[e.clientX,e.clientY];
     }
@@ -1102,8 +1168,10 @@ function attachZoom(){
     pts[e.pointerId]=[e.clientX,e.clientY];
     var ids=Object.keys(pts);
     if(ids.length===2){
+      var wr1=wrap.getBoundingClientRect();
+      var mx=(pts[ids[0]][0]+pts[ids[1]][0])/2, my=(pts[ids[0]][1]+pts[ids[1]][1])/2;
       var d=Math.hypot(pts[ids[0]][0]-pts[ids[1]][0], pts[ids[0]][1]-pts[ids[1]][1]);
-      if(lastDist>0) setZoom(zs*d/lastDist);
+      if(lastDist>0) setZoom(zs*d/lastDist, mx-wr1.left, my-wr1.top);
       lastDist=d;
       lastPan=null;
     } else if(lastPan){
