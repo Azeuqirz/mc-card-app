@@ -102,7 +102,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.71</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.72</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -177,7 +177,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.71";
+var VERSION="2.72";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -885,10 +885,9 @@ function analyzeCentering(){
   var maxDev=Math.max(devLR,devTB);
   var grade=10;
   if(maxDev>6) grade=6; else if(maxDev>4) grade=7; else if(maxDev>2.5) grade=8; else if(maxDev>1.2) grade=9; else if(maxDev>0.4) grade=9.5;
-  var notes=[ "Randdikte boven/onder: "+(Math.round(tTop*10)/10)+"px / "+(Math.round(tBot*10)/10)+"px  ("+fmt(tTop,tBot)+")",
-          "Randdikte links/rechts: "+(Math.round(tLeft*10)/10)+"px / "+(Math.round(tRight*10)/10)+"px  ("+fmt(tLeft,tRight)+")",
-          "Middenafwijking links-rechts: "+(Math.round(devLR*100)/100)+"%"+(offX>0?" (rand rechts dikker)":" (rand links dikker)"),
-          "Middenafwijking boven-onder: "+(Math.round(devTB*100)/100)+"%"+(offY>0?" (rand onder dikker)":" (rand boven dikker)") ];
+  // v2.72: korte uitslag - 2 regels resultaat, oordeel komt eronder
+  var notes=[ "Randdikte: boven "+(Math.round(tTop*10)/10)+"px · onder "+(Math.round(tBot*10)/10)+"px · links "+(Math.round(tLeft*10)/10)+"px · rechts "+(Math.round(tRight*10)/10)+"px",
+          "Middenafwijking: LR "+(Math.round(devLR*100)/100)+"% "+(offX>0?"→":"←")+" · TB "+(Math.round(devTB*100)/100)+"% "+(offY>0?"↓":"↑") ];
   if(grade>=9.5) notes.push("Praktisch perfect gecenterd 🎉");
   else if(grade>=9) notes.push("Goed gecenterd — scoort doorgaans 9-10 bij grading.");
   else if(grade>=8) notes.push("Acceptabel gecenterd, kans op 8-9.");
@@ -1337,7 +1336,7 @@ function runAnalysis(){
   var el=document.getElementById("resultScroll");
   if(!res||res.canvasFail){ el.innerHTML='<div class="note">Analyse mislukt — '+((res&&res.help)||"onbekende fout")+'. Probeer de foto opnieuw te selecteren uit de bibliotheek.</div>'; showView("resultView"); return; }
   if(res.fail){ el.innerHTML='<div class="note">Rand niet gevonden — '+res.help+'<br><br>📱 Kopieer deze regel en stuur hem in de chat: <br><small style="color:#94a3b8">v'+VERSION+' | '+diag(res.tTop)+' | '+diag(res.tBot)+' | '+diag(res.tLeft)+' | '+diag(res.tRight)+'</small></div>'; showView("resultView"); return; }
-  var legenda='<p class="n" style="margin-top:8px">🟡 gedetecteerde kaartrand &nbsp;·&nbsp; randdiktes en afwijkingen zie je bij de metingen hieronder</p>';
+  // v2.72: legenda-regel verwijderd
   // v2.21: ÉÉN weergave — originele foto bijgesneden tot 50px rondom de kaart,
   // met de gele detectielijn erop. Zo zie je exact wat de detectie heeft gedaan.
   var vis="";
@@ -1393,7 +1392,7 @@ function runAnalysis(){
   res.vs=vis;
   el.innerHTML='<div class="card"><div class="score"><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
-    +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>'+legenda
+    +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")
     // v2.68: Goed/Fout direct onder de analyse-tekst
     +'<div style="display:flex;gap:8px;margin-top:12px">'
