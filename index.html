@@ -73,7 +73,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.40</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.41</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -144,7 +144,7 @@
 
 <script>
 "use strict";
-var VERSION="2.40";
+var VERSION="2.41";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 
 function showView(id){
@@ -433,11 +433,12 @@ function quadPt(u,v){
 function drawCrop(){
   var svg=document.getElementById("cropSvg"); if(!svg) return;
   svg.setAttribute("viewBox","0 0 "+dims.w+" "+dims.h);
-  var sw=Math.max(2,dims.w/300);
+  var zc=Math.max(1,(typeof cropZoom!=="undefined"&&cropZoom)?cropZoom.z:1); // v2.41: zoom-compensatie
+  var sw=Math.max(2,dims.w/300)/zc;
   if(!rect){ svg.innerHTML=""; return; }
   // v2.37: kaartrand + SLEEPBARE hoekjes
   var poly=rect.tl.x+","+rect.tl.y+" "+rect.tr.x+","+rect.tr.y+" "+rect.br.x+","+rect.br.y+" "+rect.bl.x+","+rect.bl.y;
-  var hr=Math.max(12,dims.w*0.02);
+  var hr=Math.max(12,dims.w*0.02)/zc;
   var hs=rect.tl.x+","+rect.tl.y+" "+rect.tr.x+","+rect.tr.y+" "+rect.br.x+","+rect.br.y+" "+rect.bl.x+","+rect.bl.y;
   var html='<polygon points="'+poly+'" fill="none" stroke="#22c55e" stroke-width="'+sw+'" stroke-linejoin="round"/>'
     +'<polygon points="'+hs+'" fill="rgba(250,204,21,0.06)" stroke="none"/>';
@@ -456,7 +457,7 @@ function drawCrop(){
       qBR=quadPt(1-inner.r,1-inner.b), qBL=quadPt(inner.l,1-inner.b);
   var ip=qTL[0]+','+qTL[1]+' '+qTR[0]+','+qTR[1]+' '+qBR[0]+','+qBR[1]+' '+qBL[0]+','+qBL[1];
   html+='<polygon points="'+ip+'" fill="none" stroke="#38bdf8" stroke-width="'+sw+'" stroke-dasharray="'+(sw*2.5)+' '+sw+'" stroke-linejoin="round"/>';
-  var hrb=Math.max(9,dims.w*0.014);
+  var hrb=Math.max(9,dims.w*0.014)/zc;
   var ibT={x:(qTL[0]+qTR[0])/2,y:(qTL[1]+qTR[1])/2},
       ibB={x:(qBL[0]+qBR[0])/2,y:(qBL[1]+qBR[1])/2},
       ibL={x:(qTL[0]+qBL[0])/2,y:(qTL[1]+qBL[1])/2},
@@ -473,6 +474,7 @@ var cropZoom={ z:1, tx:0, ty:0 };
 function cropApplyZoom(){
   var el=document.getElementById("cropZoom");
   if(el) el.style.transform="translate("+cropZoom.tx+"px,"+cropZoom.ty+"px) scale("+cropZoom.z+")";
+  if(typeof rect!=="undefined"&&rect&&typeof dims!=="undefined"&&dims) drawCrop(); // v2.41: bolletjes houden constante schermgrootte
 }
 function cropResetZoom(){ cropZoom.z=1; cropZoom.tx=0; cropZoom.ty=0; cropApplyZoom(); }
 function setupCornerDrag(){
