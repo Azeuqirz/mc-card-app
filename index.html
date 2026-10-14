@@ -135,7 +135,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.98</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.99</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -226,7 +226,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.98";
+var VERSION="2.99";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -289,20 +289,43 @@ bindFile("fileInputLib2", loadPhoto);
 
 // v2.78: eigen camera-scherm met geel kader in kaartverhouding (63:88)
 var camStream=null;
+// v2.99: camera volledig schoon herstarten + herpoging - iOS weigert soms een
+// tweede getUserMedia of start het element niet opnieuw (bleef zwart).
+var camRetry=null;
+function killCam(){
+  if(camRetry){ clearTimeout(camRetry); camRetry=null; }
+  stopCapMonitor();
+  if(camStream){ camStream.getTracks().forEach(function(tr){ tr.stop(); }); camStream=null; }
+  var v=document.getElementById("camVideo");
+  if(v){ try{ v.pause(); }catch(e2){} try{ v.srcObject=null; }catch(e3){} }
+  torchOn=false; var tb=document.getElementById("torchBtn"); if(tb) tb.classList.remove("off");
+}
+function bindCamStream(s){
+  camStream=s;
+  var v=document.getElementById("camVideo");
+  v.srcObject=null;
+  v.srcObject=s;
+  try{ v.load(); }catch(e){} // v2.99: element expliciet herladen
+  var p=v.play(); if(p&&p.catch) p.catch(function(){});
+  startCapMonitor(); // v2.94: auto-foto na 3s stabiliteit
+  // v2.99: blijft het beeld zwart? dan nog een keer proberen met simpele instellingen
+  camRetry=setTimeout(function(){
+    camRetry=null;
+    if(curView!=="camView"||!camStream) return;
+    var vv=document.getElementById("camVideo");
+    if(vv.videoWidth===0){
+      killCam();
+      navigator.mediaDevices.getUserMedia({ video:true, audio:false })
+        .then(bindCamStream).catch(function(){ closeCam(true); });
+    }
+  },2000);
+}
 function openCam(){
   showView("camView");
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ closeCam(true); return; }
+  killCam(); // v2.99: altijd schoon beginnen
   navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:"environment"}, width:{ideal:4032}, height:{ideal:3024} }, audio:false })
-    .then(function(s){
-      camStream=s;
-      var v=document.getElementById("camVideo");
-      v.srcObject=null; // v2.97: element resetten voor een schone herstart
-      v.srcObject=s;
-      var p=v.play();
-      if(p&&p.catch) p.catch(function(){});
-      v.setAttribute("playsinline",""); // v2.97: iOS autoplay-forceren
-      startCapMonitor(); // v2.94: auto-foto na 3s stabiliteit
-    })
+    .then(bindCamStream)
     .catch(function(){ closeCam(true); }); // geen toegang: terug naar native fallback
 }
 // v2.89: raster aan/uit in het camera-kader
@@ -357,14 +380,7 @@ function startCapMonitor(){
   },150);
 }
 function closeCam(fallback){
-  stopCapMonitor(); // v2.94
-  if(camStream){ camStream.getTracks().forEach(function(tr){ tr.stop(); }); camStream=null; }
-  // v2.97: FIX zwarte camera bij her-openen - dode stream loskoppelen en pauzeren,
-  // anders weigert iOS Safari op hetzelfde video-element een nieuw beeld te tonen.
-  var v=document.getElementById("camVideo");
-  if(v){ try{ v.pause(); }catch(e){} v.srcObject=null; }
-  torchOn=false; // v2.97: lamp-status resetten (stream is weg)
-  var tb=document.getElementById("torchBtn"); if(tb) tb.classList.remove("off");
+  killCam(); // v2.99: alles in een keer netjes opruimen
   if(fallback){ document.getElementById("fileInput").click(); return; } // v2.78: native camera
   showView("home");
 }
@@ -384,7 +400,7 @@ function captureCam(){
   c.width=Math.round(cw); c.height=Math.round(ch);
   var ctx=c.getContext("2d");
   ctx.drawImage(v,sx,sy,cw,ch,0,0,c.width,c.height);
-  if(camStream){ camStream.getTracks().forEach(function(tr){ tr.stop(); }); camStream=null; }
+  killCam(); // v2.99: stream + element volledig opruimen na de foto
   loadPhoto(c.toDataURL("image/jpeg",0.92));
 }
 function loadPhoto(dataUrl){
