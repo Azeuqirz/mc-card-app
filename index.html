@@ -102,7 +102,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.69</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.70</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -178,23 +178,25 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.69";
+var VERSION="2.70";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
 // v2.69: versienummer in de bovenbalk zetten
 document.querySelector(".tbVer").textContent="v"+VERSION;
 var curView="home", viewStack=[];
-function showView(id){
+function showView(id, noPush){
   document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
   document.querySelectorAll(".bottomBar.peek").forEach(function(b){ b.classList.remove("peek"); }); // v2.49: bij wisselen van pagina balken terug
-  if(id!=="home" && id!==curView) viewStack.push(curView); // v2.60: paginageschiedenis voor terug-knop
+  // v2.70: alleen vooruit-navigatie bouwt geschiedenis op; terug-knop (noPush) bouwt af -
+  // anders bleef je heen en weer springen tussen twee paginas
+  if(!noPush && id!=="home" && id!==curView) viewStack.push(curView); // v2.60: paginageschiedenis voor terug-knop
   curView=id;
   document.getElementById(id).classList.add("active");
   document.getElementById("backBtn").style.visibility=(id==="home")?"hidden":"visible"; // v2.62
 }
 // v2.60: terug naar vorige pagina
-function goBack(){ showView(viewStack.pop()||"home"); }
+function goBack(){ showView(viewStack.pop()||"home", true); } // v2.70: pop zonder opnieuw te pushen
 // v2.63: verversen zonder van pagina te wisselen - de huidige pagina wordt opnieuw geladen/getekend
 function refreshPage(){
   if(curView==="historyView"){ renderHistory(); return; }
@@ -1479,7 +1481,7 @@ function getScans(){
 // v2.64: Goed-knop - analyse opslaan in de database en database tonen
 function acceptScan(){ if(!window._lastRes) return; saveScan(window._lastRes); window._lastRes=null; renderHistory(); }
 // v2.64: Fout-knop - terug naar de scan-pagina om de centering handmatig bij te stellen
-function rejectScan(){ window._lastRes=null; showView("scan"); }
+function rejectScan(){ window._lastRes=null; showView("scan", true); } // v2.70: terug naar centeren zonder stapel te vullen
 function saveScan(res){
   try{
     var scans=getScans();
