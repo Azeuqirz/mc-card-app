@@ -73,7 +73,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.43</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.44</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -144,7 +144,7 @@
 
 <script>
 "use strict";
-var VERSION="2.43";
+var VERSION="2.44";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 
 function showView(id){
@@ -409,7 +409,7 @@ function autoDetect(){
   if(q){
     rect={ tl:{x:q.quad[0][0],y:q.quad[0][1]}, tr:{x:q.quad[1][0],y:q.quad[1][1]}, br:{x:q.quad[2][0],y:q.quad[2][1]}, bl:{x:q.quad[3][0],y:q.quad[3][1]} };
     rect.edge=q.edge; rect.nPts=q.nPts;
-    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd ('+q.nPts+' randpunten). Kloppen de lijnen niet? Knijp met 2 vingers om te zoomen (dubbel-tik = 2,5x), sleep met 1 vinger om te pannen, en schuif de gele handvatten precies op de kaartrand en de blauwe handvatten op de binnenrand (kaderlijn) — daarna 🎯 analyseren.</div>';
+    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd. Kloppen de lijnen niet? Knijp om te zoomen en schuif de gele en blauwe handvatten op hun plek, daarna 🎯 analyseren.</div>';
   } else {
     // v2.37: detectie mislukt -> standaard-hoekjes die de gebruiker zelf op de kaart legt
     var m=0.14;
