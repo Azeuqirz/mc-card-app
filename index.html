@@ -150,7 +150,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.11</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.12</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -316,13 +316,11 @@ function colRefresh(){
   }
   batch(ids);
 }
+// v3.12: bredere prijs-opzoeking - alle TCGPlayer-varianten (market, anders low), anders Cardmarket
 function colPriceOf(cd){
-  var p=cd&&cd.tcgplayer&&cd.tcgplayer.prices;
-  if(!p) return 0;
-  var best=0;
-  ["holofoil","normal","reverseHolo","1stEditionHolofoil"].forEach(function(k){
-    if(p[k]&&p[k].market) best=Math.max(best,p[k].market);
-  });
+  var p=cd&&cd.tcgplayer&&cd.tcgplayer.prices, k, best=0;
+  if(p){ for(k in p){ if(!p[k]) continue; var v=p[k].market||p[k].low||p[k].mid; if(v>best) best=v; } }
+  if(!best){ var m=cd&&cd.cardmarket&&cd.cardmarket.prices; if(m){ best=m.averageSellPrice||m.trend||0; } }
   return best;
 }
 function colHistPoint(){
@@ -491,7 +489,7 @@ function colDel(id){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.11";
+var VERSION="3.12";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
