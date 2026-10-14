@@ -73,7 +73,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.44</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.45</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -144,7 +144,7 @@
 
 <script>
 "use strict";
-var VERSION="2.44";
+var VERSION="2.45";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 
 function showView(id){
@@ -1153,6 +1153,7 @@ function legacyAutoQuery(name,num){
 
 function runAnalysis(){
   if(!img||!rect) return;
+  try{ // v2.45: interne fouten tonen i.p.v. een leeg scherm
   var res=analyzeCentering();
   var el=document.getElementById("resultScroll");
   if(!res||res.canvasFail){ el.innerHTML='<div class="note">Analyse mislukt — '+((res&&res.help)||"onbekende fout")+'. Probeer de foto opnieuw te selecteren uit de bibliotheek.</div>'; showView("resultView"); return; }
@@ -1168,8 +1169,20 @@ function runAnalysis(){
       var bx0=Math.max(0,Math.min.apply(null,xs)-150), by0=Math.max(0,Math.min.apply(null,ys)-150);
       var bx1=Math.min(img.naturalWidth,Math.max.apply(null,xs)+150), by1=Math.min(img.naturalHeight,Math.max.apply(null,ys)+150);
       var bw=bx1-bx0, bh=by1-by0;
-      // v2.35: de ORIGINELE foto rechtstreeks tonen - geen hercodering, maximale scherpte
+      // v2.45 FIX: iOS rendert een ruwe mega-byte data-URL (of HEIC) in SVG <image> soms niet ->
+      // het bijgesneden gebied via canvas als compacte JPEG (max 1800px breed) opnieuw coderen.
       var ohref=img.src;
+      try{
+        var k=Math.min(1,1800/bw);
+        var cc=document.createElement("canvas");
+        cc.width=Math.max(1,Math.round(bw*k)); cc.height=Math.max(1,Math.round(bh*k));
+        var cctx=cc.getContext("2d");
+        if(cctx){
+          cctx.drawImage(img,bx0,by0,bw,bh,0,0,cc.width,cc.height);
+          var chk=cctx.getImageData(0,0,1,1); // faalt expliciet als de foto niet getekend is
+          if(chk&&chk.data[3]===255){ ohref=cc.toDataURL("image/jpeg",0.87); }
+        }
+      }catch(e2){ ohref=img.src; }
       // v2.23: lijndiktes gehalveerd
       var sw2=Math.max(1,img.naturalWidth/560);
       var poly2=(rect.tl.x-bx0)+","+(rect.tl.y-by0)+" "+(rect.tr.x-bx0)+","+(rect.tr.y-by0)+" "+(rect.br.x-bx0)+","+(rect.br.y-by0)+" "+(rect.bl.x-bx0)+","+(rect.bl.y-by0);
@@ -1209,6 +1222,11 @@ function runAnalysis(){
   saveScan(res);
   showView("resultView");
   autoCardLookup();
+  }catch(e){ // v2.45
+    var elE=document.getElementById("resultScroll");
+    if(elE) elE.innerHTML='<div class="note">⚠️ Interne fout bij het analyseren: '+((e&&e.message)||e)+' — kopieer deze regel en stuur hem in de chat (v'+VERSION+').</div>';
+    showView("resultView");
+  }
 }
 
 // ---------- Zoom op de analyse-visualisatie ----------
