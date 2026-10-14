@@ -70,7 +70,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.31</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.32</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -141,7 +141,7 @@
 
 <script>
 "use strict";
-var VERSION="2.31";
+var VERSION="2.32";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -768,7 +768,102 @@ function tcgFetch(url,retries){
     return r.json();
   });
 }
-function autoQuery(name,num){
+// ---------- v2.32: TCGdex eerst (gratis, geen API-key, geen limieten) ----------
+function normNum(s){ return String(s||"").replace(/^0+/,""); }
+function tcgdexSearch(name, cb){
+  var w=(name.split(" ")[0]||name);
+  var queries=[name]; if(w&&w.toLowerCase()!==name.toLowerCase()) queries.push(w);
+  function doQuery(q, done){
+    fetch("https://api.tcgdex.net/v2/en/cards?name="+encodeURIComponent(q))
+      .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+      .then(function(j){ done(Array.isArray(j)?j:[]); })
+      .catch(function(){ done(null); });
+  }
+  function step(i){
+    if(i>=queries.length){ cb(null); return; }
+    doQuery(queries[i], function(list){
+      if(list===null){ cb(null); return; }
+      if(list.length>0){ cb(list); return; }
+      step(i+1);
+    });
+  }
+  step(0);
+}
+function tcgdexDetail(brief, cb){
+  fetch("https://api.tcgdex.net/v2/en/cards/"+encodeURIComponent(brief.id))
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(function(card){ cb(card||null); })
+    .catch(function(){ cb(null); });
+}
+function fetchTcgPrice(name, num, cb){
+  var q='name:"'+name+'"'+(num?' number:'+num:'');
+  tcgFetch("https://api.pokemontcg.io/v2/cards?q="+encodeURIComponent(q)+"&pageSize=1")
+    .then(function(j){
+      var c=(j&&j.data&&j.data[0])||null, p=null;
+      if(c&&c.tcgplayer&&c.tcgplayer.prices){ for(var k in c.tcgplayer.prices){ if(c.tcgplayer.prices[k].market){ p=c.tcgplayer.prices[k].market; break; } } }
+      cb(p);
+    })
+    .catch(function(){ cb(null); });
+}
+function tcgdexNormalize(card, price){
+  return { name:card.name||"", number:card.localId||"", set:{name:((card.set&&card.set.name)||"")},
+    rarity:card.rarity||"",
+    images:{ small:(card.image?card.image+"/low.webp":""), large:(card.image?card.image+"/high.webp":"") },
+    tcgplayer: price?{prices:{normal:{market:price}}}:null };
+}
+function tcgdexPick(k){
+  var brief=(window._lookupBriefs||[])[k]; if(!brief) return;
+  var el=document.getElementById("lookupResult"); if(!el) return;
+  el.innerHTML='<div class="note">⏳ Kaartgegevens ophalen…</div>';
+  tcgdexDetail(brief, function(card){
+    if(!card){ el.innerHTML='<div class="note">❌ Kaartdetails niet op te halen.</div>'; return; }
+    fetchTcgPrice(card.name, card.localId, function(price){
+      window._lookupCards=[tcgdexNormalize(card,price)];
+      pickCard(0);
+    });
+  });
+}
+function autoQuery(name, num){
+  var el=document.getElementById("lookupResult"); if(!el) return;
+  tcgdexSearch(name, function(list){
+    if(!list || list.length===0){ legacyAutoQuery(name, num); return; }
+    var cards=list;
+    var exact=cards.filter(function(c){ return (c.name||"").toLowerCase()===name.toLowerCase(); });
+    if(exact.length) cards=exact;
+    var pick=-1;
+    if(num){ for(var b=0;b<cards.length;b++){ if(normNum(cards[b].localId)===normNum(num)){ pick=b; break; } } }
+    if(pick<0 && cards.length===1) pick=0;
+    if(pick>=0){
+      tcgdexPickByBrief(cards[pick]);
+      return;
+    }
+    var uniq={}, show=[];
+    cards.forEach(function(c){ var k=c.name+"|"+c.localId; if(!uniq[k]){ uniq[k]=1; show.push(c); } });
+    show=show.slice(0,12);
+    window._lookupBriefs=show;
+    var html='<div class="note">🤖 Meerdere kaarten gevonden — tik de juiste aan:</div>';
+    show.forEach(function(c,k){
+      html+='<div class="lookupItem" onclick="tcgdexPick('+k+')">'
+        +(c.image?'<img src="'+c.image+'/low.webp" alt="">':'')
+        +'<div class="si"><div style="font-weight:700;color:#e2e8f0">'+(c.name||"")+'</div>'
+        +'<div class="sd">nr. '+(c.localId||"?")+'</div></div></div>';
+    });
+    el.innerHTML=html;
+  });
+}
+function tcgdexPickByBrief(brief){
+  var el=document.getElementById("lookupResult");
+  if(el) el.innerHTML='<div class="note">⏳ Kaartgegevens ophalen…</div>';
+  tcgdexDetail(brief, function(card){
+    if(!card){ var el2=document.getElementById("lookupResult"); if(el2) el2.innerHTML='<div class="note">❌ Kaartdetails niet op te halen.</div>'+manualFieldHTML(window._ocrName||""); return; }
+    fetchTcgPrice(card.name, card.localId, function(price){
+      window._lookupCards=[tcgdexNormalize(card,price)];
+      pickCard(0);
+    });
+  });
+}
+
+function legacyAutoQuery(name,num){
   var el=document.getElementById("lookupResult"); if(!el) return;
   var w=(name.split(" ")[0]||name);
   var tries=['name:"'+name+'"',"name:"+w+"*","name:*"+w+"*"];
