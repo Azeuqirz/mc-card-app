@@ -140,7 +140,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.04</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.05</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -232,7 +232,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.04";
+var VERSION="3.05";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -333,17 +333,23 @@ function killCam(){
   stopCapMonitor();
   if(camStream){ camStream.getTracks().forEach(function(tr){ tr.stop(); }); camStream=null; }
   var v=document.getElementById("camVideo");
-  if(v){ try{ v.pause(); }catch(e2){} try{ v.srcObject=null; }catch(e3){} }
+  if(v){ try{ v.pause(); }catch(e2){} try{ v.srcObject=null; }catch(e3){} v.removeAttribute("src"); try{ v.load(); }catch(e4){} }
   torchOn=false; var tb=document.getElementById("torchBtn"); if(tb) tb.classList.remove("off");
   camZoom=1; camPts={}; camLastDist=0; applyCamZoom(); // v3.00: zoom resetten bij schoonmaken
 }
 function bindCamStream(s){
   camStream=s;
-  var v=document.getElementById("camVideo");
-  v.srcObject=null;
+  // v3.05: iOS houdt een eenmaal gebruikt video-element soms permanent vast
+  // (zwart beeld bij her-openen) - daarom bij ELKE opening een vers element.
+  var old=document.getElementById("camVideo");
+  var v=document.createElement("video");
+  v.id="camVideo"; v.autoplay=true; v.muted=true;
+  v.setAttribute("playsinline",""); v.setAttribute("muted","");
+  v.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;";
+  if(old){ old.parentNode.replaceChild(v,old); } else { document.getElementById("camWrap").insertBefore(v, document.getElementById("camFrame")); }
   v.srcObject=s;
-  try{ v.load(); }catch(e){} // v2.99: element expliciet herladen
   var p=v.play(); if(p&&p.catch) p.catch(function(){});
+  applyCamZoom(); // v3.05: zoom op het nieuwe element zetten
   startCapMonitor(); // v2.94: auto-foto na 3s stabiliteit
   // v2.99: blijft het beeld zwart? dan nog een keer proberen met simpele instellingen
   camRetry=setTimeout(function(){
@@ -403,6 +409,26 @@ function startCapMonitor(){
     if(curView!=="camView"||!v.videoWidth){ return; }
     try{ cctx.drawImage(v,0,0,64,48); }catch(e){ return; }
     var d=cctx.getImageData(0,0,64,48).data;
+    // v3.05: kaart-in-kader check - het gele kader is gecentreerd op 78% hoogte,
+    // 63:88 verhouding. Alleen als daarbinnen voldoende kleurwisseling (artwork)
+    // zit, dus echt een kaart ligt, mag de balk oplopen.
+    var fh=Math.round(48*0.78), fw=Math.round(fh*63/88);
+    var fx0=Math.round(32-fw/2), fy0=Math.round(24-fh/2);
+    var tex=0, tn=0, ti, tj;
+    for(ti=fx0+1;ti<fx0+fw-1;ti+=2){ for(tj=fy0+1;tj<fy0+fh-1;tj+=2){
+      var ii=(tj*64+ti)*4;
+      tex+=Math.abs(d[ii]-d[ii+4])+Math.abs(d[ii+1]-d[ii+5])+Math.abs(d[ii+2]-d[ii+6]);
+      tn++;
+    } }
+    var cardInFrame=(tex/Math.max(1,tn))>7;
+    if(!cardInFrame){
+      capProg=0; setCapBar(0); capPrev=new Uint8Array(d);
+      var zi=document.getElementById("zoomInd");
+      if(zi){ zi.textContent="Geen kaart in beeld"; zi.style.display=""; }
+      return;
+    }
+    var zi2=document.getElementById("zoomInd");
+    if(zi2 && zi2.textContent==="Geen kaart in beeld"){ zi2.style.display="none"; zi2.textContent=""; }
     if(capPrev){
       var diff=0, n=d.length/4;
       for(var i=0;i<d.length;i+=4){ diff+=Math.abs(d[i]-capPrev[i])+Math.abs(d[i+1]-capPrev[i+1]); }
