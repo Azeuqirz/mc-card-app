@@ -140,7 +140,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.00</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.01</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -232,7 +232,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.00";
+var VERSION="3.01";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -516,29 +516,39 @@ function warpToQuad(quad,W,H){
 }
 
 // ---------- Robuuste kaart-detectie ----------
+// v3.01: volledig nieuwe kaart-detectie in twee trappen:
+// Trapt 1: grove detectie op een 1200px-versie (snel - de full-res analyse van
+//          v2.96 liet Safari bevriezen) en meerdere drempels SCOREN: de beste
+//          kandidaat wint op kaartverhouding 63:88 + vlak-vulling + maat.
+// Trapt 2: de 4 randen afzonderlijk bijvijlen op een 2000px-versie in een
+//          smalle strook rond de grove lijn. Daarbinnen wint de SCHERPSTE
+//          kleurovergang - dat is altijd de kaartrand; de zachte schaduw rond
+//          de kaart verliest (het oude probleem: lijnen op de schaduwránd).
+function emptyEdge(){ return { l:[], r:[], t:[], b:[] }; }
 function detectCard(im){
   var nw=im.naturalWidth, nh=im.naturalHeight;
-  // v2.96: MAXIMALE resolutie - geen verkleining meer naar 600px. De zoekvensters
-  // (run-lengtes en randverfijning) schalen mee met RS zodat de logica op de
-  // full-res foto evenredig werkt als vroeger op de 600px-versie.
-  var sc=1;
-  var RS=Math.max(1, Math.round(Math.max(nw,nh)/600)); // venster-schaalfactor
-  var w=Math.max(4,Math.round(nw*sc)), h=Math.max(4,Math.round(nh*sc));
-  var c=document.createElement("canvas"); c.width=w; c.height=h;
-  var ctx=c.getContext("2d"); if(!ctx) return null;
-  ctx.drawImage(im,0,0,w,h);
-  var d; try{ d=ctx.getImageData(0,0,w,h).data; }catch(e){ return null; }
+  if(nw<20||nh<20) return null;
+  var sc=Math.min(1,1200/Math.max(nw,nh));
+  var w=Math.max(8,Math.round(nw*sc)), h=Math.max(8,Math.round(nh*sc));
+  var c1=document.createElement("canvas"); c1.width=w; c1.height=h;
+  var x1=c1.getContext("2d"); if(!x1) return null;
+  x1.drawImage(im,0,0,w,h);
+  var d; try{ d=x1.getImageData(0,0,w,h).data; }catch(e){ return null; }
   function px(x,y){ var i=(y*w+x)*4; return [d[i],d[i+1],d[i+2]]; }
-
   var mrg=Math.max(2,Math.round(Math.min(w,h)*0.025)), samp=[], xx, yy;
   for(xx=0;xx<w;xx+=2){ samp.push(px(xx,Math.floor(mrg/2))); samp.push(px(xx,h-1-Math.floor(mrg/2))); }
   for(yy=0;yy<h;yy+=2){ samp.push(px(Math.floor(mrg/2),yy)); samp.push(px(w-1-Math.floor(mrg/2),yy)); }
   function med(arr){ arr.sort(function(a,b){ return a-b; }); return arr[Math.floor(arr.length/2)]; }
-  var bg=[ med(samp.map(function(s){ return s[0]; })),
-           med(samp.map(function(s){ return s[1]; })),
-           med(samp.map(function(s){ return s[2]; })) ];
+  var bg=[med(samp.map(function(s){ return s[0]; })),med(samp.map(function(s){ return s[1]; })),med(samp.map(function(s){ return s[2]; }))];
   function bgDist(p){ return Math.abs(p[0]-bg[0])+Math.abs(p[1]-bg[1])+Math.abs(p[2]-bg[2]); }
   var vary=0; samp.forEach(function(s){ vary=Math.max(vary,bgDist(s)); });
+  function fitV(pts){ if(pts.length<8) return null; var sl=[],i,j;
+    for(i=0;i<pts.length;i++) for(j=i+1;j<pts.length;j++){ var dy=pts[j][1]-pts[i][1]; if(Math.abs(dy)>0.5) sl.push((pts[j][0]-pts[i][0])/dy); }
+    if(sl.length<10) return null; var a=med(sl); return { a:a, b:med(pts.map(function(p){ return p[0]-a*p[1]; })) }; }
+  function fitH(pts){ if(pts.length<8) return null; var sl=[],i,j;
+    for(i=0;i<pts.length;i++) for(j=i+1;j<pts.length;j++){ var dx=pts[j][0]-pts[i][0]; if(Math.abs(dx)>0.5) sl.push((pts[j][1]-pts[i][1])/dx); }
+    if(sl.length<10) return null; var a=med(sl); return { a:a, b:med(pts.map(function(p){ return p[1]-a*p[0]; })) }; }
+  function ix(v, hh){ var den=1-v.a*hh.a; if(Math.abs(den)<1e-6) return null; var xq=(v.a*hh.b+v.b)/den; return [xq, hh.a*xq+hh.b]; }
 
   function tryQuad(THR){
     function isCard(x,y){ return bgDist(px(x,y))>THR; }
@@ -547,142 +557,106 @@ function detectCard(im){
     for(x=0;x<w;x++){ var m=0; for(y=0;y<h;y++) if(isCard(x,y)) m++; colF.push(m/h); }
     function fl(f){ var a=-1,b=-1; for(var i=0;i<f.length;i++) if(f[i]>0.4){ if(a<0)a=i; b=i; } return (a>=0&&b>a)?[a,b]:null; }
     var rows=fl(rowF), cols=fl(colF); if(!rows||!cols) return null;
-    var run=Math.max(3,RS), lx=new Array(h).fill(null), rx=new Array(h).fill(null); // v2.96: run schaalt mee
+    var run=3, lx=new Array(h).fill(null), rx=new Array(h).fill(null);
     for(y=rows[0];y<=rows[1];y++){
-      for(x=cols[0];x<=cols[1]-run;x++){
-        var ok=true; for(var k=0;k<run;k++) if(!isCard(x+k,y)){ ok=false; break; }
-        if(ok){ lx[y]=x; break; }
-      }
-      for(x=cols[1];x>=cols[0]+run;x--){
-        var ok2=true; for(var k2=0;k2<run;k2++) if(!isCard(x-k2,y)){ ok2=false; break; }
-        if(ok2){ rx[y]=x; break; }
-      }
+      for(x=cols[0];x<=cols[1]-run;x++){ var ok=true; for(var k1=0;k1<run;k1++) if(!isCard(x+k1,y)){ ok=false; break; } if(ok){ lx[y]=x; break; } }
+      for(x=cols[1];x>=cols[0]+run;x--){ var ok2=true; for(var k2=0;k2<run;k2++) if(!isCard(x-k2,y)){ ok2=false; break; } if(ok2){ rx[y]=x; break; } }
     }
     var ty=new Array(w).fill(null), by=new Array(w).fill(null);
     for(x=cols[0];x<=cols[1];x++){
-      for(y=rows[0];y<=rows[1]-run;y++){
-        var ok3=true; for(var k3=0;k3<run;k3++) if(!isCard(x,y+k3)){ ok3=false; break; }
-        if(ok3){ ty[x]=y; break; }
-      }
-      for(y=rows[1];y>=rows[0]+run;y--){
-        var ok4=true; for(var k4=0;k4<run;k4++) if(!isCard(x,y-k4)){ ok4=false; break; }
-        if(ok4){ by[x]=y; break; }
-      }
+      for(y=rows[0];y<=rows[1]-run;y++){ var ok3=true; for(var k3=0;k3<run;k3++) if(!isCard(x,y+k3)){ ok3=false; break; } if(ok3){ ty[x]=y; break; } }
+      for(y=rows[1];y>=rows[0]+run;y--){ var ok4=true; for(var k4=0;k4<run;k4++) if(!isCard(x,y-k4)){ ok4=false; break; } if(ok4){ by[x]=y; break; } }
     }
     function marge(a,b){ var m=Math.floor((b-a)*0.15); return [a+m,b-m]; }
-    function collect(arr,a,b,out){
-      var pts=[];
-      for(var i=a;i<=b;i++) if(arr[i]!==null) pts.push(out(i,arr[i]));
-      return pts;
-    }
+    function collect(arr,a,b,out){ var pts=[]; for(var i=a;i<=b;i++) if(arr[i]!==null) pts.push(out(i,arr[i])); return pts; }
     var ra=marge(rows[0],rows[1]), ca=marge(cols[0],cols[1]);
-    var leftPts=collect(lx,ra[0],ra[1],function(y,x){ return [x,y]; });
-    var rightPts=collect(rx,ra[0],ra[1],function(y,x){ return [x,y]; });
-    var topPts=collect(ty,ca[0],ca[1],function(xx,yy){ return [xx,yy]; });
-    var botPts=collect(by,ca[0],ca[1],function(xx,yy){ return [xx,yy]; });
-    // v2.9: robuuste Theil-Sen-fitting — uitschieters (zoals een verdwaald
-    // randpunt rechtsboven) trekken de lijn niet meer scheef.
-    function fitV(pts){ // x = a*y + b
-      if(pts.length<8) return null;
-      var sl=[], i, j;
-      for(i=0;i<pts.length;i++) for(j=i+1;j<pts.length;j++){
-        var dy=pts[j][1]-pts[i][1];
-        if(Math.abs(dy)>0.5) sl.push((pts[j][0]-pts[i][0])/dy);
-      }
-      if(sl.length<10) return null;
-      var a=med(sl);
-      var ints=pts.map(function(p){ return p[0]-a*p[1]; });
-      return { a:a, b:med(ints) };
-    }
-    function fitH(pts){ // y = a*x + b
-      if(pts.length<8) return null;
-      var sl=[], i, j;
-      for(i=0;i<pts.length;i++) for(j=i+1;j<pts.length;j++){
-        var dx=pts[j][0]-pts[i][0];
-        if(Math.abs(dx)>0.5) sl.push((pts[j][1]-pts[i][1])/dx);
-      }
-      if(sl.length<10) return null;
-      var a=med(sl);
-      var ints=pts.map(function(p){ return p[1]-a*p[0]; });
-      return { a:a, b:med(ints) };
-    }
+    var leftPts=collect(lx,ra[0],ra[1],function(y2,x2){ return [x2,y2]; });
+    var rightPts=collect(rx,ra[0],ra[1],function(y2,x2){ return [x2,y2]; });
+    var topPts=collect(ty,ca[0],ca[1],function(x2,y2){ return [x2,y2]; });
+    var botPts=collect(by,ca[0],ca[1],function(x2,y2){ return [x2,y2]; });
     var L=fitV(leftPts), R=fitV(rightPts), T=fitH(topPts), B=fitH(botPts);
     if(!L||!R||!T||!B) return null;
-    // v2.10: randverfijning — zoek per zijde de sterkste kleurovergang (de echte
-    // kaart/achtergrond-grens) in een venster rond de gefitte lijn. Een drempel-
-    // detectie kan achtergrond (lichte band, schaduw) ten onrechte als kaart
-    // tellen; de gradiënt-piek ligt altijd op de echte rand.
-    function gradX(x,y){ if(x<1||x>w-2||y<0||y>=h) return 0; var a=px(x-1,y), b=px(x+1,y); return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]); }
-    function gradY(x,y){ if(y<1||y>h-2||x<0||x>=w) return 0; var a=px(x,y-1), b=px(x,y+1); return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]); }
-    function midRange(a,b){
-      var s=[], step=Math.max(1,Math.floor((b-a)/60));
-      for(var i=Math.floor(a+(b-a)*0.15);i<=Math.floor(a+(b-a)*0.85);i+=step) s.push(i);
-      return s;
-    }
-    function refineSide(fit, along, gradAt, offMin, offMax, vertical){
-      if(!fit) return null;
-      var peaks=[], i;
-      for(i=0;i<along.length;i++){
-        var pos=along[i];
-        var c=Math.round(fit.a*pos+fit.b), cc, g, maxG=0;
-        for(cc=c+offMin;cc<=c+offMax;cc++){ g=gradAt(cc,pos); if(g>maxG) maxG=g; }
-        if(maxG<15*RS) continue; // v2.97: drempel schaalt mee met full-res
-        var thr=maxG*0.6, pick=-1;
-        if(offMax<=10){
-          // buitenkant = hogere cc: van buiten naar binnen (aflopend) scannen
-          for(cc=c+offMax;cc>=c+offMin;cc--){ if(gradAt(cc,pos)>=thr){ pick=cc; break; } }
-        } else {
-          // buitenkant = lagere cc: van buiten naar binnen (oplopend) scannen
-          for(cc=c+offMin;cc<=c+offMax;cc++){ if(gradAt(cc,pos)>=thr){ pick=cc; break; } }
-        }
-        if(pick>=0) peaks.push({ c:pick, pos:pos, g:maxG });
-      }
-      if(peaks.length<8) return null;
-      var pts=peaks.map(function(p){ return vertical ? [p.c,p.pos] : [p.pos,p.c]; });
-      return vertical ? fitV(pts) : fitH(pts);
-    }
-    var ys=midRange(rows[0],rows[1]), xs=midRange(cols[0],cols[1]);
-    // v2.97: SMAL verfijningsvenster rond de grove lijn - de brede zoek van v2.96 pakte
-    // bij schaduw de schaduwránd i.p.v. de kaartrand (lijnen lagen er systematisch net buiten).
-    // Venster: iets buiten de grove lijn tot een stukje binnen de kaart.
-    L=refineSide(L, ys, function(cc,pos){ return gradX(cc,pos); }, -3*RS, 8*RS, true) || L;
-    R=refineSide(R, ys, function(cc,pos){ return gradX(cc,pos); }, -8*RS, 3*RS, true) || R;
-    T=refineSide(T, xs, function(cc,pos){ return gradY(pos,cc); }, -3*RS, 8*RS, false) || T;
-    B=refineSide(B, xs, function(cc,pos){ return gradY(pos,cc); }, -8*RS, 3*RS, false) || B;
-    function ix(v,hh){
-      var den=1-v.a*hh.a;
-      if(Math.abs(den)<1e-6) return null;
-      var xq=(v.a*hh.b+v.b)/den;
-      return [xq, hh.a*xq+hh.b];
-    }
     var TL=ix(L,T), TR=ix(R,T), BR=ix(R,B), BL=ix(L,B);
     if(!TL||!TR||!BR||!BL) return null;
-    // v2.9: hoekpunten klemmen binnen het bereik van de échte randpunten,
-    // zodat een lijn die doorloopt buiten de kaart niet meer kan croppen.
     function rangeOf(pts,idx){ var mn=1e9,mx=-1e9; pts.forEach(function(p){ if(p[idx]<mn)mn=p[idx]; if(p[idx]>mx)mx=p[idx]; }); return [mn,mx]; }
     var xr=rangeOf(leftPts.concat(rightPts),0), yr=rangeOf(topPts.concat(botPts),1);
-    function clampPt(p){
-      return [Math.min(Math.max(p[0],xr[0]),xr[1]), Math.min(Math.max(p[1],yr[0]),yr[1])];
-    }
+    function clampPt(p){ return [Math.min(Math.max(p[0],xr[0]),xr[1]), Math.min(Math.max(p[1],yr[0]),yr[1])]; }
     TL=clampPt(TL); TR=clampPt(TR); BR=clampPt(BR); BL=clampPt(BL);
-    var inv=1/sc, cl=function(v,mx){ return Math.min(Math.max(v,0),mx); };
-    var quad=[ [cl(TL[0]*inv,nw),cl(TL[1]*inv,nh)], [cl(TR[0]*inv,nw),cl(TR[1]*inv,nh)],
-               [cl(BR[0]*inv,nw),cl(BR[1]*inv,nh)], [cl(BL[0]*inv,nw),cl(BL[1]*inv,nh)] ];
-    var area=Math.abs((quad[1][0]-quad[0][0])*(quad[3][1]-quad[0][1])-(quad[3][0]-quad[0][0])*(quad[1][1]-quad[0][1]));
-    if(area<0.03*nw*nh) return null;
-    var edge={l:[],r:[],t:[],b:[]}, yy2, ii;
-    for(yy2=0;yy2<h;yy2++){ if(lx[yy2]!==null) edge.l.push([lx[yy2]*inv, yy2*inv]); if(rx[yy2]!==null) edge.r.push([rx[yy2]*inv, yy2*inv]); }
-    for(ii=0;ii<w;ii++){ if(ty[ii]!==null) edge.t.push([ii*inv, ty[ii]*inv]); if(by[ii]!==null) edge.b.push([ii*inv, by[ii]*inv]); }
-    var nPts=edge.l.length+edge.r.length+edge.t.length+edge.b.length;
-    return { quad:quad, edge:edge, nPts:nPts };
+    var area=Math.abs((TR[0]-TL[0])*(BL[1]-TL[1])-(BL[0]-TL[0])*(TR[1]-TL[1]));
+    if(area<0.03*w*h) return null;
+    // v3.01: score - kaartverhouding 63:88, vulling van het vlak, zinnige maat
+    var avgW=(Math.hypot(TR[0]-TL[0],TR[1]-TL[1])+Math.hypot(BR[0]-BL[0],BR[1]-BL[1]))/2;
+    var avgH=(Math.hypot(BL[0]-TL[0],BL[1]-TL[1])+Math.hypot(BR[0]-TR[0],BR[1]-TR[1]))/2;
+    var ratio=avgW/Math.max(1,avgH), target=63/88;
+    var ratioScore=Math.max(0,1-Math.abs(ratio-target)/target*1.5);
+    var fill=0, tries=0, u, v;
+    for(v=1;v<=6;v++) for(u=1;u<=8;u++){
+      var qx=TL[0]+(TR[0]-TL[0])*u/9+(BL[0]-TL[0])*v/7;
+      var qy=TL[1]+(TR[1]-TL[1])*u/9+(BL[1]-TL[1])*v/7;
+      var xi=Math.min(w-1,Math.max(0,Math.round(qx))), yi=Math.min(h-1,Math.max(0,Math.round(qy)));
+      tries++; if(isCard(xi,yi)) fill++;
+    }
+    fill/=tries;
+    var areaScore=(area/(w*h)>=0.05&&area/(w*h)<=0.9)?1:0.4;
+    return { quad:[TL,TR,BR,BL], lines:{L:L,R:R,T:T,B:B}, rows:rows, cols:cols,
+             nPts:leftPts.length+rightPts.length+topPts.length+botPts.length,
+             score:0.55*fill+0.35*ratioScore+0.10*areaScore };
   }
 
-  var candidates = vary<40 ? [45,70,110,150] : [70,110,150,45];
-  for(var ti=0; ti<candidates.length; ti++){
-    var q=tryQuad(candidates[ti]);
-    if(q) return q;
+  var cands = vary<40?[45,70,110,150]:[70,110,150,45];
+  var best=null;
+  for(var ti=0;ti<cands.length;ti++){ var q=tryQuad(cands[ti]); if(q&&(!best||q.score>best.score)) best=q; }
+  if(!best) return null;
+  function coarseOut(){ return { quad:best.quad.map(function(p){ return [p[0]/sc,p[1]/sc]; }), edge:emptyEdge(), nPts:best.nPts }; }
+
+  // ---- Trapt 2: randen bijvijlen op 2000px ----
+  var rf=Math.min(1,2000/Math.max(nw,nh));
+  var rw=Math.max(8,Math.round(nw*rf)), rh=Math.max(8,Math.round(nh*rf));
+  var k=rf/sc, invN=1/rf;
+  var c2=document.createElement("canvas"); c2.width=rw; c2.height=rh;
+  var x2=c2.getContext("2d"); if(!x2) return coarseOut();
+  x2.drawImage(im,0,0,rw,rh);
+  var d2; try{ d2=x2.getImageData(0,0,rw,rh).data; }catch(e){ return coarseOut(); }
+  function gx2(x,y){ if(x<1||x>rw-2||y<0||y>=rh) return 0; var i=(y*rw+x)*4;
+    return Math.abs(d2[i+4]-d2[i-4])+Math.abs(d2[i+5]-d2[i-3])+Math.abs(d2[i+6]-d2[i-2]); }
+  function gy2(x,y){ if(y<1||y>rh-2||x<0||x>=rw) return 0; var i=(y*rw+x)*4;
+    return Math.abs(d2[i+rw*4]-d2[i-rw*4])+Math.abs(d2[i+rw*4+1]-d2[i-rw*4+1])+Math.abs(d2[i+rw*4+2]-d2[i-rw*4+2]); }
+  var ys=[], xs=[], yy2, xx2, step;
+  var yA=Math.floor(best.rows[0]+(best.rows[1]-best.rows[0])*0.15);
+  var yB=Math.ceil(best.rows[0]+(best.rows[1]-best.rows[0])*0.85);
+  step=Math.max(1,Math.floor((yB-yA)/40)); for(yy2=yA;yy2<=yB;yy2+=step) ys.push(yy2);
+  var xA=Math.floor(best.cols[0]+(best.cols[1]-best.cols[0])*0.15);
+  var xB=Math.ceil(best.cols[0]+(best.cols[1]-best.cols[0])*0.85);
+  step=Math.max(1,Math.floor((xB-xA)/40)); for(xx2=xA;xx2<=xB;xx2+=step) xs.push(xx2);
+  function refineLine(fit, along, vertical, gradFn){
+    var pts=[], i, win=Math.max(6,Math.round(3*k));
+    for(i=0;i<along.length;i++){
+      var pos=Math.round(along[i]*k);
+      var c=Math.round((fit.a*along[i]+fit.b)*k);
+      var bestG=0, bestP=-1, cc;
+      for(cc=c-win;cc<=c+win;cc++){ var g= vertical? gradFn(cc,pos): gradFn(pos,cc); if(g>bestG){ bestG=g; bestP=cc; } }
+      if(bestG>=20) pts.push(vertical?[bestP,pos]:[pos,bestP]);
+    }
+    if(pts.length<8) return null;
+    return vertical? fitV(pts): fitH(pts);
   }
-  return null;
+  // v3.01: scherpste overgang wint - kaartrand verslaalt de zachte schaduw
+  var Ln=refineLine(best.lines.L, ys, true, gx2)||{ a:best.lines.L.a, b:best.lines.L.b*k };
+  var Rn=refineLine(best.lines.R, ys, true, gx2)||{ a:best.lines.R.a, b:best.lines.R.b*k };
+  var Tn=refineLine(best.lines.T, xs, false, gy2)||{ a:best.lines.T.a, b:best.lines.T.b*k };
+  var Bn=refineLine(best.lines.B, xs, false, gy2)||{ a:best.lines.B.a, b:best.lines.B.b*k };
+  var TL2=ix(Ln,Tn), TR2=ix(Rn,Tn), BR2=ix(Rn,Bn), BL2=ix(Ln,Bn);
+  if(!TL2||!TR2||!BR2||!BL2) return coarseOut();
+  function clampN(p){ return [Math.min(Math.max(p[0]*invN,0),nw), Math.min(Math.max(p[1]*invN,0),nh)]; }
+  var quad=[clampN(TL2),clampN(TR2),clampN(BR2),clampN(BL2)];
+  var area2=Math.abs((quad[1][0]-quad[0][0])*(quad[3][1]-quad[0][1])-(quad[3][0]-quad[0][0])*(quad[1][1]-quad[0][1]));
+  if(area2<0.02*nw*nh) return coarseOut();
+  var edge={l:[],r:[],t:[],b:[]}, i2;
+  for(i2=0;i2<ys.length;i2++){ var yr=ys[i2]*k;
+    edge.l.push([(Ln.a*yr+Ln.b)*invN, yr*invN]); edge.r.push([(Rn.a*yr+Rn.b)*invN, yr*invN]); }
+  for(i2=0;i2<xs.length;i2++){ var xr2=xs[i2]*k;
+    edge.t.push([xr2*invN, (Tn.a*xr2+Tn.b)*invN]); edge.b.push([xr2*invN, (Bn.a*xr2+Bn.b)*invN]); }
+  return { quad:quad, edge:edge, nPts:ys.length*2+xs.length*2 };
 }
 
 function autoDetect(){
