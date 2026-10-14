@@ -115,7 +115,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.80</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.81</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -137,6 +137,8 @@
   </header>
   <!-- v2.78: eigen camera-scherm met gele kaart-kader; native camera als fallback -->
   <button class="btn yellow" style="margin:0" onclick="openCam()">📷 Foto van kaart maken</button>
+  <!-- v2.81: verborgen native-camera-input voor de fallback (geen camera-toegang in de app zelf) -->
+  <input type="file" accept="image/*" capture="environment" id="fileInput">
   <label class="btn dark" style="margin-top:8px">🖼 Kies foto uit je bibliotheek
     <input type="file" accept="image/*" id="fileInputLib">
   </label>
@@ -201,7 +203,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.80";
+var VERSION="2.81";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
