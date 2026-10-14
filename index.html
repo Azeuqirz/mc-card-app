@@ -72,7 +72,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.35</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.36</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -143,7 +143,7 @@
 
 <script>
 "use strict";
-var VERSION="2.35";
+var VERSION="2.36";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -711,6 +711,37 @@ function ocrRegion(quad, rx, ry, rw, rh, scale){
   uctx.drawImage(c,0,0,up.width,up.height);
   return up;
 }
+// v2.36: binariseren (zwart-wit) - vooral voor het kleine kaartnummer groot winst
+function ocrBinarize(cv){
+  var out=document.createElement("canvas"); out.width=cv.width; out.height=cv.height;
+  var ctx=out.getContext("2d"); ctx.drawImage(cv,0,0);
+  try{
+    var d=ctx.getImageData(0,0,out.width,out.height);
+    // luminantie-histogram, midden als drempel (Otsu-licht)
+    var hist=new Array(256).fill(0), i;
+    for(i=0;i<d.data.length;i+=4){
+      var l=Math.round(0.299*d.data[i]+0.587*d.data[i+1]+0.114*d.data[i+2]);
+      hist[l]++;
+    }
+    var tot=out.width*out.height, sum=0;
+    for(i=0;i<256;i++) sum+=i*hist[i];
+    var sumB=0, wB=0, best=128, bestVar=-1;
+    for(i=0;i<256;i++){
+      wB+=hist[i]; if(wB===0) continue;
+      var wF=tot-wB; if(wF===0) break;
+      sumB+=i*hist[i];
+      var mB=sumB/wB, mF=(sum-sumB)/wF;
+      var vB=wB*wF*(mB-mF)*(mB-mF);
+      if(vB>bestVar){ bestVar=vB; best=i; }
+    }
+    for(i=0;i<d.data.length;i+=4){
+      var l2=(0.299*d.data[i]+0.587*d.data[i+1]+0.114*d.data[i+2])<best?0:255;
+      d.data[i]=l2; d.data[i+1]=l2; d.data[i+2]=l2; d.data[i+3]=255;
+    }
+    ctx.putImageData(d,0,0);
+  }catch(e){}
+  return out;
+}
 function autoCardLookup(){
   var el=document.getElementById("lookupResult");
   if(!el||!rect) return;
@@ -719,12 +750,14 @@ function autoCardLookup(){
   loadTesseract(function(){
     var nameC=ocrRegion(quad,0.05,0.045,0.75,0.11,5);
     if(!nameC){ el.innerHTML='<div class="note">❌ Naamgebied niet leesbaar.</div>'+manualFieldHTML(""); return; }
-    var numC=ocrRegion(quad,0.03,0.875,0.94,0.10,6);
+    var numC=ocrRegion(quad,0.02,0.905,0.96,0.085,7);
+    if(numC) numC=ocrBinarize(numC);
     var numPromise;
     if(numC){
       numPromise=window.Tesseract.recognize(numC,"eng",{tessedit_char_whitelist:"0123456789/"})
         .then(function(r){
           var t=((r&&r.data&&r.data.text)||""); window._ocrRawNum=t; var ms=t.matchAll(/(\d{1,3})\s*\/\s*(\d{1,3})/g); var m=null; var msl=[]; for(var mm of ms){ msl.push(mm); } if(msl.length){ m=msl[msl.length-1]; }
+          if(!m){ var mn=t.match(/(^|[^\d])(\d{2,3})([^\d]|$)/); if(mn){ return mn[2].replace(/^0+/,""); } }
           return m?(m[1]||"").replace(/^0+/,""):"";
         }).catch(function(){ return ""; });
     } else { numPromise=Promise.resolve(""); }
@@ -740,7 +773,7 @@ function autoCardLookup(){
       numPromise.then(function(num){
         window._ocrNum=num;
         if(!name){ el.innerHTML='<div class="note">❌ Naam niet gelezen'+(num?' (nummer wel: '+num+')':'')+''+manualFieldHTML(""); return; }
-        el.innerHTML='<div class="note">✍️ Gelezen: "'+name+'"'+(num?' · nr. '+num:'')+' — zoeken in de TCG-database…</div>';
+        el.innerHTML='<div class="note">✍️ Gelezen: "'+name+'"'+(num?' · nr. '+num:' · nr. niet gelezen (ruw: "'+String(window._ocrRawNum||'').trim()+'")')+' — zoeken in de TCG-database…</div>';
         autoQuery(name,num);
       });
     }).catch(function(){
