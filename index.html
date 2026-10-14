@@ -70,7 +70,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.25</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.26</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -141,7 +141,7 @@
 
 <script>
 "use strict";
-var VERSION="2.25";
+var VERSION="2.26";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -840,12 +840,13 @@ function renderHistory(){
     var sum=0, best=scans[0], worst=scans[0];
     scans.forEach(function(s){ sum+=s.g; if(s.g>best.g) best=s; if(s.g<worst.g) worst=s; });
     var avg=Math.round(sum/scans.length*10)/10;
+    var val=0, nP=0; scans.forEach(function(s){ if(s.cp){ val+=s.cp; nP++; } });
     function gColor(g){ return gradeColor(g); }
     html+='<div class="card"><div class="score"><span>Rapport — '+scans.length+' kaart'+(scans.length===1?"":"en")+'</span></div>'
       +'<div class="bar"><div style="width:'+(avg*10)+'%;background:'+gColor(avg)+'"></div></div>'
       +'<p class="n">📊 Gemiddelde centering score: <b style="color:'+gColor(avg)+'">'+avg+'</b></p>'
       +'<p class="n">🏆 Beste: '+best.g+' ('+best.d+')</p>'
-      +'<p class="n">⚠️ Slechtste: '+worst.g+' ('+worst.d+')</p></div>';
+      +'<p class="n">⚠️ Slechtste: '+worst.g+' ('+worst.d+')</p>'+(nP>0?'<p class="n">💰 Bekende marktprijs samen: &#36;'+(Math.round(val*100)/100)+' — '+nP+' kaart'+(nP===1?'':'en')+' met prijs</p>':'')+'</div>';
     scans.forEach(function(s,i){
       html+='<div class="scanItem" onclick="showScanDetail('+i+')">'
         +'<img src="'+(s.t||"")+'" alt="scan">'
