@@ -76,7 +76,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.56</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.57</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -150,8 +150,9 @@
 
 <script>
 "use strict";
-var VERSION="2.56";
+var VERSION="2.57";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
+var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
 function showView(id){
   document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
@@ -449,7 +450,11 @@ function autoDetect(){
     rect.edge=null;
     document.getElementById("scanNote").innerHTML='<div class="note">⚠️ Automatische detectie mislukt. Sleep de gele lijnhandvatten naar de kaartranden — boven/onder verticaal, links/rechts horizontaal — en tik op 🎯 analyseren.</div>';
   }
-  inner=null; window._nameBox=null; window._numBox=null;
+  inner=null; window._numHitBox=null;
+  try{ // v2.57: kaders altijd zichtbaar, direct bij het laden van de foto
+    window._nameBox=[quadPt(OCR_NR[0],OCR_NR[1]),quadPt(OCR_NR[0]+OCR_NR[2],OCR_NR[1]),quadPt(OCR_NR[0]+OCR_NR[2],OCR_NR[1]+OCR_NR[3]),quadPt(OCR_NR[0],OCR_NR[1]+OCR_NR[3])];
+    window._numBox=[quadPt(OCR_NUMR[0],OCR_NUMR[1]),quadPt(OCR_NUMR[0]+OCR_NUMR[2],OCR_NUMR[1]),quadPt(OCR_NUMR[0]+OCR_NUMR[2],OCR_NUMR[1]+OCR_NUMR[3]),quadPt(OCR_NUMR[0],OCR_NUMR[1]+OCR_NUMR[3])];
+  }catch(e){ window._nameBox=null; window._numBox=null; }
   cropResetZoom();
   setupCornerDrag();
   drawCrop();
@@ -480,6 +485,19 @@ function freezeInner(){
   if(!inner||inner.mode==="abs"||!rect) return;
   var a=quadPt(inner.l,inner.t), b=quadPt(1-inner.r,inner.t), c=quadPt(1-inner.r,1-inner.b), d=quadPt(inner.l,1-inner.b);
   inner={mode:"abs",user:true,tl:a,tr:b,br:c,bl:d};
+}
+function numHitToPhoto(b){
+  // v2.57: bounding box (OCR-canvas px) -> vier hoekpunten in de foto rond de PRECIES gelezen cijfers
+  var m=window._numMeta; if(!m||!b) return null;
+  var xs=[],ys=[];
+  ["x0","x1","x2","left","right"].forEach(function(k){ if(typeof b[k]==="number") xs.push(b[k]); });
+  ["y0","y1","y2","top","bottom"].forEach(function(k){ if(typeof b[k]==="number") ys.push(b[k]); });
+  if(xs.length<2||ys.length<2) return null;
+  var x0=Math.min.apply(null,xs), x1=Math.max.apply(null,xs);
+  var y0=Math.min.apply(null,ys), y1=Math.max.apply(null,ys);
+  var u0=(OCR_NUMR[0]*m.bigW+x0/3)/m.bigW, v0=(OCR_NUMR[1]*m.bigH+y0/3)/m.bigH;
+  var u1=(OCR_NUMR[0]*m.bigW+x1/3)/m.bigW, v1=(OCR_NUMR[1]*m.bigH+y1/3)/m.bigH;
+  return [quadPt(u0,v0),quadPt(u1,v0),quadPt(u1,v1),quadPt(u0,v1)];
 }
 function drawCrop(){
   var svg=document.getElementById("cropSvg"); if(!svg) return;
@@ -528,6 +546,11 @@ function drawCrop(){
   if(window._numBox){
     var ob=window._numBox;
     html+='<polygon points="'+ob[0][0]+','+ob[0][1]+' '+ob[1][0]+','+ob[1][1]+' '+ob[2][0]+','+ob[2][1]+' '+ob[3][0]+','+ob[3][1]+'" fill="none" stroke="#fb923c" stroke-width="'+sw+'" stroke-dasharray="'+(sw*1.5)+' '+sw+'" stroke-linejoin="round"/>';
+  }
+  // v2.57: doorlopend oranje kader rond de PRECIES gelezen cijfers (na OCR)
+  if(window._numHitBox){
+    var hb=window._numHitBox;
+    html+='<polygon points="'+hb[0][0]+','+hb[0][1]+' '+hb[1][0]+','+hb[1][1]+' '+hb[2][0]+','+hb[2][1]+' '+hb[3][0]+','+hb[3][1]+'" fill="rgba(251,146,60,.18)" stroke="#fb923c" stroke-width="'+sw+'" stroke-linejoin="round"/>';
   }
   svg.innerHTML=html;
 }
@@ -1004,15 +1027,12 @@ function autoCardLookup(){
   var quad=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
   loadTesseract(function(){
     // v2.46: naam-regio over de VOLLE bovenrand - de naam staat links OF rechts boven op de kaart
-    var NR=[0.03,0.035,0.62,0.09]; // v2.47: rechterdeel (HP) weg, ~1/3 smaller
+    var NR=OCR_NR; // v2.57: globale regio - kader staat al op het scherm
     var nameC=ocrRegion(quad,NR[0],NR[1],NR[2],NR[3],5);
-    if(nameC){ try{ window._nameBox=[quadPt(NR[0],NR[1]),quadPt(NR[0]+NR[2],NR[1]),quadPt(NR[0]+NR[2],NR[1]+NR[3]),quadPt(NR[0],NR[1]+NR[3])]; }catch(e){ window._nameBox=null; } }
-    else window._nameBox=null;
     if(!nameC){ el.innerHTML='<div class="note">❌ Naamgebied niet leesbaar.</div>'+manualFieldHTML(""); return; }
     // v2.51: oranje kader rond het gebied waar het kaartnummer gescand wordt
-    var NUMR=[0.02,0.905,0.32,0.085]; // v2.53: alleen links, rechter 2/3 eraf
+    var NUMR=OCR_NUMR; // v2.57: globale regio - kader staat al op het scherm
     var numRaw=ocrRegion(quad,NUMR[0],NUMR[1],NUMR[2],NUMR[3],10); // v2.55: 3x zo scherp als voorheen
-    try{ window._numBox=[quadPt(NUMR[0],NUMR[1]),quadPt(NUMR[0]+NUMR[2],NUMR[1]),quadPt(NUMR[0]+NUMR[2],NUMR[1]+NUMR[3]),quadPt(NUMR[0],NUMR[1]+NUMR[3])]; }catch(e){ window._numBox=null; }
     var numC=numRaw?ocrBinarize(numRaw):null;
     // v2.56: contrast-variant - middentonen naar grijs pushen zodat het gat van een 8 zichtbaar blijft
     var numCt=null;
@@ -1044,17 +1064,26 @@ function autoCardLookup(){
       var opts={tessedit_char_whitelist:"0123456789/"};
       if(psm) opts.tessedit_pageseg_mode=String(psm);
       return window.Tesseract.recognize(cv,"eng",opts)
-        .then(function(r){ var tx=((r&&r.data&&r.data.text)||""); return {t:tx,c:parseNumCand(tx),conf:((r&&r.data&&r.data.confidence)||0)}; })
+        .then(function(r){
+          var tx=((r&&r.data&&r.data.text)||"");
+          var hit=null; // v2.57: bounding box van het gelezen woord (het nummer XXX/XXX)
+          try{
+            var ws=(r&&r.data&&r.data.words)||[];
+            for(var wi=0;wi<ws.length;wi++){ var w=ws[wi]; if(w&&/\d/.test(w.text||"")&&w.bbox){ hit=w.bbox; break; } }
+          }catch(e){}
+          return {t:tx,c:parseNumCand(tx),conf:((r&&r.data&&r.data.confidence)||0),hit:hit};
+        })
         .catch(function(){ return {t:"",c:null}; });
     }
     if(numC){
+      window._numMeta={bigW:Math.round(340*10),bigH:Math.round(Math.round(340*88/63)*10)}; // v2.57
       var jobs=[recNum(numC,7)];
       if(numRaw) jobs.push(recNum(numRaw,7)); // grijze versie: soms ziet die de 8 beter dan zwart-wit
       jobs.push(recNum(numC,6));
       if(numCt) jobs.push(recNum(numCt,7)); // v2.56: contrast-variant tegen dichtgelopen 8-en
       numPromise=Promise.all(jobs).then(function(rs){
         window._ocrRawNum=rs.map(function(x){ return String(x.t||"").trim(); }).join(" | ");
-        var cands=rs.map(function(x){ return x.c; }).filter(Boolean);
+        var cands=rs.map(function(x){ var cc=x.c; if(cc&&x.hit&&!cc.hit) cc.hit=x.hit; return cc; }).filter(Boolean);
         if(!cands.length) return "";
         var bestLvl=Math.max.apply(null,cands.map(function(c){ return c.lvl; }));
         var top=cands.filter(function(c){ return c.lvl===bestLvl; });
@@ -1067,6 +1096,8 @@ function autoCardLookup(){
           if(x&&x.c&&cnt[x.c.v]!==undefined&&top.indexOf(x.c)>=0) conf[x.c.v]=(conf[x.c.v]||0)+(x.conf||0);
         });
         for(var vv in cnt){ var sc=cnt[vv]*1000+(conf[vv]||0); if(sc>bs){ bs=sc; best=vv; } }
+        var hc=null; for(var hi=0;hi<top.length;hi++){ if(top[hi].hit){ hc=top[hi].hit; break; } }
+        try{ window._numHitBox=hc?numHitToPhoto(hc):null; }catch(e){ window._numHitBox=null; }
         return best||top[0].v;
       });
     } else { numPromise=Promise.resolve(""); }
