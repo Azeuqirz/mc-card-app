@@ -70,7 +70,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.32</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.33</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -141,7 +141,7 @@
 
 <script>
 "use strict";
-var VERSION="2.32";
+var VERSION="2.33";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -717,12 +717,12 @@ function autoCardLookup(){
   loadTesseract(function(){
     var nameC=ocrRegion(quad,0.06,0.055,0.70,0.10,3);
     if(!nameC){ el.innerHTML='<div class="note">❌ Naamgebied niet leesbaar.</div>'+manualFieldHTML(""); return; }
-    var numC=ocrRegion(quad,0.72,0.885,0.26,0.095,4);
+    var numC=ocrRegion(quad,0.05,0.885,0.90,0.09,4);
     var numPromise;
     if(numC){
       numPromise=window.Tesseract.recognize(numC,"eng")
         .then(function(r){
-          var m=((r&&r.data&&r.data.text)||"").match(/(\d+)\s*\/\s*(\d+)/);
+          var t=((r&&r.data&&r.data.text)||""); var ms=t.matchAll(/(\d{1,3})\s*\/\s*(\d{1,3})/g); var m=null; var msl=[]; for(var mm of ms){ msl.push(mm); } if(msl.length){ m=msl[msl.length-1]; }
           return m?(m[1]||"").replace(/^0+/,""):"";
         }).catch(function(){ return ""; });
     } else { numPromise=Promise.resolve(""); }
