@@ -53,18 +53,24 @@
   .zoomWrap { position:relative; overflow:auto; touch-action:none; user-select:none;
     -webkit-user-select:none; background:#020617; border-radius:10px; }
   .zoomInner { transform-origin:0 0; width:100%; }
+  .lookupItem { display:flex; gap:10px; align-items:center; background:#0f172a; border-radius:10px;
+    padding:8px; margin-bottom:8px; cursor:pointer; }
+  .lookupItem:active { background:#1e293b; }
+  .lookupItem img { width:44px; height:61px; object-fit:cover; border-radius:5px; background:#1e293b; }
+  .lookupPick { background:#0f172a; border-radius:10px; padding:10px; margin-bottom:8px; }
+  .lookupPick img { width:100%; border-radius:8px; display:block; margin-bottom:6px; }
   .zoomInner svg { display:block; }
   .card { background:#0f172a; border-radius:16px; padding:16px; margin-bottom:14px; }
   input[type=file] { display:none; }
   button { font-family:inherit; }
 </style>
-<script type='text/javascript' nonce='dN7gqEZFJgIpeRLyNdm92g==' src='https://chat.mistral.ai/ZayIWs50gIUKiAEpGi45ao8kk27ZyEkzvpAxzUTCGsgWDBhdnF8-C_6JeP8PpaeWQAJkp0H2cvn2yYw4kZFe3IXo1pfE7PE1_KTbsKC7HhwAH6eVtVuHJ8ntxBaAPHJAc0a2Clst5ApSWp2Vz4unIuc8hlygQUAbEBzSjdqUVkx7vgmNTMVmSB5Y5TCHeGYSbUWPeJgeBKOHAkChWEcyH-xliWfdqLAzpTQYoOvnZH1_SXRW_LBscRQBrYRSKFfHiQ6U8wLh8xPsu9DP4go4pSXOBtyDk3LZYM8TbZklZdN7Y3RTIPAvVlfmI-tiIPTDl8OpH71CL8SR9ra4avEOtsTEa4Ft_hOgkeHXZl0GmxduP26ZyBu3Q7J8TGSHAU3nxMyBxDR2g41uD6Ltsi7Yx__7trke2dHGP97Bm4smPUXq2_b6JkNLTkCkhupzQQ4wOL3wgJSdwfDt4tnfe3v2a37SITPGWZI02Hgr7sIvNCxG9l_ipZWcKdrauHg0kd0mMiBHFvyRFWaOE4IYFb80cHgtwMk_gcrfOoOral0RZYqy12ViuWNiWd493hRfmCX5zSsCYwDTt5gYoh34Dk27W85pXT0dJQ'></script></head>
+<script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script></head>
 <body>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.24</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.25</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -135,7 +141,7 @@
 
 <script>
 "use strict";
-var VERSION="2.24";
+var VERSION="2.25";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -602,6 +608,76 @@ function analyzeCentering(){
 }
 
 function gradeColor(g){ return g>=9.5?"#22c55e":g>=9?"#84cc16":g>=8?"#eab308":"#f97316"; }
+
+// ---------- v2.25: kaart opzoeken via de officiële Pokémon TCG API ----------
+function lookupCard(){
+  var el=document.getElementById("lookupResult");
+  var inp=document.getElementById("lookupName");
+  if(!el||!inp) return;
+  var q=inp.value.trim();
+  if(!q){ el.innerHTML='<div class="note">Typ eerst een kaartnaam.</div>'; return; }
+  el.innerHTML='<div class="note">⏳ Zoeken naar "'+q+'"…</div>';
+  fetch("https://api.pokemontcg.io/v2/cards?q=name:"+encodeURIComponent(q)+"&pageSize=8")
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var cards=(j&&j.data)||[];
+      if(cards.length===0){
+        el.innerHTML='<div class="note">❌ Geen kaart gevonden voor "'+q+'". Controleer de spelling (Engelse naam, bijv. "Pikachu").</div>';
+        return;
+      }
+      var html="";
+      cards.forEach(function(c,i){
+        var price=null;
+        if(c.tcgplayer&&c.tcgplayer.prices){
+          for(var k in c.tcgplayer.prices){
+            if(c.tcgplayer.prices[k].market){ price=c.tcgplayer.prices[k].market; break; }
+          }
+        }
+        html+='<div class="lookupItem" onclick="pickCard('+i+')">'
+          +(c.images&&c.images.small?'<img src="'+c.images.small+'" alt="">':'')
+          +'<div class="si"><div style="font-weight:700;color:#e2e8f0">'+(c.name||"")+'</div>'
+          +'<div class="sd">'+((c.set&&c.set.name)||"")+' · '+(c.number||"?")+'</div>'
++(price?'<div class="sd" style="color:#84cc16">waarde ≈ $'
++price+'</div>':'<div class="sd">geen prijs bekend</div>')
+          +'</div></div>';
+      });
+      el.innerHTML=html;
+      window._lookupCards=cards;
+    })
+    .catch(function(){
+      el.innerHTML='<div class="note">❌ Zoeken mislukt — geen internetverbinding? Probeer het later opnieuw.</div>';
+    });
+}
+function pickCard(i){
+  var c=(window._lookupCards||[])[i];
+  if(!c) return;
+  var el=document.getElementById("lookupResult");
+  if(!el) return;
+  var price=null;
+  if(c.tcgplayer&&c.tcgplayer.prices){
+    for(var k in c.tcgplayer.prices){ if(c.tcgplayer.prices[k].market){ price=c.tcgplayer.prices[k].market; break; } }
+  }
+  el.innerHTML='<div class="lookupPick">'
+    +(c.images&&c.images.large?'<img src="'+c.images.large+'" alt="'+(c.name||"")+'">':'')
+    +'<div><b style="color:#e2e8f0">'+(c.name||"")+'</b>'
+    +'<div class="sd">'+((c.set&&c.set.name)||"")+' · '+(c.number||"?")+(c.rarity?' · '+c.rarity:'')+'</div>'
++(price?'<div class="sd" style="color:#84cc16">marktprijs ≈ $'
++price+'</div>':'')
+    +'</div></div>';
+  // gevonden kaart bij de scan opslaan
+  try{
+    var scans=getScans();
+    for(var s2=0;s2<scans.length;s2++){
+      if(scans[s2].id===currentScanId){
+        scans[s2].cn=c.name||""; scans[s2].cs=(c.set&&c.set.name)||"";
+        scans[s2].cno=c.number||""; scans[s2].cp=price;
+        scans[s2].ci=(c.images&&c.images.small)||"";
+        localStorage.setItem("mcScans", JSON.stringify(scans));
+        break;
+      }
+    }
+  }catch(e){}
+}
 function diag(r){ if(!r) return "onbekend"; return r.fail ? "❌piek~"+r.medG : r.v.toFixed(1)+"px"; }
 function runAnalysis(){
   if(!img||!rect) return;
@@ -657,7 +733,14 @@ function runAnalysis(){
   el.innerHTML='<div class="card"><div class="score"><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
     +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>'+legenda
-    +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")+'</div>';
+    +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")
+    +'<p class="n" style="margin:8px 0 4px;color:#94a3b8">🔎 Kaart opzoeken in de officiële Pokémon TCG-database:</p>'
+    +'<div style="display:flex;gap:8px;margin-bottom:6px">'
+    +'<input id="lookupName" placeholder="kaartnaam, bijv. Fomantis" style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:14px">'
+    +'<button class="btn dark" style="margin:0;padding:8px 12px" onclick="lookupCard()">Zoek</button>'
+    +'</div>'
+    +'<div id="lookupResult"></div>'
+    +'</div>';
   attachZoom();
   saveScan(res);
   showView("resultView");
@@ -782,6 +865,42 @@ function showScanDetail(i){
   var el=document.getElementById("detailScroll");
   var html='<div class="card">'
     +'<div class="score"><span>'+s.d+'</span><b style="color:'+gradeColor(s.g)+'">'+s.g+'</b></div>'
+    +((s.cn)?'<p class="n" style="font-size:15px;color:#e2e8f0;font-weight:700;margin:2px 0 2px">🃏 '+s.cn+((s.cs)?' — '+s.cs:'')+((s.cno)?' #'+s.cno:'')+'</p>'
+      +(s.cp?'<p class="n" style="margin:2px 0 6px;color:#84cc16">marktprijs: &#36;'+s.cp+'</p>':''):'');
+  if(s.vs){
+    html+=s.vs;
+  } else if(s.b){
+    html+='<img src="'+s.b+'" alt="kaart" style="width:100%;border-radius:10px;margin:8px 0;display:block">';
+  } else {
+    html+='<div class="note">Weergave niet opgeslagen bij deze scan (gemaakt vóór v2.22) — scan opnieuw voor de visualisatie.</div>';
+  }
+  html+='<p class="n">Randdikte boven: '+s.tT+'px &nbsp;·&nbsp; onder: '+s.tB+'px</p>'
+    +'<p class="n">Randdikte links: '+s.tL+'px &nbsp;·&nbsp; rechts: '+s.tR+'px</p>'
+    +'<p class="n">Middenafwijking links-rechts: '+s.lr+'%</p>'
+    +'<p class="n">Middenafwijking boven-onder: '+s.tb+'%</p>';
+  if(s.g>=9.5) html+='<p class="n">Praktisch perfect gecenterd 🎉</p>';
+  else if(s.g>=9) html+='<p class="n">Goed gecenterd — scoort doorgaans 9-10 bij grading.</p>';
+  else if(s.g>=8) html+='<p class="n">Acceptabel gecenterd, kans op 8-9.</p>';
+  else html+='<p class="n">Zichtbaar off-center — beïnvloedt de grade flink.</p>';
+  html+='</div>';
+  el.innerHTML=html;
+  showView("detailView");
+}
+function exportCSV(){
+  var scans=getScans();
+  if(scans.length===0){ alert("Nog geen scans om te exporteren."); return; }
+  var csv="datum;tijd;score;afwijking_LR_%;afwijking_TB_%;rand_boven_px;rand_onder_px;rand_links_px;rand_rechts_px\n";
+  scans.forEach(function(s){
+    var dt=s.d.split(", ");
+    csv+=[dt[0]||s.d, dt[1]||"", s.g, s.lr, s.tb, s.tT, s.tB, s.tL, s.tR].join(";")+"\n";
+  });
+  window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
+}
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="KtKTTyxIoFtDli9TQwL1tQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
++s.cp+'</p>':''):'')
     +'<div class="bar"><div style="width:'+(s.g*10)+'%;background:'+gradeColor(s.g)+'"></div></div>';
   if(s.vs){
     html+=s.vs;
@@ -813,6 +932,5 @@ function exportCSV(){
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="dN7gqEZFJgIpeRLyNdm92g==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
