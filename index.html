@@ -71,6 +71,16 @@
   /* v2.77: laatste kaart zonder dode ruimte eronder */
   #resultScroll .card:last-child, #detailScroll .card:last-child { margin-bottom:0; }
   input[type=file] { display:none; }
+  /* v2.78: eigen camera-scherm met geel kader in kaartverhouding */
+  #camView { padding:0; }
+  #camWrap { position:relative; flex:1; min-height:0; overflow:hidden; background:#000; }
+  #camVideo { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  #camFrame { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    aspect-ratio:63/88; height:92%; max-height:92%; max-width:86%;
+    border:3px solid #facc15; border-radius:12px; box-shadow:0 0 0 100vmax rgba(2,6,23,.45);
+    pointer-events:none; }
+  #camFrame::after { content:""; position:absolute; left:50%; top:50%; width:0; height:0; }
+  #camBar { flex:none; display:flex; gap:8px; padding:10px; }
   button { font-family:inherit; }
   /* v2.62: vaste bovenbalk op elke pagina: terug links, logo+naam midden, verversen rechts */
   .topBar { position:fixed; top:0; left:0; right:0; z-index:99;
@@ -104,7 +114,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.77</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.78</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -124,14 +134,25 @@
     <h1>M&amp;C ai Card App</h1>
     <p class="sub">Foto maken → centering checken</p>
   </header>
-  <label class="btn yellow" style="margin:0">📷 Foto van kaart maken
-    <input type="file" accept="image/*" capture="environment" id="fileInput">
-  </label>
+  <!-- v2.78: eigen camera-scherm met gele kaart-kader; native camera als fallback -->
+  <button class="btn yellow" style="margin:0" onclick="openCam()">📷 Foto van kaart maken</button>
   <label class="btn dark" style="margin-top:8px">🖼 Kies foto uit je bibliotheek
     <input type="file" accept="image/*" id="fileInputLib">
   </label>
   <button class="btn dark" onclick="renderHistory()">📚 Mijn gescande kaarten &amp; rapport</button>
   <p class="tip">Tip: kaart volledig in beeld, plat liggen, iPhone er recht boven, egale ondergrond zonder schaduw of glans.</p>
+</div>
+
+<!-- ===== CAMERA (v2.78) ===== -->
+<div class="view" id="camView">
+  <div id="camWrap">
+    <video id="camVideo" autoplay playsinline muted></video>
+    <div id="camFrame"></div>
+  </div>
+  <div id="camBar">
+    <button class="btn dark" style="flex:1;margin:0" onclick="closeCam()">⬅ Annuleren</button>
+    <button class="btn yellow" style="flex:1;margin:0" onclick="captureCam()">📷 Foto maken</button>
+  </div>
 </div>
 
 <!-- ===== SCAN ===== -->
@@ -179,7 +200,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.77";
+var VERSION="2.78";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -246,6 +267,34 @@ bindFile("fileInput2", loadPhoto);
 bindFile("fileInputLib", loadPhoto);
 bindFile("fileInputLib2", loadPhoto);
 
+// v2.78: eigen camera-scherm met geel kader in kaartverhouding (63:88)
+var camStream=null;
+function openCam(){
+  showView("camView");
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ closeCam(true); return; }
+  navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:"environment"}, width:{ideal:4032}, height:{ideal:3024} }, audio:false })
+    .then(function(s){
+      camStream=s;
+      var v=document.getElementById("camVideo");
+      v.srcObject=s; v.play().catch(function(){});
+    })
+    .catch(function(){ closeCam(true); }); // geen toegang: terug naar native fallback
+}
+function closeCam(fallback){
+  if(camStream){ camStream.getTracks().forEach(function(tr){ tr.stop(); }); camStream=null; }
+  if(fallback){ document.getElementById("fileInput").click(); return; } // v2.78: native camera
+  showView("home");
+}
+function captureCam(){
+  var v=document.getElementById("camVideo");
+  if(!v||!v.videoWidth){ return; }
+  var c=document.createElement("canvas");
+  c.width=v.videoWidth; c.height=v.videoHeight;
+  var ctx=c.getContext("2d");
+  ctx.drawImage(v,0,0,c.width,c.height);
+  if(camStream){ camStream.getTracks().forEach(function(tr){ tr.stop(); }); camStream=null; }
+  loadPhoto(c.toDataURL("image/jpeg",0.92));
+}
 function loadPhoto(dataUrl){
   var ci=document.getElementById("cropImg"); ci.src=dataUrl;
   ci.onload=function(){ img=ci; showView("scan"); autoDetect(); };
