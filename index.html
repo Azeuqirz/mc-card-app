@@ -135,7 +135,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.95</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.96</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -226,7 +226,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.95";
+var VERSION="2.96";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -453,7 +453,11 @@ function warpToQuad(quad,W,H){
 // ---------- Robuuste kaart-detectie ----------
 function detectCard(im){
   var nw=im.naturalWidth, nh=im.naturalHeight;
-  var sc=Math.min(1,600/Math.max(nw,nh));
+  // v2.96: MAXIMALE resolutie - geen verkleining meer naar 600px. De zoekvensters
+  // (run-lengtes en randverfijning) schalen mee met RS zodat de logica op de
+  // full-res foto evenredig werkt als vroeger op de 600px-versie.
+  var sc=1;
+  var RS=Math.max(1, Math.round(Math.max(nw,nh)/600)); // venster-schaalfactor
   var w=Math.max(4,Math.round(nw*sc)), h=Math.max(4,Math.round(nh*sc));
   var c=document.createElement("canvas"); c.width=w; c.height=h;
   var ctx=c.getContext("2d"); if(!ctx) return null;
@@ -478,7 +482,7 @@ function detectCard(im){
     for(x=0;x<w;x++){ var m=0; for(y=0;y<h;y++) if(isCard(x,y)) m++; colF.push(m/h); }
     function fl(f){ var a=-1,b=-1; for(var i=0;i<f.length;i++) if(f[i]>0.4){ if(a<0)a=i; b=i; } return (a>=0&&b>a)?[a,b]:null; }
     var rows=fl(rowF), cols=fl(colF); if(!rows||!cols) return null;
-    var run=3, lx=new Array(h).fill(null), rx=new Array(h).fill(null);
+    var run=Math.max(3,RS), lx=new Array(h).fill(null), rx=new Array(h).fill(null); // v2.96: run schaalt mee
     for(y=rows[0];y<=rows[1];y++){
       for(x=cols[0];x<=cols[1]-run;x++){
         var ok=true; for(var k=0;k<run;k++) if(!isCard(x+k,y)){ ok=false; break; }
@@ -573,10 +577,11 @@ function detectCard(im){
       return vertical ? fitV(pts) : fitH(pts);
     }
     var ys=midRange(rows[0],rows[1]), xs=midRange(cols[0],cols[1]);
-    L=refineSide(L, ys, function(cc,pos){ return gradX(cc,pos); }, -10, 35, true) || L;
-    R=refineSide(R, ys, function(cc,pos){ return gradX(cc,pos); }, -35, 10, true) || R;
-    T=refineSide(T, xs, function(cc,pos){ return gradY(pos,cc); }, -10, 35, false) || T;
-    B=refineSide(B, xs, function(cc,pos){ return gradY(pos,cc); }, -35, 10, false) || B;
+    // v2.96: vensters x RS zodat de verfijning op full-res even breed zoekt als voorheen op 600px
+    L=refineSide(L, ys, function(cc,pos){ return gradX(cc,pos); }, -10*RS, 35*RS, true) || L;
+    R=refineSide(R, ys, function(cc,pos){ return gradX(cc,pos); }, -35*RS, 10*RS, true) || R;
+    T=refineSide(T, xs, function(cc,pos){ return gradY(pos,cc); }, -10*RS, 35*RS, false) || T;
+    B=refineSide(B, xs, function(cc,pos){ return gradY(pos,cc); }, -35*RS, 10*RS, false) || B;
     function ix(v,hh){
       var den=1-v.a*hh.a;
       if(Math.abs(den)<1e-6) return null;
