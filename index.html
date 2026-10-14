@@ -109,13 +109,13 @@
 <div class="topBar">
   <button class="topBtn" id="backBtn" style="visibility:hidden" onclick="goBack()" aria-label="Terug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
   <div class="tbTitle"><svg viewBox="0 0 120 120"><rect x="14" y="8" width="78" height="104" rx="10" fill="#f59e0b" transform="rotate(8 53 60)"/><rect x="28" y="12" width="78" height="104" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="3"/><text x="67" y="72" text-anchor="middle" font-size="28" font-weight="800" fill="#facc15" font-family="system-ui">M&amp;C</text></svg><span>M&amp;C ai Card App</span><span class="tbVer"></span></div>
-  <button class="topBtn" id="refreshBtn" onclick="refreshPage()" aria-label="Verversen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+  <!-- v2.84: ververs-knop verwijderd -->
 </div>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.83</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.84</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -203,7 +203,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.83";
+var VERSION="2.84";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -222,13 +222,7 @@ function showView(id, noPush){
 }
 // v2.60: terug naar vorige pagina
 function goBack(){ showView(viewStack.pop()||"home", true); } // v2.70: pop zonder opnieuw te pushen
-// v2.63: verversen zonder van pagina te wisselen - de huidige pagina wordt opnieuw geladen/getekend
-function refreshPage(){
-  if(curView==="historyView"){ renderHistory(); return; }
-  if(curView==="detailView" && window._detailIdx!=null){ showScanDetail(window._detailIdx); return; }
-  if(curView==="scan" && img){ autoDetect(); return; } // v2.74: kaders terug naar de oorspronkelijke automatische detectie
-  showView(curView); // home/resultaat: gewoon opnieuw tonen (balken terug, inhoud blijft
-}
+// v2.84: refreshPage verwijderd samen met de ververs-knop
 // v2.49: knoppenbalk schuift grotendeels weg bij scrollen, tik op zichtbare deel = terug
 function initBars(){
   document.querySelectorAll(".bottomBar").forEach(function(bar){
