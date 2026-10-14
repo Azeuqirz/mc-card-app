@@ -108,6 +108,16 @@
     border-radius:99px; padding:3px 10px; display:none; }
   #camWrap { touch-action:none; }
   button { font-family:inherit; }
+  /* v3.07: collectie-module */
+  .colGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:2px 2px 16px; }
+  .colTile { position:relative; background:#0f172a; border-radius:10px; padding:6px;
+    display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
+  .colTile:active { background:#1e293b; }
+  .colTile img { width:100%; border-radius:6px; background:#1e293b; }
+  .colTile span { font-size:10px; color:#cbd5e1; text-align:center; line-height:1.2;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .colQty { position:absolute; top:4px; right:4px; background:#facc15; color:#0f172a;
+    font-size:10px; font-weight:800; border-radius:99px; padding:1px 6px; }
   /* v2.62: vaste bovenbalk op elke pagina: terug links, logo+naam midden, verversen rechts */
   .topBar { position:fixed; top:0; left:0; right:0; z-index:99;
     height:calc(56px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 10px 0;
@@ -140,7 +150,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.06</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.07</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -167,6 +177,7 @@
   <label class="btn dark" style="margin-top:8px">🖼 Kies foto uit je bibliotheek
     <input type="file" accept="image/*" id="fileInputLib">
   </label>
+  <button class="btn dark" onclick="renderCollection()">🗂 Mijn collectie</button>
   <button class="btn dark" onclick="renderHistory()">📚 Mijn gescande kaarten &amp; rapport</button>
   <p class="tip">Tip: kaart volledig in beeld, plat liggen, iPhone er recht boven, egale ondergrond zonder schaduw of glans.</p>
 </div>
@@ -186,6 +197,212 @@
     <button class="btn yellow" style="flex:1;margin:0" onclick="captureCam()">📷 Foto maken</button>
   </div>
 </div>
+
+<!-- ===== COLLECTIE (v3.07) ===== -->
+<div class="view" id="collectionView">
+  <div id="colScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <div class="bottomBar" data-scroll="colScroll">
+    <button class="btn yellow" onclick="showView('colAddView')">➕ Kaart toevoegen</button>
+  </div>
+</div>
+<div class="view" id="colAddView">
+  <div id="colAddScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+    <div class="card">
+      <input id="colQ" placeholder="Kaartnaam (bijv. Charizard)" onkeydown="if(event.key==='Enter')colSearch()"
+        style="width:100%;padding:10px;border-radius:10px;border:1px solid #1e293b;background:#0f172a;color:#f1f5f9;font-size:15px;">
+      <button class="btn yellow" style="margin-top:8px" onclick="colSearch()">🔍 Zoeken op naam</button>
+      <p class="n" style="margin-top:8px">Zoek op kaartnaam, kies de juiste kaart (set + nummer) - naam, nummer, set, waarde en afbeelding worden automatisch opgehaald.</p>
+    </div>
+    <div id="colResults"></div>
+  </div>
+</div>
+<div class="view" id="colDetailView">
+  <div id="colDetailScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <div class="bottomBar" data-scroll="colDetailScroll">
+    <button class="btn dark" onclick="colRender()">⬅ Terug naar collectie</button>
+  </div>
+</div>
+<script>
+
+// ===== v3.07: COLLECTIE =====
+var COL_KEY="mcCol3", COL_HIST="mcColHist3";
+function colLoad(){ try{ return JSON.parse(localStorage.getItem(COL_KEY))||[]; }catch(e){ return []; } }
+function colSave(a){ localStorage.setItem(COL_KEY, JSON.stringify(a)); }
+function colLoadH(){ try{ return JSON.parse(localStorage.getItem(COL_HIST))||[]; }catch(e){ return []; } }
+function colSaveH(a){ localStorage.setItem(COL_HIST, JSON.stringify(a.slice(-500))); }
+function colTotal(a){ var v=0; a.forEach(function(c){ v+=(c.price||0)*(c.qty||1); }); return v; }
+function colEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+var colLast=null;
+
+function renderCollection(){ showView("collectionView"); colRender(); colRefresh(); }
+
+// grafiek 1: totale waarde over de tijd (lijn)
+function colLineChart(hist){
+  var W=320,H=110,P=8, i, min=1e12, max=-1e12;
+  for(i=0;i<hist.length;i++){ if(hist[i].v<min)min=hist[i].v; if(hist[i].v>max)max=hist[i].v; }
+  if(max-min<0.01){ max=min+1; }
+  var pts="", dn=hist.length-1;
+  for(i=0;i<hist.length;i++){
+    var x=P+(dn>0?(W-2*P)*i/dn:0), y=H-P-(H-2*P)*(hist[i].v-min)/(max-min);
+    pts+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);
+  }
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%">';
+  svg+='<line x1="'+P+'" y1="'+(H-P)+'" x2="'+(W-P)+'" y2="'+(H-P)+'" stroke="#1e293b" stroke-width="1"/>';
+  svg+='<polyline points="'+pts+'" fill="none" stroke="#facc15" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+  svg+='<text x="'+P+'" y="12" font-size="10" fill="#64748b">$ '+max.toFixed(2)+'</text>';
+  svg+='<text x="'+P+'" y="'+(H-2)+'" font-size="10" fill="#64748b">$ '+min.toFixed(2)+'</text>';
+  if(hist.length){
+    var d0=new Date(hist[0].t), d1=new Date(hist[hist.length-1].t);
+    svg+='<text x="'+(W-P)+'" y="12" text-anchor="end" font-size="10" fill="#64748b">'+(d1.getDate())+'-'+(d1.getMonth()+1)+'</text>';
+  }
+  svg+='</svg>';
+  return '<div class="n">Totale waarde over de tijd ('+hist.length+' metingen)</div>'+svg;
+}
+
+// grafiek 2: waarde per kaart (top 8)
+function colBarChart(top,tot){
+  var mx=top[0].price||1, s='<div class="n">Duurste kaarten</div>';
+  top.forEach(function(c){
+    var w=Math.round(100*(c.price||0)/mx);
+    s+='<div style="margin:4px 0"><div class="n" style="margin:0">'+colEsc(c.name)+' <span style="color:#facc15">$ '+((c.price||0)*(c.qty||1)).toFixed(2)+'</span></div>';
+    s+='<div class="bar" style="margin:2px 0 6px"><div style="width:'+w+'%;background:#facc15"></div></div></div>';
+  });
+  return s;
+}
+
+function colRender(){
+  var a=colLoad(), sc=document.getElementById("colScroll"), h="";
+  var tot=colTotal(a), n=0; a.forEach(function(c){ n+=(c.qty||1); });
+  h+='<div class="card"><div class="score"><span>Totale collectie-waarde</span><b>$ '+tot.toFixed(2)+'</b></div>';
+  h+='<div class="n">'+n+' kaarten in '+a.length+' entries - prijzen: TCGPlayer marktprijs (USD), ververst bij het openen van de app</div></div>';
+  if(!a.length){
+    h+='<div class="note">Nog geen kaarten in je collectie. Tik op "Kaart toevoegen" en zoek op naam - de set, nummer en waarde worden automatisch opgehaald.</div>';
+  } else {
+    var hist=colLoadH();
+    if(hist.length>1) h+='<div class="card">'+colLineChart(hist)+'</div>';
+    var top=a.slice().sort(function(x,y){ return (y.price||0)-(x.price||0); }).slice(0,8);
+    h+='<div class="card">'+colBarChart(top,tot)+'</div>';
+    h+='<div class="colGrid">';
+    a.forEach(function(c){
+      h+='<div class="colTile" onclick="colDetail(''+c.id+'')">';
+      if((c.qty||1)>1) h+='<div class="colQty">x'+(c.qty||1)+'</div>';
+      h+='<img src="'+colEsc(c.img)+'" loading="lazy"><span>'+colEsc(c.name)+'</span></div>';
+    });
+    h+='</div>';
+  }
+  sc.innerHTML=h;
+}
+
+// prijzen verversen (alleen bij openen app): batch ophalen per 25 ids
+function colRefresh(){
+  var a=colLoad(); if(!a.length) return;
+  var ids=a.map(function(c){ return c.id; });
+  function batch(list){
+    if(!list.length){ colHistPoint(); colRender(); return; }
+    var take=list.slice(0,25), rest=list.slice(25);
+    var q=take.map(function(id){ return 'id:"'+id+'"'; }).join(" OR ");
+    fetch("https://api.pokemontcg.io/v2/cards?q="+encodeURIComponent(q)+"pageSize=25")
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var byId={}; (j.data||[]).forEach(function(cd){ byId[cd.id]=colPriceOf(cd); });
+        a.forEach(function(c){ if(byId[c.id]!==undefined){ c.price=byId[c.id]; c.priceT=Date.now(); } });
+        colSave(a); batch(rest);
+      })
+      .catch(function(){ batch(rest); });
+  }
+  batch(ids);
+}
+function colPriceOf(cd){
+  var p=cd&&cd.tcgplayer&&cd.tcgplayer.prices;
+  if(!p) return 0;
+  var best=0;
+  ["holofoil","normal","reverseHolo","1stEditionHolofoil"].forEach(function(k){
+    if(p[k]&&p[k].market) best=Math.max(best,p[k].market);
+  });
+  return best;
+}
+function colHistPoint(){
+  var a=colLoad(), h=colLoadH(), now=Date.now(), v=colTotal(a);
+  if(!h.length || now-h[h.length-1].t>3600e3){ h.push({t:now,v:v}); colSaveH(h); }
+}
+
+// zoeken op naam
+function colSearch(){
+  var q=document.getElementById("colQ").value.trim();
+  var box=document.getElementById("colResults");
+  if(!q){ box.innerHTML=""; return; }
+  box.innerHTML='<div class="n">Zoeken...</div>';
+  fetch("https://api.pokemontcg.io/v2/cards?q="+encodeURIComponent('name:"'+q+'"')+"&pageSize=30")
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var data=j.data||[]; colLast=data;
+      if(!data.length){ box.innerHTML='<div class="note">Geen kaarten gevonden voor "'+colEsc(q)+'".</div>'; return; }
+      var h="";
+      data.forEach(function(cd,i){
+        var setN=cd.set&&cd.set.name?cd.set.name:"?";
+        h+='<div class="lookupItem" onclick="colAdd('+i+')">';
+        h+='<img src="'+colEsc(cd.images&&cd.images.small||"")+'" alt="">';
+        h+='<div class="si"><div style="font-size:13px;font-weight:700">'+colEsc(cd.name)+'</div>';
+        h+='<div class="sd">'+colEsc(setN)+' &middot; #'+colEsc(cd.number)+' &middot; $ '+colPriceOf(cd).toFixed(2)+'</div></div>';
+        h+='<div style="color:#facc15;font-weight:800">+</div></div>';
+      });
+      box.innerHTML=h;
+    })
+    .catch(function(){ box.innerHTML='<div class="note">Zoeken mislukt - geen internet of de API is tijdelijk onbereikbaar.</div>'; });
+}
+
+function colAdd(i){
+  var cd=(colLast||[])[i]; if(!cd) return;
+  var a=colLoad(), hit=null;
+  a.forEach(function(c){ if(c.id===cd.id) hit=c; });
+  if(hit){ hit.qty=(hit.qty||1)+1; hit.price=colPriceOf(cd)||hit.price; }
+  else a.push({ id:cd.id, name:cd.name, num:cd.number, set:cd.set&&cd.set.name||"?",
+    setS:cd.set&&cd.set.series||"", img:cd.images&&cd.images.small||"", imgL:cd.images&&cd.images.large||"",
+    rarity:cd.rarity||"", price:colPriceOf(cd), priceT:Date.now(), qty:1 });
+  colSave(a); colHistPoint(); renderCollection();
+}
+
+function colDetail(id){
+  var a=colLoad(), c=null; a.forEach(function(x){ if(x.id===id) c=x; });
+  if(!c){ renderCollection(); return; }
+  showView("colDetailView");
+  var sc=document.getElementById("colDetailScroll");
+  var h='<div class="card" style="display:flex;gap:12px">';
+  h+='<img src="'+colEsc(c.imgL||c.img)+'" style="width:46%;border-radius:10px" alt="">';
+  h+='<div style="flex:1"><div style="font-size:17px;font-weight:800">'+colEsc(c.name)+'</div>';
+  h+='<div class="n">Set: '+colEsc(c.set)+(c.setS?' ('+colEsc(c.setS)+')':'')+'</div>';
+  h+='<div class="n">Nummer: '+colEsc(c.num)+'</div>';
+  if(c.rarity) h+='<div class="n">Rarity: '+colEsc(c.rarity)+'</div>';
+  h+='<div class="score" style="margin-top:8px"><span>Waarde</span><b>$ '+((c.price||0)*(c.qty||1)).toFixed(2)+'</b></div>';
+  h+='<div class="n">(per stuk: $ '+(c.price||0).toFixed(2)+' - TCGPlayer marktprijs)</div>';
+  h+='<div style="display:flex;gap:8px;margin-top:10px">';
+  h+='<button class="btn dark" style="flex:1;margin:0" onclick="colQty(''+c.id+'',1)">+1</button>';
+  h+='<button class="btn dark" style="flex:1;margin:0" onclick="colQty(''+c.id+'',-1)">-1</button>';
+  h+='</div>';
+  h+='<button class="btn dark" style="margin-top:8px;color:#f87171" onclick="colDel(''+c.id+'')">🗑 Uit collectie</button>';
+  h+='</div></div>';
+  sc.innerHTML=h;
+  // verse prijs voor deze kaart ophalen
+  fetch("https://api.pokemontcg.io/v2/cards/"+encodeURIComponent(id))
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var cd=j.data&&j.data[0]===id?j.data:j.data; if(!cd) return;
+      var b=colLoad(); b.forEach(function(x){ if(x.id===id){ var p=colPriceOf(cd); if(p){ x.price=p; x.priceT=Date.now(); } } });
+      colSave(b); colDetail(id);
+    }).catch(function(){});
+}
+
+function colQty(id,d){
+  var a=colLoad();
+  a.forEach(function(c){ if(c.id===id){ c.qty=Math.max(1,(c.qty||1)+d); } });
+  colSave(a); colHistPoint(); colDetail(id);
+}
+function colDel(id){
+  var a=colLoad().filter(function(c){ return c.id!==id; });
+  colSave(a); colHistPoint(); renderCollection();
+}
+
+</script>
 
 <!-- ===== SCAN ===== -->
 <div class="view" id="scan">
@@ -232,7 +449,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.06";
+var VERSION="3.07";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
