@@ -70,7 +70,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.28</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.29</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -141,7 +141,7 @@
 
 <script>
 "use strict";
-var VERSION="2.28";
+var VERSION="2.29";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -685,7 +685,7 @@ function loadTesseract(cb){
   var s=document.createElement("script");
   s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
   s.onload=cb;
-  s.onerror=function(){ var el=document.getElementById("lookupResult"); if(el) el.innerHTML='<div class="note">❌ OCR-engine kon niet laden (geen internet?). Typ de kaartnaam in het zoekveld.</div>'; };
+  s.onerror=function(){ var el=document.getElementById("lookupResult"); if(el) el.innerHTML='<div class="note">❌ OCR-engine kon niet laden (geen internet?).</div>'+manualFieldHTML(""); };
   document.head.appendChild(s);
 }
 function ocrRegion(quad, rx, ry, rw, rh, scale){
@@ -717,7 +717,7 @@ function autoCardLookup(){
   var quad=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
   loadTesseract(function(){
     var nameC=ocrRegion(quad,0.06,0.055,0.70,0.10,3);
-    if(!nameC){ el.innerHTML='<div class="note">❌ Naamgebied niet leesbaar — typ de naam in het zoekveld.</div>'; return; }
+    if(!nameC){ el.innerHTML='<div class="note">❌ Naamgebied niet leesbaar.</div>'+manualFieldHTML(""); return; }
     var numC=ocrRegion(quad,0.72,0.885,0.26,0.095,4);
     var numPromise;
     if(numC){
@@ -735,21 +735,29 @@ function autoCardLookup(){
       var inp=document.getElementById("lookupName"); if(inp) inp.value=name;
       numPromise.then(function(num){
         window._ocrNum=num;
-        if(!name){ el.innerHTML='<div class="note">❌ Naam niet gelezen'+(num?' (nummer wel: '+num+')':'')+' — typ de naam in het zoekveld en tik Zoek.</div>'; return; }
+        if(!name){ el.innerHTML='<div class="note">❌ Naam niet gelezen'+(num?' (nummer wel: '+num+')':'')+'+manualFieldHTML(""); return; }
         el.innerHTML='<div class="note">✍️ Gelezen: "'+name+'"'+(num?' · nr. '+num:'')+' — zoeken in de TCG-database…</div>';
         autoQuery(name,num);
       });
     }).catch(function(){
-      el.innerHTML='<div class="note">❌ OCR mislukt — typ de naam in het zoekveld.</div>';
+      el.innerHTML='<div class="note">❌ OCR mislukt.</div>'+manualFieldHTML("");
     });
   });
 }
+function manualFieldHTML(name){
+  return '<p class="n" style="margin:8px 0 4px;color:#94a3b8">Automatisch herkennen mislukt — zoek handmatig:</p>'
+    +'<div style="display:flex;gap:8px;margin-bottom:6px">'
+    +'<input id="lookupName" placeholder="kaartnaam, bijv. Fomantis" value="'+String(name||"").replace(/"/g,"&quot;")+'" style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:14px">'
+    +'<button class="btn dark" style="margin:0;padding:8px 12px" onclick="lookupCard()">Zoek</button>'
+    +'</div>';
+}
+function diag(r){ if(!r) return "onbekend"; return r.fail ? "❌piek~"+r.medG : r.v.toFixed(1)+"px"; }
 function autoQuery(name,num){
   var el=document.getElementById("lookupResult"); if(!el) return;
   var w=(name.split(" ")[0]||name);
   var tries=['name:"'+name+'"',"name:"+w+"*","name:*"+w+"*"];
   function attempt(i){
-    if(i>=tries.length){ el.innerHTML='<div class="note">❌ Geen kaart gevonden voor "'+name+'" — corrigeer de naam in het zoekveld en tik Zoek.</div>'; return; }
+    if(i>=tries.length){ el.innerHTML='<div class="note">❌ Geen kaart gevonden voor "'+name+'".</div>'+manualFieldHTML(name); return; }
     fetch("https://api.pokemontcg.io/v2/cards?q="+encodeURIComponent(tries[i])+"&pageSize=12")
       .then(function(r){ return r.json(); })
       .then(function(j){
@@ -768,7 +776,16 @@ function autoQuery(name,num){
             +(c.images&&c.images.small?'<img src="'+c.images.small+'" alt="">':'')
             +'<div class="si"><div style="font-weight:700;color:#e2e8f0">'+(c.name||"")+'</div>'
             +'<div class="sd">'+((c.set&&c.set.name)||"")+' · '+(c.number||"?")+'</div>'
-            +(price?'<div class="sd" style="color:#84cc16">waarde ≈ 
+            +(price?'<div class="sd" style="color:#84cc16">waarde ≈ $'+price+'</div>':'<div class="sd">geen prijs bekend</div>')
+            +'</div></div>';
+        });
+        el.innerHTML=html;
+      })
+      .catch(function(){ el.innerHTML='<div class="note">❌ Zoeken mislukt — geen internetverbinding?</div>'+manualFieldHTML(name); });
+  }
+  attempt(0);
+}
+
 function runAnalysis(){
   if(!img||!rect) return;
   var res=analyzeCentering();
@@ -824,249 +841,12 @@ function runAnalysis(){
     +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
     +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>'+legenda
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")
-    +'<p class="n" style="margin:8px 0 4px;color:#94a3b8">🔎 Kaart automatisch herkennen (OCR) — of zelf corrigeren:</p>'
-    +'<div style="display:flex;gap:8px;margin-bottom:6px">'
-    +'<input id="lookupName" placeholder="kaartnaam, bijv. Fomantis" value="' + (window._ocrName||"") + '" style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:14px">'
-    +'<button class="btn dark" style="margin:0;padding:8px 12px" onclick="lookupCard()">Zoek</button>'
-    +'</div>'
     +'<div id="lookupResult"></div>'
     +'</div>';
   attachZoom();
   saveScan(res);
   showView("resultView");
   autoCardLookup();
-}
-
-// ---------- Zoom op de analyse-visualisatie ----------
-var zs=1;
-function setZoom(s){
-  zs=Math.min(4,Math.max(0.5,s));
-  var inner=document.getElementById("zoomInner");
-  if(inner){
-    // v2.24: zoomen vanaf linksboven (origin 0 0). De afbeelding begint dan bij
-    // scrollpositie 0, dus het VOLLEDIGE vergrote vlak is bereikbaar — ook het
-    // linkerdeel. (Met origin midden was het links uitstekende deel onbereikbaar.)
-    inner.style.width="100%";
-    inner.style.transform="scale("+zs+")";
-  }
-}
-function attachZoom(){
-  var wrap=document.getElementById("zoomWrap"); if(!wrap) return;
-  var pts={}, lastDist=0, lastPan=null, lastTap=0;
-  wrap.onpointerdown=function(e){
-    e.preventDefault();
-    pts[e.pointerId]=[e.clientX,e.clientY];
-    try{ wrap.setPointerCapture(e.pointerId); }catch(err){}
-    if(Object.keys(pts).length===1){
-      var now=Date.now();
-      if(now-lastTap<300){ setZoom(zs>1.4?1:2.5); }
-      lastTap=now;
-      lastPan=[e.clientX,e.clientY];
-    }
-  };
-  wrap.onpointermove=function(e){
-    if(!(e.pointerId in pts)) return;
-    pts[e.pointerId]=[e.clientX,e.clientY];
-    var ids=Object.keys(pts);
-    if(ids.length===2){
-      var d=Math.hypot(pts[ids[0]][0]-pts[ids[1]][0], pts[ids[0]][1]-pts[ids[1]][1]);
-      if(lastDist>0) setZoom(zs*d/lastDist);
-      lastDist=d;
-      lastPan=null;
-    } else if(lastPan){
-      wrap.scrollLeft-=(e.clientX-lastPan[0]);
-      wrap.scrollTop-=(e.clientY-lastPan[1]);
-      lastPan=[e.clientX,e.clientY];
-    }
-  };
-  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
-    wrap.addEventListener(ev,function(e){
-      delete pts[e.pointerId];
-      if(Object.keys(pts).length<2) lastDist=0;
-      lastPan=null;
-    });
-  });
-  setZoom(1);
-}
-
-// ---------- Scan-database (lokaal opgeslagen op deze iPhone) ----------
-function getScans(){
-  try{ return JSON.parse(localStorage.getItem("mcScans")||"[]"); }catch(e){ return []; }
-}
-function saveScan(res){
-  try{
-    var scans=getScans();
-    var id=Date.now();
-    scans.unshift({ id:id, d:new Date().toLocaleString("nl-NL"), g:res.grade,
-      lr:Math.round(res.devLR*100)/100, tb:Math.round(res.devTB*100)/100,
-      tT:Math.round(res.tTop*10)/10, tB:Math.round(res.tBot*10)/10,
-      tL:Math.round(res.tLeft*10)/10, tR:Math.round(res.tRight*10)/10,
-      t:res.thumb, b:res.big||null, vs:res.vs||null });
-    if(scans.length>200) scans=scans.slice(0,200);
-    try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }
-    catch(e2){
-      // opslag vol: opnieuw zonder de grote visuals
-      scans=scans.map(function(s){ return { id:s.id, d:s.d, g:s.g, lr:s.lr, tb:s.tb, tT:s.tT, tB:s.tB, tL:s.tL, tR:s.tR, t:s.t }; });
-      try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e3){}
-    }
-    currentScanId=id;
-  }catch(e){}
-}
-var currentScanId=null;
-function delScan(i){
-  var scans=getScans(); scans.splice(i,1);
-  try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e){}
-  renderHistory();
-}
-function clearScans(){
-  if(!confirm("Alle opgeslagen scans wissen?")) return;
-  try{ localStorage.removeItem("mcScans"); }catch(e){}
-  renderHistory();
-}
-function renderHistory(){
-  var scans=getScans(), el=document.getElementById("histScroll"), html="";
-  if(scans.length===0){
-    html='<div class="note" style="margin-top:16px">Nog geen gescande kaarten. Maak een foto en analyseer hem — daarna verschijnt hij hier automatisch in je collectie.</div>';
-  } else {
-    var sum=0, best=scans[0], worst=scans[0];
-    scans.forEach(function(s){ sum+=s.g; if(s.g>best.g) best=s; if(s.g<worst.g) worst=s; });
-    var avg=Math.round(sum/scans.length*10)/10;
-    var val=0, nP=0; scans.forEach(function(s){ if(s.cp){ val+=s.cp; nP++; } });
-    function gColor(g){ return gradeColor(g); }
-    html+='<div class="card"><div class="score"><span>Rapport — '+scans.length+' kaart'+(scans.length===1?"":"en")+'</span></div>'
-      +'<div class="bar"><div style="width:'+(avg*10)+'%;background:'+gColor(avg)+'"></div></div>'
-      +'<p class="n">📊 Gemiddelde centering score: <b style="color:'+gColor(avg)+'">'+avg+'</b></p>'
-      +'<p class="n">🏆 Beste: '+best.g+' ('+best.d+')</p>'
-      +'<p class="n">⚠️ Slechtste: '+worst.g+' ('+worst.d+')</p>'+(nP>0?'<p class="n">💰 Bekende marktprijs samen: &#36;'+(Math.round(val*100)/100)+' — '+nP+' kaart'+(nP===1?'':'en')+' met prijs</p>':'')+'</div>';
-    scans.forEach(function(s,i){
-      html+='<div class="scanItem" onclick="showScanDetail('+i+')">'
-        +'<img src="'+(s.t||"")+'" alt="scan">'
-        +'<div class="si"><div class="sd">'+s.d+'</div>'
-        +'<div class="sg" style="color:'+gColor(s.g)+'">'+s.g+'</div>'
-        +'<div class="sd">afw. LR '+s.lr+'% · TB '+s.tb+'%</div></div>'
-        +'<button onclick="event.stopPropagation();delScan('+i+')">✕</button></div>';
-    });
-  }
-  el.innerHTML=html;
-  showView("historyView");
-}
-// v2.15: detailweergave van één scan
-function showScanDetail(i){
-  var s=getScans()[i];
-  if(!s) return;
-  var el=document.getElementById("detailScroll");
-  var html='<div class="card">'
-    +'<div class="score"><span>'+s.d+'</span><b style="color:'+gradeColor(s.g)+'">'+s.g+'</b></div>'
-    +((s.cn)?'<p class="n" style="font-size:15px;color:#e2e8f0;font-weight:700;margin:2px 0 2px">🃏 '+s.cn+((s.cs)?' — '+s.cs:'')+((s.cno)?' #'+s.cno:'')+'</p>'
-      +(s.cp?'<p class="n" style="margin:2px 0 6px;color:#84cc16">marktprijs: &#36;'+s.cp+'</p>':''):'');
-  if(s.vs){
-    html+=s.vs;
-  } else if(s.b){
-    html+='<img src="'+s.b+'" alt="kaart" style="width:100%;border-radius:10px;margin:8px 0;display:block">';
-  } else {
-    html+='<div class="note">Weergave niet opgeslagen bij deze scan (gemaakt vóór v2.22) — scan opnieuw voor de visualisatie.</div>';
-  }
-  html+='<p class="n">Randdikte boven: '+s.tT+'px &nbsp;·&nbsp; onder: '+s.tB+'px</p>'
-    +'<p class="n">Randdikte links: '+s.tL+'px &nbsp;·&nbsp; rechts: '+s.tR+'px</p>'
-    +'<p class="n">Middenafwijking links-rechts: '+s.lr+'%</p>'
-    +'<p class="n">Middenafwijking boven-onder: '+s.tb+'%</p>';
-  if(s.g>=9.5) html+='<p class="n">Praktisch perfect gecenterd 🎉</p>';
-  else if(s.g>=9) html+='<p class="n">Goed gecenterd — scoort doorgaans 9-10 bij grading.</p>';
-  else if(s.g>=8) html+='<p class="n">Acceptabel gecenterd, kans op 8-9.</p>';
-  else html+='<p class="n">Zichtbaar off-center — beïnvloedt de grade flink.</p>';
-  html+='</div>';
-  el.innerHTML=html;
-  showView("detailView");
-}
-function exportCSV(){
-  var scans=getScans();
-  if(scans.length===0){ alert("Nog geen scans om te exporteren."); return; }
-  var csv="datum;tijd;score;afwijking_LR_%;afwijking_TB_%;rand_boven_px;rand_onder_px;rand_links_px;rand_rechts_px\n";
-  scans.forEach(function(s){
-    var dt=s.d.split(", ");
-    csv+=[dt[0]||s.d, dt[1]||"", s.g, s.lr, s.tb, s.tT, s.tB, s.tL, s.tR].join(";")+"\n";
-  });
-  window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
-}
-</script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="KtKTTyxIoFtDli9TQwL1tQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
-</body>
-</html>
-+price+'</div>':'<div class="sd">geen prijs bekend</div>')
-            +'</div></div>';
-        });
-        el.innerHTML=html;
-      })
-      .catch(function(){ el.innerHTML='<div class="note">❌ Zoeken mislukt — geen internetverbinding?</div>'; });
-  }
-  attempt(0);
-}
-function diag(r){ if(!r) return "onbekend"; return r.fail ? "❌piek~"+r.medG : r.v.toFixed(1)+"px"; }
-function runAnalysis(){
-  if(!img||!rect) return;
-  var res=analyzeCentering();
-  var el=document.getElementById("resultScroll");
-  if(!res||res.canvasFail){ el.innerHTML='<div class="note">Analyse mislukt — '+((res&&res.help)||"onbekende fout")+'. Probeer de foto opnieuw te selecteren uit de bibliotheek.</div>'; showView("resultView"); return; }
-  if(res.fail){ el.innerHTML='<div class="note">Rand niet gevonden — '+res.help+'<br><br>📱 Kopieer deze regel en stuur hem in de chat: <br><small style="color:#94a3b8">v'+VERSION+' | '+diag(res.tTop)+' | '+diag(res.tBot)+' | '+diag(res.tLeft)+' | '+diag(res.tRight)+'</small></div>'; showView("resultView"); return; }
-  var legenda='<p class="n" style="margin-top:8px">🟡 gedetecteerde kaartrand &nbsp;·&nbsp; randdiktes en afwijkingen zie je bij de metingen hieronder</p>';
-  // v2.21: ÉÉN weergave — originele foto bijgesneden tot 50px rondom de kaart,
-  // met de gele detectielijn erop. Zo zie je exact wat de detectie heeft gedaan.
-  var vis="";
-  if(img&&rect){
-    try{
-      var xs=[rect.tl.x,rect.tr.x,rect.br.x,rect.bl.x], ys=[rect.tl.y,rect.tr.y,rect.br.y,rect.bl.y];
-      // v2.23: marge 3x zo groot (150px) zodat je ruim buiten de kaart kunt controleren
-      var bx0=Math.max(0,Math.min.apply(null,xs)-150), by0=Math.max(0,Math.min.apply(null,ys)-150);
-      var bx1=Math.min(img.naturalWidth,Math.max.apply(null,xs)+150), by1=Math.min(img.naturalHeight,Math.max.apply(null,ys)+150);
-      var bw=bx1-bx0, bh=by1-by0;
-      var s2=Math.min(1,1200/Math.max(bw,bh));
-      var oc=document.createElement("canvas");
-      oc.width=Math.max(1,Math.round(bw*s2)); oc.height=Math.max(1,Math.round(bh*s2));
-      oc.getContext("2d").drawImage(img,-bx0*s2,-by0*s2,img.naturalWidth*s2,img.naturalHeight*s2);
-      var ohref=oc.toDataURL("image/jpeg",0.85);
-      // v2.23: lijndiktes gehalveerd
-      var sw2=Math.max(1,img.naturalWidth/560);
-      var poly2=(rect.tl.x-bx0)+","+(rect.tl.y-by0)+" "+(rect.tr.x-bx0)+","+(rect.tr.y-by0)+" "+(rect.br.x-bx0)+","+(rect.br.y-by0)+" "+(rect.bl.x-bx0)+","+(rect.bl.y-by0);
-      // v2.22: binnenrand + middenkruis + stippen via homografie terug op de foto mappen
-      var CW=340, CH=Math.round(340*88/63);
-      var hh2=homography([[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]],CW,CH);
-      function mapPt(u,v){
-        var d=u*hh2[6]+v*hh2[7]+1;
-        return [(u*hh2[0]+v*hh2[1]+hh2[2])/d-bx0,(u*hh2[3]+v*hh2[4]+hh2[5])/d-by0];
-      }
-      var tL=res.tLeft,tR=res.tRight,tT=res.tTop,tB=res.tBot;
-      var iTL=mapPt(tL,tT), iTR=mapPt(CW-tR,tT), iBR=mapPt(CW-tR,CH-tB), iBL=mapPt(tL,CH-tB);
-      var cX=mapPt(CW/2,0), cX2=mapPt(CW/2,CH), cY=mapPt(0,CH/2), cY2=mapPt(CW,CH/2);
-      var mLC=mapPt(tL/2,CH/2), mRC=mapPt(CW-tR/2,CH/2), mTC=mapPt(CW/2,tT/2), mBC=mapPt(CW/2,CH-tB/2);
-      var sw3=Math.max(0.75,img.naturalWidth/800);
-      vis='<svg viewBox="0 0 '+bw+' '+bh+'" style="width:100%;display:block;border-radius:10px;background:#020617">'
-        +'<image href="'+ohref+'" x="0" y="0" width="'+bw+'" height="'+bh+'"/>'
-        +'<polygon points="'+poly2+'" fill="none" stroke="#facc15" stroke-width="'+sw2+'" stroke-linejoin="round"/>'
-        +'<polygon points="'+iTL[0]+','+iTL[1]+' '+iTR[0]+','+iTR[1]+' '+iBR[0]+','+iBR[1]+' '+iBL[0]+','+iBL[1]+'" fill="none" stroke="#38bdf8" stroke-width="'+sw3+'" stroke-dasharray="'+(sw2*2.5)+' '+sw2+'" stroke-linejoin="round"/>'
-        +'<line x1="'+cX[0]+'" y1="'+cX[1]+'" x2="'+cX2[0]+'" y2="'+cX2[1]+'" stroke="#f87171" stroke-width="'+sw3+'" stroke-dasharray="'+sw2+' '+sw2+'"/>'
-        +'<line x1="'+cY[0]+'" y1="'+cY[1]+'" x2="'+cY2[0]+'" y2="'+cY2[1]+'" stroke="#f87171" stroke-width="'+sw3+'" stroke-dasharray="'+sw2+' '+sw2+'"/>'
-        +'<circle cx="'+mLC[0]+'" cy="'+mLC[1]+'" r="'+sw2+'" fill="#38bdf8"/>'
-        +'<circle cx="'+mRC[0]+'" cy="'+mRC[1]+'" r="'+sw2+'" fill="#38bdf8"/>'
-        +'<circle cx="'+mTC[0]+'" cy="'+mTC[1]+'" r="'+sw2+'" fill="#38bdf8"/>'
-        +'<circle cx="'+mBC[0]+'" cy="'+mBC[1]+'" r="'+sw2+'" fill="#38bdf8"/>'
-        +'</svg>';
-    }catch(e){ vis=res.vis; }
-  } else { vis=res.vis; }
-  res.vs=vis;
-  el.innerHTML='<div class="card"><div class="score"><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
-    +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
-    +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>'+legenda
-    +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")
-    +'<p class="n" style="margin:8px 0 4px;color:#94a3b8">🔎 Kaart automatisch herkennen (OCR) — of zelf corrigeren:</p>'
-    +'<div style="display:flex;gap:8px;margin-bottom:6px">'
-    +'<input id="lookupName" placeholder="kaartnaam, bijv. Fomantis" value="' + (window._ocrName||"") + '" style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:14px">'
-    +'<button class="btn dark" style="margin:0;padding:8px 12px" onclick="lookupCard()">Zoek</button>'
-    +'</div>'
-    +'<div id="lookupResult"></div>'
-    +'</div>';
-  attachZoom();
-  saveScan(res);
-  showView("resultView");
 }
 
 // ---------- Zoom op de analyse-visualisatie ----------
