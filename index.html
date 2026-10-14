@@ -76,7 +76,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.54</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.55</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -150,7 +150,7 @@
 
 <script>
 "use strict";
-var VERSION="2.54";
+var VERSION="2.55";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 
 function showView(id){
@@ -1011,25 +1011,41 @@ function autoCardLookup(){
     if(!nameC){ el.innerHTML='<div class="note">❌ Naamgebied niet leesbaar.</div>'+manualFieldHTML(""); return; }
     // v2.51: oranje kader rond het gebied waar het kaartnummer gescand wordt
     var NUMR=[0.02,0.905,0.32,0.085]; // v2.53: alleen links, rechter 2/3 eraf
-    var numC=ocrRegion(quad,NUMR[0],NUMR[1],NUMR[2],NUMR[3],7);
+    var numRaw=ocrRegion(quad,NUMR[0],NUMR[1],NUMR[2],NUMR[3],10); // v2.55: 3x zo scherp als voorheen
     try{ window._numBox=[quadPt(NUMR[0],NUMR[1]),quadPt(NUMR[0]+NUMR[2],NUMR[1]),quadPt(NUMR[0]+NUMR[2],NUMR[1]+NUMR[3]),quadPt(NUMR[0],NUMR[1]+NUMR[3])]; }catch(e){ window._numBox=null; }
-    if(numC) numC=ocrBinarize(numC);
+    var numC=numRaw?ocrBinarize(numRaw):null;
     var numPromise;
+    // v2.55: kandidaat parsen - geeft waarde + betrouwbaarheidsniveau (3=strikt 3/3, 2=2-3/2-3, 1=los getal)
+    function parseNumCand(t){
+      var m3=t.match(/(\d{3})\s*\/\s*(\d{3})/);
+      if(m3) return {v:m3[1].replace(/^0+/,""),lvl:3};
+      var m23=t.match(/(\d{2,3})\s*\/\s*(\d{2,3})/);
+      if(m23) return {v:m23[1].replace(/^0+/,""),lvl:2};
+      var mn=t.match(/(^|[^\d])(\d{2,3})([^\d]|$)/);
+      if(mn) return {v:mn[2].replace(/^0+/,""),lvl:1};
+      return null;
+    }
+    function recNum(cv,psm){
+      var opts={tessedit_char_whitelist:"0123456789/"};
+      if(psm) opts.tessedit_pageseg_mode=String(psm);
+      return window.Tesseract.recognize(cv,"eng",opts)
+        .then(function(r){ var tx=((r&&r.data&&r.data.text)||""); return {t:tx,c:parseNumCand(tx)}; })
+        .catch(function(){ return {t:"",c:null}; });
+    }
     if(numC){
-      numPromise=window.Tesseract.recognize(numC,"eng",{tessedit_char_whitelist:"0123456789/"})
-        .then(function(r){
-          var t=((r&&r.data&&r.data.text)||""); window._ocrRawNum=t;
-          // v2.52: kaartnummer is ALTIJD 3 cijfers / 3 cijfers (bijv. 088/084) -> eerst strikt
-          function allMatches(re){ var out=[], mm; var it=t.matchAll(re); for(var x of it){ out.push(x); } return out; }
-          var m3=allMatches(/(\d{3})\s*\/\s*(\d{3})/g);
-          if(m3.length) return (m3[m3.length-1][1]||"").replace(/^0+/,"");
-          // terugval 1: 2-3 cijfers / 2-3 cijfers
-          var m23=allMatches(/(\d{2,3})\s*\/\s*(\d{2,3})/g);
-          if(m23.length) return (m23[m23.length-1][1]||"").replace(/^0+/,"");
-          // terugval 2: los getal van 2-3 cijfers
-          var mn=t.match(/(^|[^\d])(\d{2,3})([^\d]|$)/); if(mn){ return mn[2].replace(/^0+/,""); }
-          return "";
-        }).catch(function(){ return ""; });
+      var jobs=[recNum(numC,7)];
+      if(numRaw) jobs.push(recNum(numRaw,7)); // grijze versie: soms ziet die de 8 beter dan zwart-wit
+      jobs.push(recNum(numC,6));
+      numPromise=Promise.all(jobs).then(function(rs){
+        window._ocrRawNum=rs.map(function(x){ return String(x.t||"").trim(); }).join(" | ");
+        var cands=rs.map(function(x){ return x.c; }).filter(Boolean);
+        if(!cands.length) return "";
+        var bestLvl=Math.max.apply(null,cands.map(function(c){ return c.lvl; }));
+        var top=cands.filter(function(c){ return c.lvl===bestLvl; });
+        var cnt={}, best=null, bc=0; // v2.55: de waarde die het vaakst gelezen wordt wint
+        top.forEach(function(c){ cnt[c.v]=(cnt[c.v]||0)+1; if(cnt[c.v]>bc){ bc=cnt[c.v]; best=c.v; } });
+        return best||top[0].v;
+      });
     } else { numPromise=Promise.resolve(""); }
     window.Tesseract.recognize(nameC,"eng",{tessedit_char_whitelist:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz "}).then(function(r){
       var raw=((r&&r.data&&r.data.text)||"").replace(/[^A-Za-z'\u2019\- ]/g," ").replace(/\s+/g," ").trim();
