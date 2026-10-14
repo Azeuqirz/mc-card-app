@@ -70,26 +70,37 @@
   .card { background:#0f172a; border-radius:16px; padding:16px; margin-bottom:14px; }
   input[type=file] { display:none; }
   button { font-family:inherit; }
-  /* v2.60: vaste icoonknoppen rechtsboven (refresh) en linksboven (terug) */
-  .topBtn { position:fixed; top:calc(10px + env(safe-area-inset-top)); width:40px; height:40px;
-    border-radius:12px; border:1px solid #1e293b; background:rgba(15,23,42,.85); color:#94a3b8;
-    display:flex; align-items:center; justify-content:center; z-index:99; cursor:pointer; }
+  /* v2.62: vaste bovenbalk op elke pagina: terug links, logo+naam midden, verversen rechts */
+  .topBar { position:fixed; top:0; left:0; right:0; z-index:99;
+    height:calc(56px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 10px 0;
+    display:flex; align-items:center; justify-content:space-between;
+    background:rgba(2,6,23,.95); border-bottom:1px solid #1e293b; }
+  .topBtn { width:38px; height:38px; border-radius:12px; border:1px solid #1e293b;
+    background:rgba(15,23,42,.85); color:#94a3b8; display:flex; align-items:center;
+    justify-content:center; cursor:pointer; flex:none; }
   .topBtn:active { transform:scale(.92); }
-  #backBtn { left:12px; }
-  #refreshBtn { right:12px; }
   .topBtn svg { width:20px; height:20px; }
+  .tbTitle { position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center;
+    gap:7px; pointer-events:none; }
+  .tbTitle svg { width:28px; height:28px; }
+  .tbTitle span { font-size:15px; font-weight:800; color:#f1f5f9; white-space:nowrap; }
+  /* v2.62: pagi­nainhoud begint netjes onder de bovenbalk */
+  .view { padding-top:calc(70px + env(safe-area-inset-top)); }
 </style>
 <script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script></head>
 <body>
 
-<!-- v2.60: vaste icoonknoppen op elke pagina -->
-<button class="topBtn" id="backBtn" style="display:none" onclick="goBack()" aria-label="Terug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
-<button class="topBtn" id="refreshBtn" onclick="location.reload()" aria-label="Verversen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+<!-- v2.62: vaste bovenbalk: terug links, logo+naam midden, verversen rechts -->
+<div class="topBar">
+  <button class="topBtn" id="backBtn" style="visibility:hidden" onclick="goBack()" aria-label="Terug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+  <div class="tbTitle"><svg viewBox="0 0 120 120"><rect x="14" y="8" width="78" height="104" rx="10" fill="#f59e0b" transform="rotate(8 53 60)"/><rect x="28" y="12" width="78" height="104" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="3"/><text x="67" y="72" text-anchor="middle" font-size="28" font-weight="800" fill="#facc15" font-family="system-ui">M&amp;C</text></svg><span>M&amp;C ai Card App</span></div>
+  <button class="topBtn" id="refreshBtn" onclick="location.reload()" aria-label="Verversen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+</div>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.61</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.62</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -176,7 +187,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.61";
+var VERSION="2.62";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -187,7 +198,7 @@ function showView(id){
   if(id!=="home" && id!==curView) viewStack.push(curView); // v2.60: paginageschiedenis voor terug-knop
   curView=id;
   document.getElementById(id).classList.add("active");
-  document.getElementById("backBtn").style.display=(id==="home")?"none":"flex"; // v2.60
+  document.getElementById("backBtn").style.visibility=(id==="home")?"hidden":"visible"; // v2.62
 }
 // v2.60: terug naar vorige pagina
 function goBack(){ showView(viewStack.pop()||"home"); }
