@@ -14,7 +14,7 @@
   body { margin:0; font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;
     background:#020617; color:#f1f5f9; max-width:480px; margin:0 auto;
     display:flex; flex-direction:column; }
-  .view { display:none; flex-direction:column; height:100%; padding:12px 16px 16px; }
+  .view { display:none; flex-direction:column; height:100%; padding:12px 16px 16px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .view.active { display:flex; }
   header { text-align:center; padding-top:8px; }
   header svg { width:64px; height:64px; }
@@ -36,6 +36,9 @@
   #cropWrap svg { position:absolute; inset:0; width:100%; height:100%; }
   #cropZoom { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; will-change:transform; transform-origin:0 0; }
   #scanActions { flex:none; }
+  .bottomBar { flex:none; transition:transform .25s ease; }
+  .bottomBar.peek { transform:translateY(72%); cursor:pointer; }
+  .bottomBar.peek .btn { pointer-events:none; }
   #resultScroll { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .score { display:flex; justify-content:space-between; align-items:center; font-size:14px; color:#cbd5e1; }
   .score b { font-size:20px; }
@@ -73,7 +76,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.48</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.49</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -107,7 +110,7 @@
 <div class="view" id="scan">
   <div id="cropWrap"><div id="cropZoom"><img id="cropImg"><svg id="cropSvg"></svg></div></div>
   <div id="scanNote"></div>
-  <div id="scanActions">
+  <div id="scanActions" class="bottomBar">
     <button class="btn dark" style="margin-top:8px" onclick="showView('home')">⬅ Terug</button>
     <button class="btn yellow" onclick="runAnalysis()">🎯 Centering analyseren</button>
     <label class="btn dark" style="margin-top:8px">🖼 Foto uit bibliotheek kiezen
@@ -122,7 +125,7 @@
 <!-- ===== RESULTAAT ===== -->
 <div class="view" id="resultView">
   <div id="resultScroll"></div>
-  <div style="display:flex;gap:8px">
+  <div class="bottomBar" data-scroll="resultScroll" style="display:flex;gap:8px">
     <button class="btn dark" style="margin-top:8px" onclick="showView('scan')">⬅ Foto</button>
     <button class="btn dark" style="margin-top:8px" onclick="renderHistory()">📚 Database</button>
     <button class="btn dark" style="margin-top:8px" onclick="showView('home')">🏠 Home</button>
@@ -132,26 +135,53 @@
 <!-- ===== SCAN-DETAIL ===== -->
 <div class="view" id="detailView">
   <div id="detailScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
-  <button class="btn dark" onclick="showView('historyView')">⬅ Terug naar database</button>
+  <div class="bottomBar" data-scroll="detailScroll"><button class="btn dark" onclick="showView('historyView')">⬅ Terug naar database</button></div>
 </div>
 
 <!-- ===== HISTORIE & RAPPORT ===== -->
 <div class="view" id="historyView">
   <div id="histScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <div class="bottomBar" data-scroll="histScroll">
   <button class="btn dark" onclick="exportCSV()">📄 Exporteren als CSV</button>
   <button class="btn dark" style="margin-top:8px" onclick="clearScans()">🗑 Alles wissen</button>
   <button class="btn dark" style="margin-top:8px" onclick="showView('home')">🏠 Naar beginscherm</button>
+  </div>
 </div>
 
 <script>
 "use strict";
-var VERSION="2.48";
+var VERSION="2.49";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 
 function showView(id){
   document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
+  document.querySelectorAll(".bottomBar.peek").forEach(function(b){ b.classList.remove("peek"); }); // v2.49: bij wisselen van pagina balken terug
   document.getElementById(id).classList.add("active");
 }
+// v2.49: knoppenbalk schuift grotendeels weg bij scrollen, tik op zichtbare deel = terug
+function initBars(){
+  document.querySelectorAll(".bottomBar").forEach(function(bar){
+    var scId=bar.getAttribute("data-scroll");
+    if(scId){
+      var sc=document.getElementById(scId), lastY=0;
+      if(sc){
+        sc.addEventListener("scroll", function(){
+          var y=sc.scrollTop;
+          if(y>lastY+4) bar.classList.add("peek");
+          else if(y<lastY-4) bar.classList.remove("peek");
+          lastY=y;
+        }, {passive:true});
+      }
+    }
+    bar.addEventListener("click", function(e){
+      if(bar.classList.contains("peek")){
+        e.stopPropagation(); e.preventDefault();
+        bar.classList.remove("peek");
+      }
+    }, true);
+  });
+}
+initBars();
 
 function bindFile(id, cb){
   var el=document.getElementById(id);
