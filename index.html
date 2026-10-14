@@ -70,7 +70,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.26</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.27</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -141,7 +141,7 @@
 
 <script>
 "use strict";
-var VERSION="2.26";
+var VERSION="2.27";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -899,39 +899,5 @@ function exportCSV(){
 }
 </script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="KtKTTyxIoFtDli9TQwL1tQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
-</body>
-</html>
-+s.cp+'</p>':''):'')
-    +'<div class="bar"><div style="width:'+(s.g*10)+'%;background:'+gradeColor(s.g)+'"></div></div>';
-  if(s.vs){
-    html+=s.vs;
-  } else if(s.b){
-    html+='<img src="'+s.b+'" alt="kaart" style="width:100%;border-radius:10px;margin:8px 0;display:block">';
-  } else {
-    html+='<div class="note">Weergave niet opgeslagen bij deze scan (gemaakt vóór v2.22) — scan opnieuw voor de visualisatie.</div>';
-  }
-  html+='<p class="n">Randdikte boven: '+s.tT+'px &nbsp;·&nbsp; onder: '+s.tB+'px</p>'
-    +'<p class="n">Randdikte links: '+s.tL+'px &nbsp;·&nbsp; rechts: '+s.tR+'px</p>'
-    +'<p class="n">Middenafwijking links-rechts: '+s.lr+'%</p>'
-    +'<p class="n">Middenafwijking boven-onder: '+s.tb+'%</p>';
-  if(s.g>=9.5) html+='<p class="n">Praktisch perfect gecenterd 🎉</p>';
-  else if(s.g>=9) html+='<p class="n">Goed gecenterd — scoort doorgaans 9-10 bij grading.</p>';
-  else if(s.g>=8) html+='<p class="n">Acceptabel gecenterd, kans op 8-9.</p>';
-  else html+='<p class="n">Zichtbaar off-center — beïnvloedt de grade flink.</p>';
-  html+='</div>';
-  el.innerHTML=html;
-  showView("detailView");
-}
-function exportCSV(){
-  var scans=getScans();
-  if(scans.length===0){ alert("Nog geen scans om te exporteren."); return; }
-  var csv="datum;tijd;score;afwijking_LR_%;afwijking_TB_%;rand_boven_px;rand_onder_px;rand_links_px;rand_rechts_px\n";
-  scans.forEach(function(s){
-    var dt=s.d.split(", ");
-    csv+=[dt[0]||s.d, dt[1]||"", s.g, s.lr, s.tb, s.tT, s.tB, s.tL, s.tR].join(";")+"\n";
-  });
-  window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
-}
-</script>
 </body>
 </html>
