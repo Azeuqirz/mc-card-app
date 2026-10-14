@@ -102,7 +102,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.74</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.75</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -177,7 +177,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.74";
+var VERSION="2.75";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -886,7 +886,8 @@ function analyzeCentering(){
   var grade=10;
   if(maxDev>6) grade=6; else if(maxDev>4) grade=7; else if(maxDev>2.5) grade=8; else if(maxDev>1.2) grade=9; else if(maxDev>0.4) grade=9.5;
   // v2.72: korte uitslag - 2 regels resultaat, oordeel komt eronder
-  var notes=[ "Randdikte: boven "+(Math.round(tTop*10)/10)+"px · onder "+(Math.round(tBot*10)/10)+"px · links "+(Math.round(tLeft*10)/10)+"px · rechts "+(Math.round(tRight*10)/10)+"px",
+  // v2.75: randdiktes in twee kolommen naast elkaar
+  var notes=[ '<span style="display:inline-block;width:49%">⬆ '+(Math.round(tTop*10)/10)+"px · ⬇ "+(Math.round(tBot*10)/10)+'px</span><span style="display:inline-block;width:49%">⬅ '+(Math.round(tLeft*10)/10)+"px · ➡ "+(Math.round(tRight*10)/10)+'px</span>',
           "Middenafwijking: LR "+(Math.round(devLR*100)/100)+"% "+(offX>0?"→":"←")+" · TB "+(Math.round(devTB*100)/100)+"% "+(offY>0?"↓":"↑") ];
   if(grade>=9.5) notes.push("Praktisch perfect gecenterd 🎉");
   else if(grade>=9) notes.push("Goed gecenterd — scoort doorgaans 9-10 bij grading.");
@@ -1390,8 +1391,9 @@ function runAnalysis(){
     }catch(e){ vis=res.vis; }
   } else { vis=res.vis; }
   res.vs=vis;
-  el.innerHTML='<div class="card"><div class="score"><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
-    +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
+  // v2.75: cijfer en balk op één regel
+  el.innerHTML='<div class="card"><div class="score"><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b>'
+    +'<div class="bar" style="flex:1;margin:0 0 0 10px"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div></div>'
     +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>'
     +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")
     // v2.68: Goed/Fout direct onder de analyse-tekst
