@@ -39,7 +39,8 @@
   #cropZoom { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; will-change:transform; transform-origin:0 0; }
   #scanActions { flex:none; }
   .bottomBar { flex:none; transition:transform .25s ease; }
-  .bottomBar.peek { transform:scale(.82); transform-origin:bottom center; opacity:.8; }
+  .bottomBar.peek { transform:translateY(72%); cursor:pointer; }
+  .bottomBar.peek .btn { pointer-events:none; }
   #resultScroll { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .score { display:flex; justify-content:space-between; align-items:center; font-size:14px; color:#cbd5e1; }
   .score b { font-size:20px; }
@@ -77,7 +78,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.59</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.58</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -151,7 +152,7 @@
 
 <script>
 "use strict";
-var VERSION="2.59";
+var VERSION="2.58";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -160,7 +161,7 @@ function showView(id){
   document.querySelectorAll(".bottomBar.peek").forEach(function(b){ b.classList.remove("peek"); }); // v2.49: bij wisselen van pagina balken terug
   document.getElementById(id).classList.add("active");
 }
-// v2.59: knoppenbalk wordt kleiner (niet meer verstopt) bij scrollen, tik erop = volledige grootte
+// v2.49: knoppenbalk schuift grotendeels weg bij scrollen, tik op zichtbare deel = terug
 function initBars(){
   document.querySelectorAll(".bottomBar").forEach(function(bar){
     var scId=bar.getAttribute("data-scroll");
