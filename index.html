@@ -73,7 +73,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.45</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.46</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -144,7 +144,7 @@
 
 <script>
 "use strict";
-var VERSION="2.45";
+var VERSION="2.46";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 
 function showView(id){
@@ -418,7 +418,7 @@ function autoDetect(){
     rect.edge=null;
     document.getElementById("scanNote").innerHTML='<div class="note">⚠️ Automatische detectie mislukt. Sleep de gele lijnhandvatten naar de kaartranden — boven/onder verticaal, links/rechts horizontaal — en tik op 🎯 analyseren.</div>';
   }
-  inner=null;
+  inner=null; window._nameBox=null;
   cropResetZoom();
   setupCornerDrag();
   drawCrop();
@@ -487,6 +487,12 @@ function drawCrop(){
     +'<circle data-inner="bottom" cx="'+ibB.x+'" cy="'+ibB.y+'" r="'+hrb+'" fill="#38bdf8" stroke="#0f172a" stroke-width="'+Math.max(2,hrb*0.22)+'"/>'
     +'<circle data-inner="left" cx="'+ibL.x+'" cy="'+ibL.y+'" r="'+hrb+'" fill="#38bdf8" stroke="#0f172a" stroke-width="'+Math.max(2,hrb*0.22)+'"/>'
     +'<circle data-inner="right" cx="'+ibR.x+'" cy="'+ibR.y+'" r="'+hrb+'" fill="#38bdf8" stroke="#0f172a" stroke-width="'+Math.max(2,hrb*0.22)+'"/>';
+  // v2.46: groen kader rond het gebied waar de kaartnaam gescand is
+  if(window._nameBox){
+    var nb=window._nameBox;
+    html+='<polygon points="'+nb[0][0]+','+nb[0][1]+' '+nb[1][0]+','+nb[1][1]+' '+nb[2][0]+','+nb[2][1]+' '+nb[3][0]+','+nb[3][1]+'" fill="none" stroke="#4ade80" stroke-width="'+sw+'" stroke-dasharray="'+(sw*1.5)+' '+sw+'" stroke-linejoin="round"/>'
+      +'<circle data-namebox cx="'+((nb[0][0]+nb[2][0])/2)+'" cy="'+((nb[0][1]+nb[2][1])/2)+'" r="'+hrb+'" fill="#4ade80" stroke="#0f172a" stroke-width="'+Math.max(2,hrb*0.22)+'"/>';
+  }
   svg.innerHTML=html;
 }
 // v2.39: lijnen slepen + pan + pinch-zoom in het scan-scherm
@@ -961,7 +967,11 @@ function autoCardLookup(){
   el.innerHTML='<div class="note">🤖 Kaartnaam automatisch lezen… (eerste keer laadt de OCR-engine, even geduld)</div>';
   var quad=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
   loadTesseract(function(){
-    var nameC=ocrRegion(quad,0.05,0.045,0.75,0.11,5);
+    // v2.46: naam-regio over de VOLLE bovenrand - de naam staat links OF rechts boven op de kaart
+    var NR=[0.03,0.035,0.94,0.09];
+    var nameC=ocrRegion(quad,NR[0],NR[1],NR[2],NR[3],5);
+    if(nameC){ try{ window._nameBox=[quadPt(NR[0],NR[1]),quadPt(NR[0]+NR[2],NR[1]),quadPt(NR[0]+NR[2],NR[1]+NR[3]),quadPt(NR[0],NR[1]+NR[3])]; }catch(e){ window._nameBox=null; } }
+    else window._nameBox=null;
     if(!nameC){ el.innerHTML='<div class="note">❌ Naamgebied niet leesbaar.</div>'+manualFieldHTML(""); return; }
     var numC=ocrRegion(quad,0.02,0.905,0.96,0.085,7);
     if(numC) numC=ocrBinarize(numC);
