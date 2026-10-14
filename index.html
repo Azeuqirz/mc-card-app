@@ -150,7 +150,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.12</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.13</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -309,7 +309,7 @@ function colRefresh(){
       .then(function(r){ return r.json(); })
       .then(function(j){
         var byId={}; (j.data||[]).forEach(function(cd){ byId[cd.id]=colPriceOf(cd); });
-        a.forEach(function(c){ if(byId[c.id]!==undefined){ c.price=byId[c.id]; c.priceT=Date.now(); } });
+        a.forEach(function(c){ if(byId[c.id]!==undefined && !c.manual){ c.price=byId[c.id]; c.priceT=Date.now(); } });
         colSave(a); batch(rest);
       })
       .catch(function(){ batch(rest); });
@@ -415,6 +415,8 @@ function colDetail(id){
   if(c.rarity) h+='<div class="n">Rarity: '+colEsc(c.rarity)+'</div>';
   h+='<div class="score" style="margin-top:8px"><span>Waarde</span><b>$ '+((c.price||0)*(c.qty||1)).toFixed(2)+'</b></div>';
   h+='<div class="n">(per stuk: $ '+(c.price||0).toFixed(2)+' - TCGPlayer marktprijs)</div>';
+  if(!(c.price>0)) h+='<div class="n" style="color:#fbbf24">Geen marktprijs in de database - voer zelf een waarde in.</div>';
+  h+='<button class="btn dark" style="margin-top:8px;font-size:13px" onclick="colSetPrice(\''+c.id+'\')">💶 Waarde zelf invoeren / aanpassen</button>';
   h+='<div style="display:flex;gap:8px;margin-top:10px">';
   h+='<button class="btn dark" style="flex:1;margin:0" onclick="colQty(\''+c.id+'\',1)">+1</button>';
   h+='<button class="btn dark" style="flex:1;margin:0" onclick="colQty(\''+c.id+'\',-1)">-1</button>';
@@ -427,11 +429,19 @@ function colDetail(id){
     .then(function(r){ return r.json(); })
     .then(function(j){
       var cd=j.data&&j.data[0]===id?j.data:j.data; if(!cd) return;
-      var b=colLoad(); b.forEach(function(x){ if(x.id===id){ var p=colPriceOf(cd); if(p){ x.price=p; x.priceT=Date.now(); } } });
+      var b=colLoad(); b.forEach(function(x){ if(x.id===id){ var p=colPriceOf(cd); if(p && !x.manual){ x.price=p; x.priceT=Date.now(); } } });
       colSave(b); colDetail(id);
     }).catch(function(){});
 }
 
+// v3.13: handmatige prijs-invoer als de database geen prijs heeft
+function colSetPrice(id){
+  var v=prompt("Voer de waarde per kaart in (USD, bijv. 12.50):");
+  if(v===null) return;
+  v=parseFloat(String(v).replace(",","."))||0;
+  var a=colLoad(); a.forEach(function(c){ if(c.id===id){ c.price=v; c.manual=(v>0); c.priceT=Date.now(); } });
+  colSave(a); colHistPoint(); colDetail(id);
+}
 function colQty(id,d){
   var a=colLoad();
   a.forEach(function(c){ if(c.id===id){ c.qty=Math.max(1,(c.qty||1)+d); } });
@@ -489,7 +499,7 @@ function colDel(id){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.12";
+var VERSION="3.13";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
