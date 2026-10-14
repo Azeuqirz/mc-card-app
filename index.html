@@ -76,7 +76,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.55</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.56</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -150,7 +150,7 @@
 
 <script>
 "use strict";
-var VERSION="2.55";
+var VERSION="2.56";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 
 function showView(id){
@@ -1014,6 +1014,21 @@ function autoCardLookup(){
     var numRaw=ocrRegion(quad,NUMR[0],NUMR[1],NUMR[2],NUMR[3],10); // v2.55: 3x zo scherp als voorheen
     try{ window._numBox=[quadPt(NUMR[0],NUMR[1]),quadPt(NUMR[0]+NUMR[2],NUMR[1]),quadPt(NUMR[0]+NUMR[2],NUMR[1]+NUMR[3]),quadPt(NUMR[0],NUMR[1]+NUMR[3])]; }catch(e){ window._numBox=null; }
     var numC=numRaw?ocrBinarize(numRaw):null;
+    // v2.56: contrast-variant - middentonen naar grijs pushen zodat het gat van een 8 zichtbaar blijft
+    var numCt=null;
+    if(numRaw){
+      try{
+        numCt=document.createElement("canvas"); numCt.width=numRaw.width; numCt.height=numRaw.height;
+        var cctx=numCt.getContext("2d"); cctx.drawImage(numRaw,0,0);
+        var cd=cctx.getImageData(0,0,numCt.width,numCt.height);
+        for(var ci=0;ci<cd.data.length;ci+=4){
+          var cl=Math.round(0.299*cd.data[ci]+0.587*cd.data[ci+1]+0.114*cd.data[ci+2]);
+          var nv=cl<70?0:(cl>180?255:Math.round(80+(cl-70)*(255-80)/(180-70)));
+          cd.data[ci]=nv; cd.data[ci+1]=nv; cd.data[ci+2]=nv;
+        }
+        cctx.putImageData(cd,0,0);
+      }catch(e){ numCt=null; }
+    }
     var numPromise;
     // v2.55: kandidaat parsen - geeft waarde + betrouwbaarheidsniveau (3=strikt 3/3, 2=2-3/2-3, 1=los getal)
     function parseNumCand(t){
@@ -1029,21 +1044,29 @@ function autoCardLookup(){
       var opts={tessedit_char_whitelist:"0123456789/"};
       if(psm) opts.tessedit_pageseg_mode=String(psm);
       return window.Tesseract.recognize(cv,"eng",opts)
-        .then(function(r){ var tx=((r&&r.data&&r.data.text)||""); return {t:tx,c:parseNumCand(tx)}; })
+        .then(function(r){ var tx=((r&&r.data&&r.data.text)||""); return {t:tx,c:parseNumCand(tx),conf:((r&&r.data&&r.data.confidence)||0)}; })
         .catch(function(){ return {t:"",c:null}; });
     }
     if(numC){
       var jobs=[recNum(numC,7)];
       if(numRaw) jobs.push(recNum(numRaw,7)); // grijze versie: soms ziet die de 8 beter dan zwart-wit
       jobs.push(recNum(numC,6));
+      if(numCt) jobs.push(recNum(numCt,7)); // v2.56: contrast-variant tegen dichtgelopen 8-en
       numPromise=Promise.all(jobs).then(function(rs){
         window._ocrRawNum=rs.map(function(x){ return String(x.t||"").trim(); }).join(" | ");
         var cands=rs.map(function(x){ return x.c; }).filter(Boolean);
         if(!cands.length) return "";
         var bestLvl=Math.max.apply(null,cands.map(function(c){ return c.lvl; }));
         var top=cands.filter(function(c){ return c.lvl===bestLvl; });
-        var cnt={}, best=null, bc=0; // v2.55: de waarde die het vaakst gelezen wordt wint
-        top.forEach(function(c){ cnt[c.v]=(cnt[c.v]||0)+1; if(cnt[c.v]>bc){ bc=cnt[c.v]; best=c.v; } });
+        var cnt={}, conf={}, best=null, bs=-1; // v2.56: telling + gemiddelde OCR-confidence
+        top.forEach(function(c){
+          if(cnt[c.v]===undefined){ cnt[c.v]=0; conf[c.v]=0; }
+          cnt[c.v]++;
+        });
+        rs.forEach(function(x,i){
+          if(x&&x.c&&cnt[x.c.v]!==undefined&&top.indexOf(x.c)>=0) conf[x.c.v]=(conf[x.c.v]||0)+(x.conf||0);
+        });
+        for(var vv in cnt){ var sc=cnt[vv]*1000+(conf[vv]||0); if(sc>bs){ bs=sc; best=vv; } }
         return best||top[0].v;
       });
     } else { numPromise=Promise.resolve(""); }
