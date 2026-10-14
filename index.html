@@ -88,6 +88,8 @@
       repeating-linear-gradient(to bottom, rgba(250,204,21,.28) 0 1px, transparent 1px 3.33%); /* v2.87: 30 verticale + 30 horizontale lijnen */
     pointer-events:none; }
   #camFrame::after { content:""; position:absolute; left:50%; top:50%; width:0; height:0; }
+  /* v2.91: alleen de rasterlijnen uitzetten - gele rand en dimming blijven */
+  #camFrame.nogrid::before { display:none; }
   #camBar { flex:none; display:flex; gap:8px; padding:10px; }
   /* v2.89: ronde schakelknopjes op het camerascherm (raster + lamp) */
   .camToggle { position:absolute; width:42px; height:42px; border-radius:50%;
@@ -130,7 +132,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.90</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.91</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -220,7 +222,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.90";
+var VERSION="2.91";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -298,7 +300,7 @@ function openCam(){
 var gridOn=true;
 function toggleGrid(){
   gridOn=!gridOn;
-  document.getElementById("camFrame").style.display=gridOn?"":"none";
+  document.getElementById("camFrame").classList.toggle("nogrid", !gridOn); // v2.91: alleen lijnen, rand blijft
   document.getElementById("gridBtn").classList.toggle("off", !gridOn);
 }
 // v2.89: lamp (flitslicht) aan/uit - via de torch-constraint van de camera
