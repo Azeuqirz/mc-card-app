@@ -70,7 +70,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.30</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.31</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -141,7 +141,7 @@
 
 <script>
 "use strict";
-var VERSION="2.30";
+var VERSION="2.31";
 var img=null, rect=null, dims=null;
 
 function showView(id){
@@ -617,8 +617,7 @@ function lookupCard(){
   var q=inp.value.trim();
   if(!q){ el.innerHTML='<div class="note">Typ eerst een kaartnaam.</div>'; return; }
   el.innerHTML='<div class="note">⏳ Zoeken naar "'+q+'"…</div>';
-  fetch("https://api.pokemontcg.io/v2/cards?q=name:"+encodeURIComponent(q)+"&pageSize=8")
-    .then(function(r){ return r.json(); })
+  tcgFetch("https://api.pokemontcg.io/v2/cards?q=name:"+encodeURIComponent(q)+"&pageSize=8")
     .then(function(j){
       var cards=(j&&j.data)||[];
       if(cards.length===0){
@@ -644,8 +643,8 @@ function lookupCard(){
       el.innerHTML=html;
       window._lookupCards=cards;
     })
-    .catch(function(){
-      el.innerHTML='<div class="note">❌ Zoeken mislukt — geen internetverbinding? Probeer het later opnieuw.</div>';
+    .catch(function(err){
+      el.innerHTML='<div class="note">❌ Zoeken mislukt: '+(err&&err.message?err.message:"onbekende fout")+'</div>';
     });
 }
 function pickCard(i){
@@ -752,14 +751,30 @@ function manualFieldHTML(name){
     +'</div>';
 }
 function diag(r){ if(!r) return "onbekend"; return r.fail ? "❌piek~"+r.medG : r.v.toFixed(1)+"px"; }
+function tcgFetch(url,retries){
+  retries=retries||0;
+  var headers={};
+  var key=null; try{ key=localStorage.getItem("tcgKey"); }catch(e){}
+  if(key) headers["X-API-Key"]=key;
+  return fetch(url,{headers:headers}).then(function(r){
+    if(!r.ok){
+      return r.text().catch(function(){ return ""; }).then(function(t){
+        if((r.status===429||r.status>=500)&&retries<2){
+          return new Promise(function(resolve){ setTimeout(function(){ resolve(tcgFetch(url,retries+1)); }, 1200); });
+        }
+        throw new Error("HTTP "+r.status+(t&&t.length?": "+t.slice(0,100):""));
+      });
+    }
+    return r.json();
+  });
+}
 function autoQuery(name,num){
   var el=document.getElementById("lookupResult"); if(!el) return;
   var w=(name.split(" ")[0]||name);
   var tries=['name:"'+name+'"',"name:"+w+"*","name:*"+w+"*"];
   function attempt(i){
     if(i>=tries.length){ el.innerHTML='<div class="note">❌ Geen kaart gevonden voor "'+name+'".</div>'+manualFieldHTML(name); return; }
-    fetch("https://api.pokemontcg.io/v2/cards?q="+encodeURIComponent(tries[i])+"&pageSize=12")
-      .then(function(r){ return r.json(); })
+    tcgFetch("https://api.pokemontcg.io/v2/cards?q="+encodeURIComponent(tries[i])+"&pageSize=12")
       .then(function(j){
         var cards=(j&&j.data)||[];
         if(cards.length===0){ attempt(i+1); return; }
@@ -781,7 +796,7 @@ function autoQuery(name,num){
         });
         el.innerHTML=html;
       })
-      .catch(function(){ el.innerHTML='<div class="note">❌ Zoeken mislukt — geen internetverbinding?</div>'+manualFieldHTML(name); });
+      .catch(function(err){ el.innerHTML='<div class="note">❌ Zoeken mislukt: '+(err&&err.message?err.message:"onbekende fout")+'<br><small style="color:#94a3b8">Zie pokemontcg.io voor een gratis API-sleutel bij herhaalde blokkades.</small></div>'+manualFieldHTML(name); });
   }
   attempt(0);
 }
