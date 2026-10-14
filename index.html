@@ -88,6 +88,14 @@
     pointer-events:none; }
   #camFrame::after { content:""; position:absolute; left:50%; top:50%; width:0; height:0; }
   #camBar { flex:none; display:flex; gap:8px; padding:10px; }
+  /* v2.89: ronde schakelknopjes op het camerascherm (raster + lamp) */
+  .camToggle { position:absolute; width:42px; height:42px; border-radius:50%;
+    border:2px solid rgba(250,204,21,.6); background:rgba(2,6,23,.55); color:#facc15;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5;
+    font-size:19px; line-height:1; }
+  .camToggle.off { color:#64748b; border-color:rgba(100,116,139,.6); }
+  #gridBtn { left:12px; top:12px; }
+  #torchBtn { right:12px; top:12px; }
   button { font-family:inherit; }
   /* v2.62: vaste bovenbalk op elke pagina: terug links, logo+naam midden, verversen rechts */
   .topBar { position:fixed; top:0; left:0; right:0; z-index:99;
@@ -121,7 +129,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.88</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.89</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -157,6 +165,8 @@
   <div id="camWrap">
     <video id="camVideo" autoplay playsinline muted></video>
     <div id="camFrame"></div>
+    <button class="camToggle" id="gridBtn" onclick="toggleGrid()" aria-label="Raster aan/uit">#</button>
+    <button class="camToggle" id="torchBtn" onclick="toggleTorch()" aria-label="Lamp aan/uit">🔦</button>
   </div>
   <div id="camBar">
     <button class="btn dark" style="flex:1;margin:0" onclick="closeCam()">⬅ Annuleren</button>
@@ -209,7 +219,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.88";
+var VERSION="2.89";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -282,6 +292,24 @@ function openCam(){
       v.srcObject=s; v.play().catch(function(){});
     })
     .catch(function(){ closeCam(true); }); // geen toegang: terug naar native fallback
+}
+// v2.89: raster aan/uit in het camera-kader
+var gridOn=true;
+function toggleGrid(){
+  gridOn=!gridOn;
+  document.getElementById("camFrame").style.display=gridOn?"":"none";
+  document.getElementById("gridBtn").classList.toggle("off", !gridOn);
+}
+// v2.89: lamp (flitslicht) aan/uit - via de torch-constraint van de camera
+var torchOn=false;
+function toggleTorch(){
+  torchOn=!torchOn;
+  var btn=document.getElementById("torchBtn");
+  btn.classList.toggle("off", !torchOn);
+  if(!camStream){ return; }
+  var track=camStream.getVideoTracks()[0];
+  if(!track||!track.applyConstraints){ return; }
+  track.applyConstraints({ advanced:[{ torch:torchOn }] }).catch(function(){ btn.classList.add("off"); torchOn=false; });
 }
 function closeCam(fallback){
   if(camStream){ camStream.getTracks().forEach(function(tr){ tr.stop(); }); camStream=null; }
