@@ -140,7 +140,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.05</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.06</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -232,7 +232,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.05";
+var VERSION="3.06";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -351,17 +351,17 @@ function bindCamStream(s){
   var p=v.play(); if(p&&p.catch) p.catch(function(){});
   applyCamZoom(); // v3.05: zoom op het nieuwe element zetten
   startCapMonitor(); // v2.94: auto-foto na 3s stabiliteit
-  // v2.99: blijft het beeld zwart? dan nog een keer proberen met simpele instellingen
+  // v3.06: blijft het beeld zwart -> DIRECT de native iPhone-camera openen.
+  // De in-app camera herstellen is op iOS niet betrouwbaar; de native camera werkt altijd.
   camRetry=setTimeout(function(){
     camRetry=null;
     if(curView!=="camView"||!camStream) return;
     var vv=document.getElementById("camVideo");
-    if(vv.videoWidth===0){
+    if(!vv||vv.videoWidth===0){
       killCam();
-      navigator.mediaDevices.getUserMedia({ video:true, audio:false })
-        .then(bindCamStream).catch(function(){ closeCam(true); });
+      closeCam(true); // native camera-fallback
     }
-  },2000);
+  },2500);
 }
 function openCam(){
   showView("camView");
@@ -420,7 +420,15 @@ function startCapMonitor(){
       tex+=Math.abs(d[ii]-d[ii+4])+Math.abs(d[ii+1]-d[ii+5])+Math.abs(d[ii+2]-d[ii+6]);
       tn++;
     } }
-    var cardInFrame=(tex/Math.max(1,tn))>7;
+    // v3.06: strenger - texture alleen is niet genoeg (houtnering tafel haalde
+    // de oude drempel). Nu ook kleurcontrast tussen kadergebied en de strook
+    // boven het kader: een kaart steekt duidelijk af tegen de ondergrond.
+    var texAvg=tex/Math.max(1,tn);
+    var inR=0,inG=0,inB=0,cn=0, outR=0,outG=0,outB=0,on2=0;
+    for(ti=fx0;ti<fx0+fw;ti+=2){ for(tj=0;tj<Math.max(1,fy0-2);tj+=2){ var oi=(tj*64+ti)*4; outR+=d[oi];outG+=d[oi+1];outB+=d[oi+2];on2++; } }
+    for(ti=fx0;ti<fx0+fw;ti+=2){ for(tj=fy0;tj<fy0+fh;tj+=2){ var ci=(tj*64+ti)*4; inR+=d[ci];inG+=d[ci+1];inB+=d[ci+2];cn++; } }
+    var cOut=on2>0&&cn>0 ? Math.abs(inR/cn-outR/on2)+Math.abs(inG/cn-outG/on2)+Math.abs(inB/cn-outB/on2) : 0;
+    var cardInFrame=texAvg>12 && cOut>40;
     if(!cardInFrame){
       capProg=0; setCapBar(0); capPrev=new Uint8Array(d);
       var zi=document.getElementById("zoomInd");
