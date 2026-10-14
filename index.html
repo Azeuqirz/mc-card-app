@@ -73,7 +73,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.39</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.40</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -144,8 +144,8 @@
 
 <script>
 "use strict";
-var VERSION="2.39";
-var img=null, rect=null, dims=null;
+var VERSION="2.40";
+var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 
 function showView(id){
   document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
@@ -409,7 +409,7 @@ function autoDetect(){
   if(q){
     rect={ tl:{x:q.quad[0][0],y:q.quad[0][1]}, tr:{x:q.quad[1][0],y:q.quad[1][1]}, br:{x:q.quad[2][0],y:q.quad[2][1]}, bl:{x:q.quad[3][0],y:q.quad[3][1]} };
     rect.edge=q.edge; rect.nPts=q.nPts;
-    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd ('+q.nPts+' randpunten). Kloppen de lijnen niet? Knijp met 2 vingers om te zoomen (dubbel-tik = 2,5x), sleep met 1 vinger om te pannen, en schuif de gele handvatten precies op de rand — daarna 🎯 analyseren.</div>';
+    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd ('+q.nPts+' randpunten). Kloppen de lijnen niet? Knijp met 2 vingers om te zoomen (dubbel-tik = 2,5x), sleep met 1 vinger om te pannen, en schuif de gele handvatten precies op de kaartrand en de blauwe handvatten op de binnenrand (kaderlijn) — daarna 🎯 analyseren.</div>';
   } else {
     // v2.37: detectie mislukt -> standaard-hoekjes die de gebruiker zelf op de kaart legt
     var m=0.14;
@@ -418,11 +418,18 @@ function autoDetect(){
     rect.edge=null;
     document.getElementById("scanNote").innerHTML='<div class="note">⚠️ Automatische detectie mislukt. Sleep de gele lijnhandvatten naar de kaartranden — boven/onder verticaal, links/rechts horizontaal — en tik op 🎯 analyseren.</div>';
   }
+  inner=null;
   cropResetZoom();
   setupCornerDrag();
   drawCrop();
 }
 
+function quadPt(u,v){
+  // v2.40: bilineair punt op de kaart (u,v in 0..1) - werkt ook bij een licht scheve quad
+  var TL=[rect.tl.x,rect.tl.y],TR=[rect.tr.x,rect.tr.y],BL=[rect.bl.x,rect.bl.y],BR=[rect.br.x,rect.br.y];
+  return [ TL[0]+(TR[0]-TL[0])*u+(BL[0]-TL[0])*v+(TL[0]-TR[0]-BL[0]+BR[0])*u*v,
+           TL[1]+(TR[1]-TL[1])*u+(BL[1]-TL[1])*v+(TL[1]-TR[1]-BL[1]+BR[1])*u*v ];
+}
 function drawCrop(){
   var svg=document.getElementById("cropSvg"); if(!svg) return;
   svg.setAttribute("viewBox","0 0 "+dims.w+" "+dims.h);
@@ -443,6 +450,21 @@ function drawCrop(){
     +'<circle data-edge="bottom" cx="'+midBot.x+'" cy="'+midBot.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ns-resize"/>'
     +'<circle data-edge="left" cx="'+midLeft.x+'" cy="'+midLeft.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ew-resize"/>'
     +'<circle data-edge="right" cx="'+midRight.x+'" cy="'+midRight.y+'" r="'+hr+'" fill="#facc15" stroke="#0f172a" stroke-width="'+Math.max(2,hr*0.22)+'" style="cursor:ew-resize"/>';
+  // v2.40: blauwe binnenrand (kaderlijn rond het artwork) - standaard 5%, zelf te verschuiven
+  if(!inner) inner={t:.05,b:.05,l:.05,r:.05,user:false};
+  var qTL=quadPt(inner.l,inner.t), qTR=quadPt(1-inner.r,inner.t),
+      qBR=quadPt(1-inner.r,1-inner.b), qBL=quadPt(inner.l,1-inner.b);
+  var ip=qTL[0]+','+qTL[1]+' '+qTR[0]+','+qTR[1]+' '+qBR[0]+','+qBR[1]+' '+qBL[0]+','+qBL[1];
+  html+='<polygon points="'+ip+'" fill="none" stroke="#38bdf8" stroke-width="'+sw+'" stroke-dasharray="'+(sw*2.5)+' '+sw+'" stroke-linejoin="round"/>';
+  var hrb=Math.max(9,dims.w*0.014);
+  var ibT={x:(qTL[0]+qTR[0])/2,y:(qTL[1]+qTR[1])/2},
+      ibB={x:(qBL[0]+qBR[0])/2,y:(qBL[1]+qBR[1])/2},
+      ibL={x:(qTL[0]+qBL[0])/2,y:(qTL[1]+qBL[1])/2},
+      ibR={x:(qTR[0]+qBR[0])/2,y:(qTR[1]+qBR[1])/2};
+  html+='<circle data-inner="top" cx="'+ibT.x+'" cy="'+ibT.y+'" r="'+hrb+'" fill="#38bdf8" stroke="#0f172a" stroke-width="'+Math.max(2,hrb*0.22)+'"/>'
+    +'<circle data-inner="bottom" cx="'+ibB.x+'" cy="'+ibB.y+'" r="'+hrb+'" fill="#38bdf8" stroke="#0f172a" stroke-width="'+Math.max(2,hrb*0.22)+'"/>'
+    +'<circle data-inner="left" cx="'+ibL.x+'" cy="'+ibL.y+'" r="'+hrb+'" fill="#38bdf8" stroke="#0f172a" stroke-width="'+Math.max(2,hrb*0.22)+'"/>'
+    +'<circle data-inner="right" cx="'+ibR.x+'" cy="'+ibR.y+'" r="'+hrb+'" fill="#38bdf8" stroke="#0f172a" stroke-width="'+Math.max(2,hrb*0.22)+'"/>';
   svg.innerHTML=html;
 }
 // v2.39: lijnen slepen + pan + pinch-zoom in het scan-scherm
@@ -475,6 +497,14 @@ function setupCornerDrag(){
       left:{x:(rect.tl.x+rect.bl.x)/2,y:(rect.tl.y+rect.bl.y)/2},
       right:{x:(rect.tr.x+rect.br.x)/2,y:(rect.tr.y+rect.br.y)/2}
     };
+    if(inner){
+      var qTL2=quadPt(inner.l,inner.t), qTR2=quadPt(1-inner.r,inner.t),
+          qBR2=quadPt(1-inner.r,1-inner.b), qBL2=quadPt(inner.l,1-inner.b);
+      mids.it={x:(qTL2[0]+qTR2[0])/2,y:(qTL2[1]+qTR2[1])/2};
+      mids.ib={x:(qBL2[0]+qBR2[0])/2,y:(qBL2[1]+qBR2[1])/2};
+      mids.il={x:(qTL2[0]+qBL2[0])/2,y:(qTL2[1]+qBL2[1])/2};
+      mids.ir={x:(qTR2[0]+qBR2[0])/2,y:(qTR2[1]+qBR2[1])/2};
+    }
     var best=null, bd=1e9;
     for(var nm in mids){
       var d=Math.hypot(mids[nm].x-p[0], mids[nm].y-p[1]);
@@ -486,7 +516,12 @@ function setupCornerDrag(){
     if(bd<=grabR){
       active=best;
       try{ svg.setPointerCapture(e.pointerId); }catch(err){}
-      document.getElementById("scanNote").innerHTML='<div class="note">✋ Lijn verschuiven — boven/onder gaan verticaal, links/rechts horizontaal. Tik daarna op 🎯 analyseren.</div>';
+      if(best.charAt(0)==="i"){
+        if(inner) inner.user=true;
+        document.getElementById("scanNote").innerHTML='<div class="note">✋ Blauwe binnenrand verschuiven — leg hem precies op de kaderlijn rond het artwork. Tik daarna op 🎯 analyseren.</div>';
+      } else {
+        document.getElementById("scanNote").innerHTML='<div class="note">✋ Lijn verschuiven — boven/onder gaan verticaal, links/rechts horizontaal. Tik daarna op 🎯 analyseren.</div>';
+      }
     } else {
       pts[e.pointerId]=[e.clientX,e.clientY];
       try{ svg.setPointerCapture(e.pointerId); }catch(err){}
@@ -522,6 +557,10 @@ function setupCornerDrag(){
       else if(active==="bottom"){ rect.bl.y=y; rect.br.y=y; }
       else if(active==="left"){ rect.tl.x=x; rect.bl.x=x; }
       else if(active==="right"){ rect.tr.x=x; rect.br.x=x; }
+      else if(active==="it"&&inner){ inner.t=Math.min(.45,Math.max(.005,(p[1]-rect.tl.y)/Math.max(1,rect.bl.y-rect.tl.y))); inner.user=true; }
+      else if(active==="ib"&&inner){ inner.b=Math.min(.45,Math.max(.005,(rect.bl.y-p[1])/Math.max(1,rect.bl.y-rect.tl.y))); inner.user=true; }
+      else if(active=="il"&&inner){ inner.l=Math.min(.45,Math.max(.005,(p[0]-rect.tl.x)/Math.max(1,rect.tr.x-rect.tl.x))); inner.user=true; }
+      else if(active==="ir"&&inner){ inner.r=Math.min(.45,Math.max(.005,(rect.tr.x-p[0])/Math.max(1,rect.tr.x-rect.tl.x))); inner.user=true; }
       rect.edge=null;
       drawCrop();
       return;
@@ -678,11 +717,17 @@ function analyzeCentering(){
     function guard(r){ return (r&&!r.fail&&r.method!=="dip")?repick(r,expMed):r; }
     rTop=guard(rTop); rBot=guard(rBot); rLeft=guard(rLeft); rRight=guard(rRight);
   }
-  if(!rTop||!rBot||!rLeft||!rRight||rTop.fail||rBot.fail||rLeft.fail||rRight.fail){
-    return { fail:true, tTop:rTop, tBot:rBot, tLeft:rLeft, tRight:rRight,
-      help:"piek-mediaan per zijde: top "+diag(rTop)+", onder "+diag(rBot)+", links "+diag(rLeft)+", rechts "+diag(rRight) };
+  if(inner&&inner.user){
+    // v2.40: gebruiker heeft de blauwe binnenrand zelf geplaatst -> die waarden gelden
+    var tTop=Math.min(H*0.45,inner.t*H), tBot=Math.min(H*0.45,inner.b*H),
+        tLeft=Math.min(W*0.45,inner.l*W), tRight=Math.min(W*0.45,inner.r*W);
+  } else {
+    if(!rTop||!rBot||!rLeft||!rRight||rTop.fail||rBot.fail||rLeft.fail||rRight.fail){
+      return { fail:true, tTop:rTop, tBot:rBot, tLeft:rLeft, tRight:rRight,
+        help:"piek-mediaan per zijde: top "+diag(rTop)+", onder "+diag(rBot)+", links "+diag(rLeft)+", rechts "+diag(rRight) };
+    }
+    var tTop=rTop.v, tBot=rBot.v, tLeft=rLeft.v, tRight=rRight.v;
   }
-  var tTop=rTop.v, tBot=rBot.v, tLeft=rLeft.v, tRight=rRight.v;
 
   var midTop=tTop/2, midBot=h-tBot/2, midLeft=tLeft/2, midRight=w-tRight/2;
   var cx=w/2, cy=h/2;
