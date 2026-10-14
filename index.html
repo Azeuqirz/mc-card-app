@@ -102,6 +102,11 @@
   .camToggle.off { color:#64748b; border-color:rgba(100,116,139,.6); }
   #gridBtn { left:12px; top:12px; }
   #torchBtn { right:12px; top:12px; }
+  /* v3.00: knijp-zoom op de camera + zoom-indicator */
+  #zoomInd { position:absolute; left:50%; top:16px; transform:translateX(-50%); z-index:5;
+    font-size:12px; font-weight:800; color:#facc15; background:rgba(2,6,23,.6);
+    border-radius:99px; padding:3px 10px; display:none; }
+  #camWrap { touch-action:none; }
   button { font-family:inherit; }
   /* v2.62: vaste bovenbalk op elke pagina: terug links, logo+naam midden, verversen rechts */
   .topBar { position:fixed; top:0; left:0; right:0; z-index:99;
@@ -135,7 +140,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v2.99</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.00</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -173,6 +178,7 @@
     <div id="camFrame"></div>
     <button class="camToggle" id="gridBtn" onclick="toggleGrid()" aria-label="Raster aan/uit">#</button>
     <button class="camToggle" id="torchBtn" onclick="toggleTorch()" aria-label="Lamp aan/uit">🔦</button>
+    <div id="zoomInd"></div>
   </div>
   <div id="capBar"><div id="capFill"></div></div>
   <div id="camBar">
@@ -226,7 +232,7 @@
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="2.99";
+var VERSION="3.00";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -289,6 +295,36 @@ bindFile("fileInputLib2", loadPhoto);
 
 // v2.78: eigen camera-scherm met geel kader in kaartverhouding (63:88)
 var camStream=null;
+// v3.00: knijp-zoom op het camerascherm (1x - 5x). Safari ondersteunt geen
+// hardware-zoom-constraint, dus digitaal: het beeld schaalt en de foto-opname
+// in captureCam snijdt exact de ingezoomde regio bij - de foto matcht het scherm.
+var camZoom=1, camPts={}, camLastDist=0;
+function applyCamZoom(){
+  var v=document.getElementById("camVideo");
+  if(v) v.style.transform="scale("+camZoom+")";
+  var zi=document.getElementById("zoomInd");
+  if(zi){ zi.textContent=camZoom.toFixed(1)+"x"; zi.style.display=camZoom>1.01?"":"none"; }
+}
+function setupCamPinch(){
+  var el=document.getElementById("camWrap"); if(!el) return;
+  el.addEventListener("pointerdown",function(e){ camPts[e.pointerId]=[e.clientX,e.clientY]; });
+  el.addEventListener("pointermove",function(e){
+    if(!(e.pointerId in camPts)) return;
+    camPts[e.pointerId]=[e.clientX,e.clientY];
+    var ids=Object.keys(camPts);
+    if(ids.length===2){
+      e.preventDefault();
+      var d=Math.hypot(camPts[ids[0]][0]-camPts[ids[1]][0], camPts[ids[0]][1]-camPts[ids[1]][1]);
+      if(camLastDist>0){ camZoom=Math.min(5,Math.max(1,camZoom*d/camLastDist)); applyCamZoom(); }
+      camLastDist=d;
+    }
+  });
+  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
+    el.addEventListener(ev,function(e){ delete camPts[e.pointerId]; if(Object.keys(camPts).length<2) camLastDist=0; });
+  });
+}
+setupCamPinch();
+
 // v2.99: camera volledig schoon herstarten + herpoging - iOS weigert soms een
 // tweede getUserMedia of start het element niet opnieuw (bleef zwart).
 var camRetry=null;
@@ -299,6 +335,7 @@ function killCam(){
   var v=document.getElementById("camVideo");
   if(v){ try{ v.pause(); }catch(e2){} try{ v.srcObject=null; }catch(e3){} }
   torchOn=false; var tb=document.getElementById("torchBtn"); if(tb) tb.classList.remove("off");
+  camZoom=1; camPts={}; camLastDist=0; applyCamZoom(); // v3.00: zoom resetten bij schoonmaken
 }
 function bindCamStream(s){
   camStream=s;
@@ -370,9 +407,9 @@ function startCapMonitor(){
       var diff=0, n=d.length/4;
       for(var i=0;i<d.length;i+=4){ diff+=Math.abs(d[i]-capPrev[i])+Math.abs(d[i+1]-capPrev[i+1]); }
       diff/=(n*510); // 0..1
-      if(diff<0.022){ capProg=Math.min(1,capProg+0.05); }        // stabiel: 20 ticks = 3s
-      else if(diff<0.05){ capProg=Math.max(0,capProg-0.09); }    // v2.95: lichte trilling: 3x sneller terug
-      else { capProg=Math.max(0,capProg-0.36); }                 // v2.95: veel beweging: 3x sneller terug
+      if(diff<0.04){ capProg=Math.min(1,capProg+0.05); }         // v3.00: milder - trillende hand telt nog als stabiel
+      else if(diff<0.09){ capProg=Math.max(0,capProg-0.04); }    // v3.00: lichte beweging: milder terug
+      else { capProg=Math.max(0,capProg-0.15); }                 // v3.00: veel beweging: geleidelijk terug i.p.v. direct spoelen
       setCapBar(capProg);
       if(capProg>=1){ stopCapMonitor(); captureCam(); return; }
     }
@@ -395,11 +432,13 @@ function captureCam(){
   var ww=wr.clientWidth, wh=wr.clientHeight;
   var scale=Math.max(ww/vw, wh/vh);      // zelfde bijsnijding als object-fit:cover
   var cw=ww/scale, ch=wh/scale;          // zichtbaar gebied in video-pixels
-  var sx=(vw-cw)/2, sy=(vh-ch)/2;
+  // v3.00: knijp-zoom meenemen in de bijsnijding - de foto matcht het ingezoomde beeld
+  var z=Math.max(1,camZoom), zw=cw/z, zh=ch/z;
+  var sx=(vw-zw)/2, sy=(vh-zh)/2;
   var c=document.createElement("canvas");
   c.width=Math.round(cw); c.height=Math.round(ch);
   var ctx=c.getContext("2d");
-  ctx.drawImage(v,sx,sy,cw,ch,0,0,c.width,c.height);
+  ctx.drawImage(v,sx,sy,zw,zh,0,0,c.width,c.height); // v3.00: ingezoomde regio
   killCam(); // v2.99: stream + element volledig opruimen na de foto
   loadPhoto(c.toDataURL("image/jpeg",0.92));
 }
