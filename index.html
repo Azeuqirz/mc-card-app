@@ -150,7 +150,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.10</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.11</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -210,8 +210,12 @@
     <div class="card">
       <input id="colQ" placeholder="Kaartnaam (bijv. Charizard)" onkeydown="if(event.key==='Enter')colSearch()"
         style="width:100%;padding:10px;border-radius:10px;border:1px solid #1e293b;background:#0f172a;color:#f1f5f9;font-size:15px;">
-      <button class="btn yellow" style="margin-top:8px" onclick="colSearch()">🔍 Zoeken op naam</button>
-      <p class="n" style="margin-top:8px">Zoek op kaartnaam, kies de juiste kaart (set + nummer) - naam, nummer, set, waarde en afbeelding worden automatisch opgehaald.</p>
+      <input id="colN" placeholder="Kaartnummer (optioneel, bijv. 25 of 025/189)" inputmode="text" onkeydown="if(event.key==='Enter')colSearch()"
+        style="width:100%;padding:10px;margin-top:8px;border-radius:10px;border:1px solid #1e293b;background:#0f172a;color:#f1f5f9;font-size:15px;">
+      <button class="btn yellow" style="margin-top:8px" onclick="colSearch()">🔍 Zoeken</button>
+      <p class="n" style="margin-top:8px">Zoek op kaartnaam (+ optioneel kaartnummer) - vul je het nummer in, dan zie je alleen kaarten met precies dat nummer. Vul je ook de set in, dan filter je nog specifieker.</p>
+      <input id="colS" placeholder="Set (optioneel, bijv. Base Set of Evolving Skies)" onkeydown="if(event.key==='Enter')colSearch()"
+        style="width:100%;padding:10px;margin-top:8px;border-radius:10px;border:1px solid #1e293b;background:#0f172a;color:#f1f5f9;font-size:13px;">
     </div>
     <div id="colResults"></div>
   </div>
@@ -359,19 +363,34 @@ function colShowResults(data, q){
   });
   box.innerHTML=h;
 }
+// v3.11: zoeken op naam + optioneel kaartnummer + optioneel set, met steeds ruimere fallbacks
 function colSearch(){
   var q=document.getElementById("colQ").value.trim();
+  var n=document.getElementById("colN").value.trim();
+  var st=document.getElementById("colS").value.trim();
   var box=document.getElementById("colResults");
   if(!q){ box.innerHTML=""; return; }
   box.innerHTML='<div class="n">Zoeken...</div>';
-  // poging 1: exacte naam tussen quotes; poging 2: gedeeltelijke naam zonder quotes
-  colFetch("https://api.pokemontcg.io/v2/cards?q="+encodeURIComponent('name:"'+q+'"')+"&pageSize=30")
-    .then(function(j){
-      var d=j.data||[];
-      if(d.length){ colShowResults(d, q); }
-      else { return colFetch("https://api.pokemontcg.io/v2/cards?q="+encodeURIComponent('name:'+q)+"&pageSize=30").then(function(j2){ colShowResults(j2.data||[], q); }); }
-    })
-    .catch(function(e){ box.innerHTML='<div class="note">Zoeken mislukt ('+colEsc(e&&e.message||'geen verbinding')+'). De kaarten-database reageert niet - tik opnieuw op Zoeken.</div>'; });
+  // steeds ruimere pogingen: eerst naam+nummer+set, dan valt per stap één filter weg
+  var tries=[];
+  if(n&&st) tries.push('name:"'+q+'" number:"'+n+'" set.name:"'+st+'"');
+  if(n) tries.push('name:"'+q+'" number:"'+n+'"');
+  if(st) tries.push('name:"'+q+'" set.name:"'+st+'"');
+  tries.push('name:"'+q+'"');
+  tries.push('name:'+q);
+  var i=0;
+  function next(){
+    if(i>=tries.length){ colShowResults([], q); return; }
+    var query=tries[i++];
+    colFetch("https://api.pokemontcg.io/v2/cards?q="+encodeURIComponent(query)+"&pageSize=30")
+      .then(function(j){
+        var d=j.data||[];
+        if(d.length){ colShowResults(d, q); }
+        else { next(); }
+      })
+      .catch(function(e){ box.innerHTML='<div class="note">Zoeken mislukt (' + colEsc(e&&e.message||'geen verbinding') + '). De kaarten-database reageert niet - tik opnieuw op Zoeken.</div>'; });
+  }
+  next();
 }
 
 function colAdd(i){
@@ -472,7 +491,7 @@ function colDel(id){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.10";
+var VERSION="3.11";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
