@@ -136,21 +136,55 @@
   .tbVer { font-size:10px; font-weight:700; color:#64748b; white-space:nowrap; }
   /* v2.62: pagi­nainhoud begint netjes onder de bovenbalk */
   .view { padding-top:calc(70px + env(safe-area-inset-top)); }
+  /* v3.15: zijmenu (hamburger) */
+  #menuWrap { position:fixed; inset:0; z-index:200; display:none; }
+  #menuWrap.open { display:block; }
+  #menuDim { position:absolute; inset:0; background:rgba(2,6,23,.65); }
+  #menuPanel { position:absolute; top:0; left:0; bottom:0; width:78%; max-width:300px;
+    background:#0f172a; border-right:1px solid #1e293b; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding:calc(70px + env(safe-area-inset-top)) 12px 16px; }
+  .mItem { display:block; width:100%; text-align:left; background:none; border:0;
+    color:#e2e8f0; font-size:15px; font-weight:700; padding:13px 10px; border-radius:10px;
+    cursor:pointer; margin-top:2px; }
+  .mItem:active { background:#1e293b; }
+  .mItem.danger { color:#f87171; }
+  .mHead { font-size:12px; font-weight:800; color:#facc15; padding:0 10px 6px;
+    border-bottom:1px solid #1e293b; margin-bottom:8px; }
+  /* v3.15: login-velden */
+  .logIn { width:100%; padding:10px; border-radius:10px; border:1px solid #1e293b;
+    background:#0f172a; color:#f1f5f9; font-size:15px; margin-top:8px; }
 </style>
-<script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script></head>
+<script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
 <body>
 
 <!-- v2.62: vaste bovenbalk: terug links, logo+naam midden, verversen rechts -->
 <div class="topBar">
-  <button class="topBtn" id="backBtn" style="visibility:hidden" onclick="goBack()" aria-label="Terug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+  <div style="display:flex;gap:6px;flex:none"><button class="topBtn" id="menuBtn" onclick="toggleMenu()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button><button class="topBtn" id="backBtn" style="visibility:hidden" onclick="goBack()" aria-label="Terug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button></div>
   <div class="tbTitle"><svg viewBox="0 0 120 120"><rect x="14" y="8" width="78" height="104" rx="10" fill="#f59e0b" transform="rotate(8 53 60)"/><rect x="28" y="12" width="78" height="104" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="3"/><text x="67" y="72" text-anchor="middle" font-size="28" font-weight="800" fill="#facc15" font-family="system-ui">M&amp;C</text></svg><span>M&amp;C ai Card App</span><span class="tbVer"></span></div>
   <!-- v2.84: ververs-knop verwijderd -->
+</div>
+
+<!-- ===== ZIJMENU (v3.15) ===== -->
+<div id="menuWrap" onclick="menuDimTap(event)">
+  <div id="menuDim"></div>
+  <div id="menuPanel">
+    <div class="mHead">☰ Menu</div>
+    <div id="menuAcc" class="n" style="padding:0 10px 4px;word-break:break-all"></div>
+    <button class="mItem" onclick="menuGoLogin()">🔐 Inloggen / account</button>
+    <button class="mItem" onclick="fbSyncNow()">☁️ Nu synchroniseren</button>
+    <button class="mItem danger" onclick="fbLogout()">⏏ Uitloggen</button>
+    <div id="menuSync" class="n" style="padding:8px 10px 0"></div>
+  </div>
 </div>
 
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.14</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.15</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -195,6 +229,21 @@
   <div id="camBar">
     <button class="btn dark" style="flex:1;margin:0" onclick="closeCam()">⬅ Annuleren</button>
     <button class="btn yellow" style="flex:1;margin:0" onclick="captureCam()">📷 Foto maken</button>
+  </div>
+</div>
+
+<!-- ===== LOGIN (v3.15) ===== -->
+<div class="view" id="loginView">
+  <div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch">
+    <div class="card">
+      <div style="font-size:17px;font-weight:800;margin-bottom:4px">🔐 Inloggen</div>
+      <p class="n">Log in om je collectie en gescande kaarten in de cloud (Firebase) op te slaan — en op elk apparaat weer te geven.</p>
+      <input id="logE" class="logIn" type="email" placeholder="E-mailadres" autocomplete="email">
+      <input id="logP" class="logIn" type="password" placeholder="Wachtwoord" autocomplete="current-password" onkeydown="if(event.key==='Enter')fbLogin()">
+      <button class="btn yellow" style="margin-top:10px" onclick="fbLogin()">🔐 Inloggen</button>
+      <button class="btn dark" onclick="fbRegister()">✨ Account aanmaken</button>
+      <div id="logMsg" class="n" style="margin-top:8px"></div>
+    </div>
   </div>
 </div>
 
@@ -454,6 +503,142 @@ function colDel(id){
 
 </script>
 
+<script>
+// ===== v3.15: MENU + LOGIN + FIREBASE CLOUD-SYNC =====
+// Vul hier je eigen Firebase-config in (console.firebase.google.com → Projectinstellingen → Je apps → Web-app).
+// Zolang dit null is, blijven login en sync uitgeschakeld en werkt de app zoals voorheen (alles lokaal).
+var FIREBASE_CONFIG=null;
+var FB={ ready:false, auth:null, db:null, user:null };
+
+function fbInit(){
+  if(FB.ready||!FIREBASE_CONFIG||typeof firebase==="undefined") return;
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    FB.auth=firebase.auth(); FB.db=firebase.firestore();
+    FB.ready=true;
+    FB.auth.onAuthStateChanged(function(u){
+      FB.user=u; fbUpdateMenu();
+      if(u) fbSync(false); // v3.07-keuze: verversen bij het openen van de app
+    });
+  }catch(e){}
+}
+document.addEventListener("DOMContentLoaded", fbInit);
+
+// ---- menu ----
+function toggleMenu(){ var w=document.getElementById("menuWrap"); w.classList.toggle("open"); fbUpdateMenu(); }
+function menuDimTap(ev){ if(ev.target.id==="menuDim"||ev.target.id==="menuWrap") toggleMenu(); }
+function menuGoLogin(){ toggleMenu(); showView("loginView"); fbRenderLogin(); }
+function fbUpdateMenu(){
+  var a=document.getElementById("menuAcc"); if(!a) return;
+  if(FB.user) a.textContent="Ingelogd als: "+FB.user.email;
+  else if(!FB.ready) a.textContent="Cloud wacht op koppeling — zie Firebase-instructies";
+  else a.textContent="Niet ingelogd";
+}
+function fbStatus(t){ var el=document.getElementById("menuSync"); if(el) el.textContent=t; }
+
+// ---- login ----
+function fbErr(e){
+  var c=(e&&e.code)||"";
+  if(c.indexOf("email-already-in-use")>=0) return "Dit e-mailadres heeft al een account.";
+  if(c.indexOf("invalid-email")>=0) return "Ongeldig e-mailadres.";
+  if(c.indexOf("wrong-password")>=0||c.indexOf("invalid-credential")>=0) return "Verkeerd wachtwoord.";
+  if(c.indexOf("user-not-found")>=0) return "Geen account met dit e-mailadres — tik op Account aanmaken.";
+  if(c.indexOf("weak-password")>=0) return "Wachtwoord te kort (minimaal 6 tekens).";
+  if(c.indexOf("network")>=0) return "Geen internetverbinding.";
+  if(c.indexOf("too-many-requests")>=0) return "Te veel pogingen — even wachten.";
+  if(c.indexOf("api-key-not-valid")>=0||c.indexOf("configuration-not-found")>=0) return "Firebase-instelling klopt nog niet (config).";
+  return "Mislukt: "+((e&&e.message)||"onbekende fout");
+}
+function fbRenderLogin(){
+  var m=document.getElementById("logMsg"); if(!m) return;
+  if(FB.user) m.textContent="Je bent al ingelogd als "+FB.user.email+" — alles wat je doet wordt automatisch gesynchroniseerd.";
+  else if(!FB.ready) m.textContent="Cloud is nog niet gekoppeld. Stel Firebase in om inloggen te activeren.";
+  else m.textContent="";
+}
+function fbLogin(){
+  var e=document.getElementById("logE").value.trim(), p=document.getElementById("logP").value;
+  var m=document.getElementById("logMsg");
+  if(!e||!p){ m.textContent="Vul e-mailadres én wachtwoord in."; return; }
+  if(!FB.ready){ m.textContent="Firebase is nog niet gekoppeld."; return; }
+  m.textContent="Inloggen...";
+  FB.auth.signInWithEmailAndPassword(e,p).then(function(){ fbRenderLogin(); }).catch(function(err){ m.textContent=fbErr(err); });
+}
+function fbRegister(){
+  var e=document.getElementById("logE").value.trim(), p=document.getElementById("logP").value;
+  var m=document.getElementById("logMsg");
+  if(!e||!p){ m.textContent="Vul e-mailadres én wachtwoord in."; return; }
+  if(!FB.ready){ m.textContent="Firebase is nog niet gekoppeld."; return; }
+  m.textContent="Account aanmaken...";
+  FB.auth.createUserWithEmailAndPassword(e,p).then(function(){ fbRenderLogin(); }).catch(function(err){ m.textContent=fbErr(err); });
+}
+function fbLogout(){
+  if(!FB.ready||!FB.user){ toggleMenu(); return; }
+  FB.auth.signOut().then(function(){ fbStatus(""); showView("home"); }).catch(function(){});
+}
+
+// ---- merge-hulpjes ----
+function fbMergeCards(local, remote){
+  var out=local.slice(), idx={};
+  local.forEach(function(c,i){ idx[c.id]=i; });
+  remote.forEach(function(rc){
+    if(idx[rc.id]===undefined){ out.push(rc); idx[rc.id]=out.length-1; return; }
+    var c=out[idx[rc.id]];
+    c.qty=Math.max(c.qty||1, rc.qty||1);
+    if(rc.manual&&!c.manual){ c.price=rc.price; c.manual=true; c.priceT=rc.priceT; }
+    else if((rc.priceT||0)>(c.priceT||0)&&rc.price>0&&!c.manual){ c.price=rc.price; c.priceT=rc.priceT; }
+  });
+  return out;
+}
+function fbMergeHist(a,b){
+  var seen={}, out=[];
+  a.concat(b).forEach(function(p){ if(!seen[p.t]){ seen[p.t]=1; out.push(p); } });
+  out.sort(function(x,y){ return x.t-y.t; });
+  return out.slice(-500);
+}
+function fbMergeScans(local, remote){
+  var out=local.slice(), have={};
+  local.forEach(function(s){ have[s.id]=1; });
+  remote.forEach(function(rs){ if(!have[rs.id]) out.push(rs); });
+  out.sort(function(a,b){ return (b.id||0)-(a.id||0); });
+  if(out.length>200) out=out.slice(0,200);
+  return out;
+}
+
+// ---- sync: pull → merge → push (collectie + waarde-historie + scans) ----
+function fbSyncNow(){ if(document.getElementById("menuWrap").classList.contains("open")){} fbSync(true); }
+function fbSync(interactive){
+  if(!FB.ready){ if(interactive) fbStatus("Firebase nog niet gekoppeld."); return; }
+  if(!FB.user){ if(interactive) fbStatus("Je bent niet ingelogd."); return; }
+  fbStatus("Synchroniseren...");
+  var uid=FB.user.uid, db=FB.db, udoc=db.collection("users").doc(uid);
+  Promise.all([ udoc.get(), udoc.collection("scans").get() ]).then(function(rs){
+    var d=rs[0].exists?rs[0].data():{};
+    var col=fbMergeCards(colLoad(), d.col||[]);
+    var hist=fbMergeHist(colLoadH(), d.hist||[]);
+    var rScans=[]; rs[1].forEach(function(doc){ rScans.push(doc.data()); });
+    var scans=fbMergeScans(getScans(), rScans);
+    colSave(col); colSaveH(hist);
+    try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e){}
+    // terugschrijven naar de cloud (scans zonder de grote foto-blobs)
+    var batch=db.batch();
+    batch.set(udoc, { col:col, hist:hist, syncT:Date.now() }, { merge:true });
+    var have={};
+    scans.forEach(function(sc){
+      have[sc.id]=1;
+      batch.set(udoc.collection("scans").doc(String(sc.id)), { id:sc.id, d:sc.d, g:sc.g,
+        lr:sc.lr, tb:sc.tb, tT:sc.tT, tB:sc.tB, tL:sc.tL, tR:sc.tR, t:sc.t||null,
+        cn:sc.cn||null, cs:sc.cs||null, cno:sc.cno||null, cp:sc.cp||null, ci:sc.ci||null });
+    });
+    rs[1].forEach(function(doc){ if(!have[doc.id]) batch.delete(doc.ref); });
+    return batch.commit().then(function(){
+      fbStatus("✓ Gesynchroniseerd — "+col.length+" kaarten, "+scans.length+" scans");
+      try{ if(document.getElementById("colScroll")&&document.getElementById("collectionView").classList.contains("active")) colRender(); }catch(e){}
+      try{ if(document.getElementById("histScroll")&&document.querySelector("#histScroll").closest(".view").classList.contains("active")) renderHistory(); }catch(e){}
+    });
+  }).catch(function(e){ fbStatus("Sync mislukt: "+((e&&e.message)||"")); });
+}
+</script>
+
 <!-- ===== SCAN ===== -->
 <div class="view" id="scan">
   <div id="cropWrap"><div id="cropZoom"><img id="cropImg"><svg id="cropSvg"></svg></div></div>
@@ -499,7 +684,7 @@ function colDel(id){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.14";
+var VERSION="3.15";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
