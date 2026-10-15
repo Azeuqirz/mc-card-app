@@ -223,7 +223,7 @@
   <div style="display:flex;gap:6px;flex:none"><button class="topBtn" id="menuBtn" onclick="toggleMenu()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button><button class="topBtn" id="backBtn" style="visibility:hidden" onclick="goBack()" aria-label="Terug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button></div>
   <div class="tbTitle"><svg viewBox="0 0 120 120"><rect x="14" y="8" width="78" height="104" rx="10" fill="#f59e0b" transform="rotate(8 53 60)"/><rect x="28" y="12" width="78" height="104" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="3"/><text x="67" y="72" text-anchor="middle" font-size="28" font-weight="800" fill="#facc15" font-family="system-ui">M&amp;C</text></svg><span>M&amp;C App</span><span class="tbVer"></span></div>
   <!-- v3.33: ververs-knop rechtsboven, alleen op het beginscherm -->
-  <button class="topBtn" id="refreshBtn" onclick="refreshHome()" style="position:absolute;right:10px;display:none" aria-label="Verversen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+  <button class="topBtn" id="refreshBtn" onclick="refreshBtnTap()" style="position:absolute;right:10px;display:none" aria-label="Verversen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
 </div>
 
 <!-- ===== ZIJMENU (v3.15) ===== -->
@@ -243,7 +243,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.46</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.47</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -680,8 +680,9 @@ function agJarigen(){
     var txt=e.txt||""; if(!/verjaardag|jarig/i.test(txt)) return;
     var s="", m;
     if(m=/verjaardag(?:\s+van)?\s+([^.,:!\-]+)/i.exec(txt)) s=m[1];
-    else if(m=/([^.,:!\-]+?)\s+(?:is\s+)?jarig/i.exec(txt)) s=m[1];
+    else if(m=/([^.,:!\-]+?)\s+(?:is\s+)?(?:vandaag\s+)?jarig/i.exec(txt)) s=m[1];
     else if(m=/([^.,:!\-]+?)\s+verjaardag/i.exec(txt)) s=m[1];
+    if(s) s=s.split(/\s+is\s+/i)[0]; // v3.47: "Chantal is vandaag jarig" -> alleen de naam
     if(s && s.trim()) s.trim().split(/\s*(?:,|&|\ben\b)\s*/i).forEach(function(n){
       n=String(n||"").trim();
       if(!n||n.length>20) return; // geen hele zinnen als naam
@@ -804,9 +805,9 @@ function agCloudPull(cb){ // v3.44: altijd verse server-data + gewijzigde afspra
     one().then(merge).catch(function(){ if(cb) cb(); });
   });
 }
-function agRefresh(){ // v3.44: ververs-knop op de agenda-pagina
-  var b=document.getElementById("agRefreshBtn");
-  if(b){ b.style.opacity=".4"; b.disabled=true; }
+function agRefresh(){ // v3.47: draait op de bovenbalk-knop
+  var b=document.getElementById("refreshBtn");
+  if(b){ b.style.opacity=".4"; b.style.transform="rotate(180deg)"; b.style.transition="transform .4s ease,opacity .2s"; }
   agCloudPull(function(){
     agRender();
     if(b){ b.style.opacity=""; b.disabled=false; }
@@ -1106,9 +1107,8 @@ function fbSync(interactive){
 <!-- ===== AGENDA (v3.32) ===== -->
 <div class="view" id="agendaView">
   <div id="agendaScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
-  <div class="bottomBar" data-scroll="agendaScroll" style="display:flex;gap:8px">
-    <button class="btn yellow" style="flex:1" onclick="agAdd()"><span class="bt"><span class="bi">➕</span>Afspraak toevoegen</span></button>
-    <button class="btn dark" id="agRefreshBtn" style="flex:none;padding:12px 16px" onclick="agRefresh()" aria-label="Verversen"><span class="bt"><span class="bi">🔄</span>Verversen</span></button>
+  <div class="bottomBar" data-scroll="agendaScroll">
+    <button class="btn yellow" onclick="agAdd()"><span class="bt"><span class="bi">➕</span>Afspraak toevoegen</span></button>
   </div>
 </div>
 
@@ -1157,7 +1157,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.46";
+var VERSION="3.47";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -1173,12 +1173,16 @@ function showView(id, noPush){
   curView=id;
   document.getElementById(id).classList.add("active");
   document.getElementById("backBtn").style.visibility=(id==="home")?"hidden":"visible"; // v2.62
-  var _rb=document.getElementById("refreshBtn"); if(_rb) _rb.style.display=(id==="home")?"":"none"; // v3.33: ververs-knop alleen op beginscherm
+  var _rb=document.getElementById("refreshBtn"); if(_rb) _rb.style.display=(id==="home"||id==="agendaView")?"":"none"; // v3.47: ook op de agenda-pagina
 }
 // v2.60: terug naar vorige pagina
 function goBack(){ showView(viewStack.pop()||"home", true); } // v2.70: pop zonder opnieuw te pushen
 // v3.33: beginscherm verversen (herlaadt de app + haalt alles opnieuw op)
 function refreshHome(){ try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){} location.replace(location.pathname+'?v='+VERSION+'&r='+Date.now()); }
+function refreshBtnTap(){ // v3.47: bovenbalk-verversknop: agenda of beginscherm
+  if(document.getElementById("agendaView") && document.getElementById("agendaView").classList.contains("active")) agRefresh();
+  else refreshHome();
+}
 // v2.84: refreshPage verwijderd samen met de ververs-knop
 // v2.49: knoppenbalk schuift grotendeels weg bij scrollen, tik op zichtbare deel = terug
 function initBars(){
