@@ -258,7 +258,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.79</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.80</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1272,7 +1272,17 @@ function dsRender(){
         h+='</div>';
       }
     }
-    else if(r){ h+='<div class="n">Geen product onder '+dsEuro(e.max)+(r.lowest!=null?' - laagste gevonden: '+dsEuro(r.lowest):'')+'.</div>'; }
+    else if(r){ h+='<div class="n">Geen product onder '+dsEuro(e.max)+(r.lowest!=null?' - laagste gevonden: '+dsEuro(r.lowest):'')+'.</div>';
+      if(r.hidArr&&r.hidArr.length){ // v3.80: toch tegels tonen als er weggefilterde produkten onder de max zijn
+        h+='<div class="n" style="color:#94a3b8;margin-top:4px">Overige '+r.hidArr.length+' product(en) onder je max - de naam lijkt niet op je zoekterm, maar misschien interessant:</div>';
+        h+='<div class="dsGrid">';
+        r.hidArr.slice(0,60).forEach(function(p){
+          h+='<div class="dsTile"><a href="'+colEsc(p.u)+'" target="_blank" rel="noopener">';
+          h+= p.i ? '<img src="'+colEsc(p.i)+'" loading="lazy">' : '';
+          h+='<span>'+colEsc(p.n)+'</span><b>'+dsEuro(p.p)+'</b></a></div>';
+        });
+        h+='</div>';
+      } }
     h+='<div style="display:flex;gap:6px;margin-top:8px">';
     h+='<button class="btn yellow" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="dsScan('+e.id+')">Scannen</button>';
     h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="dsEdit('+e.id+')">Wijzigen</button>';
@@ -1448,7 +1458,7 @@ function fbMergeScans(local, remote){
 }
 
 // ---- sync: pull → merge → push (collectie + waarde-historie + scans) ----
-function fbSyncNow(){ if(document.getElementById("menuWrap").classList.contains("open")){} fbSync(true); }
+function fbSyncNow(){ if(document.getElementById("menuWrap").classList.contains("open")) toggleMenu(); fbSync(true); } // v3.80: menu netjes dicht na synchroniseren
 function fbSync(interactive){
   if(!FB.ready){ if(interactive) fbStatus("Firebase nog niet gekoppeld."); return; }
   if(!FB.user){ if(interactive) fbStatus("Je bent niet ingelogd."); return; }
@@ -1560,7 +1570,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.79";
+var VERSION="3.80";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
