@@ -223,7 +223,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.38</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.39</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -626,6 +626,8 @@ var AG_KEY="mcAgenda", agMonth=null; // agMonth = Date van de 1e vd maand
 function agLoad(){ try{ return JSON.parse(localStorage.getItem(AG_KEY))||[]; }catch(e){ return []; } }
 function agSave(a){ localStorage.setItem(AG_KEY, JSON.stringify(a)); }
 function cap1(s){ s=String(s||""); return s.charAt(0).toUpperCase()+s.slice(1); } // v3.38: afspraak begint altijd met een hoofdletter
+function agTm(e){ return (e&&typeof e.tm==="number")?e.tm:540; } // v3.39: tijd in minuten, bestaande afspraken standaard 09:00
+function agFmt(tm){ var hh=Math.floor(tm/60), mm=tm%60; return (hh<10?"0":"")+hh+":"+(mm<10?"0":"")+mm; }
 function agName(by){ return by==="chantalbelshofts@gmail.com" ? "Chantal" : "Jij"; }
 function agColor(by){ return by==="chantalbelshofts@gmail.com" ? "#ec4899" : "#facc15"; }
 function menuGoAgenda(){ toggleMenu(); renderAgenda(); }
@@ -664,18 +666,57 @@ function agAdd(preTs){
     if(!dt){ alert("Datum niet begrepen - gebruik DD-MM-YYYY, bijv. 21-10-2026."); return; }
   }
   var dtx=new Date(dt);
-  var txt=prompt("Afspraak op "+dtx.getDate()+"-"+(dtx.getMonth()+1)+"-"+dtx.getFullYear()+":");
+  var tm=null; // v3.39: tijd erbij vragen
+  var t=prompt("Hoe laat? (HH:MM, bijv. 14:30 - leeg laten = 09:00):");
+  if(t===null) return;
+  t=String(t).trim();
+  if(t){ var tp=t.split(/[:.]/);
+    if(tp.length===2){ var th=parseInt(tp[0],10), tmm=parseInt(tp[1],10);
+      if(th>=0&&th<=23&&tmm>=0&&tmm<=59) tm=th*60+tmm; }
+    if(tm===null){ alert("Tijd niet begrepen - gebruik HH:MM, bijv. 14:30."); return; } }
+  var txt=prompt("Afspraak op "+dtx.getDate()+"-"+(dtx.getMonth()+1)+"-"+dtx.getFullYear()+" om "+agFmt(tm===null?540:tm)+":");
   if(txt===null) return;
   txt=String(txt).trim();
   if(!txt) return;
-  txt=txt.charAt(0).toUpperCase()+txt.slice(1); // v3.35: afspraak begint altijd met een hoofdletter
+  txt=cap1(txt); // v3.35: afspraak begint altijd met een hoofdletter
   var a=agLoad();
-  a.push({ id:Date.now(), d:dt, txt:txt, by:String(FB.user.email).toLowerCase() });
-  a.sort(function(x,y){ return x.d-y.d; });
+  a.push({ id:Date.now(), d:dt, tm:(tm===null?540:tm), txt:txt, by:String(FB.user.email).toLowerCase() });
+  a.sort(function(x,y){ return x.d-y.d || agTm(x)-agTm(y); }); // v3.39: ook op tijd sorteren
   agSave(a); agCloudPush(); agRender();
 }
 function agDel(id){
   var a=agLoad().filter(function(e){ return e.id!==id; });
+  agSave(a); agCloudPush(); agRender();
+}
+// v3.39: afspraak wijzigen (datum/tijd/tekst) - onthoudt wie de wijziging deed
+function agEdit(id){
+  if(!FB.user){ showView("loginView"); return; }
+  var a=agLoad(), e=null;
+  a.forEach(function(x){ if(x.id===id) e=x; });
+  if(!e) return;
+  var d2=new Date(e.d), pad=function(n){ return (n<10?"0":"")+n; };
+  var d=prompt("Datum (DD-MM-YYYY):", pad(d2.getDate())+"-"+pad(d2.getMonth()+1)+"-"+d2.getFullYear());
+  if(d===null) return;
+  var p=String(d).trim().split(/[-/.]/); var dt=null;
+  if(p.length===3){ var dd=parseInt(p[0],10), mm=parseInt(p[1],10), yy=parseInt(p[2],10);
+    if(yy<100) yy+=2000;
+    if(dd>=1&&dd<=31&&mm>=1&&mm<=12&&yy>2000) dt=new Date(yy,mm-1,dd).getTime(); }
+  if(!dt){ alert("Datum niet begrepen - gebruik DD-MM-YYYY."); return; }
+  var t=prompt("Tijd (HH:MM):", agFmt(agTm(e)));
+  if(t===null) return;
+  var tm=null;
+  t=String(t).trim();
+  if(t){ var tp=t.split(/[:.]/);
+    if(tp.length===2){ var th=parseInt(tp[0],10), tmm=parseInt(tp[1],10);
+      if(th>=0&&th<=23&&tmm>=0&&tmm<=59) tm=th*60+tmm; }
+    if(tm===null){ alert("Tijd niet begrepen - gebruik HH:MM."); return; } }
+  var txt=prompt("Afspraak:", e.txt);
+  if(txt===null) return;
+  txt=String(txt).trim();
+  if(!txt) return;
+  e.d=dt; e.tm=(tm===null?agTm(e):tm); e.txt=cap1(txt);
+  e.modBy=String(FB.user.email).toLowerCase(); // v3.39: laatste wijziging is van deze persoon
+  a.sort(function(x,y){ return x.d-y.d || agTm(x)-agTm(y); });
   agSave(a); agCloudPush(); agRender();
 }
 function agRender(){
@@ -717,9 +758,13 @@ function agRender(){
     mA.forEach(function(e){
       var d2=new Date(e.d);
       h+='<div class="card" style="border:2px solid '+agColor(e.by)+';margin-bottom:6px;padding:10px">';
-      h+='<div style="font-size:13px;font-weight:800;color:'+agColor(e.by)+'">'+agName(e.by)+' '+d2.getDate()+'-'+(d2.getMonth()+1)+'-'+d2.getFullYear()+'</div>';
-      h+='<div style="font-size:14px;margin-top:2px">'+colEsc(cap1(e.txt))+'</div>'; // v3.38
-      h+='<button class="btn dark" style="margin-top:6px;font-size:12px;padding:8px;color:#f87171" onclick="agDel('+e.id+')"><span class="bt"><span class="bi">🗑</span>Verwijderen</span></button>';
+      h+='<div style="font-size:13px;font-weight:800;color:'+agColor(e.by)+'">'+agName(e.by)+' '+d2.getDate()+'-'+(d2.getMonth()+1)+'-'+d2.getFullYear()+' · '+agFmt(agTm(e))+'</div>'; // v3.39: tijd erbij
+      h+='<div style="font-size:14px;margin-top:2px">'+colEsc(cap1(e.txt))+'</div>';
+      if(e.modBy) h+='<div style="font-size:11px;color:#94a3b8;margin-top:3px">✏️ Gewijzigd door '+agName(e.modBy)+'</div>'; // v3.39: wie heeft gewijzigd
+      h+='<div style="display:flex;gap:6px;margin-top:6px">';
+      h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="agEdit('+e.id+')"><span class="bt"><span class="bi">✏️</span>Wijzigen</span></button>';
+      h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px;color:#f87171" onclick="agDel('+e.id+')"><span class="bt"><span class="bi">🗑</span>Verwijderen</span></button>';
+      h+='</div>';
       h+='</div>';
     });
   }
@@ -731,7 +776,7 @@ function agDay(k){
   if(!evs.length){ agAdd(k); return; } // v3.35: datum staat dan al vast
   var MA=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
   var d2=new Date(k), msg="";
-  evs.forEach(function(e){ msg+=agName(e.by)+": "+cap1(e.txt)+"\n"; }); // v3.38
+  evs.forEach(function(e){ msg+=agName(e.by)+" "+agFmt(agTm(e))+": "+cap1(e.txt)+"\n"; }); // v3.39: tijd erbij
   alert(d2.getDate()+" "+MA[d2.getMonth()]+":\n\n"+msg);
 }
 
@@ -944,7 +989,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.38";
+var VERSION="3.39";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
