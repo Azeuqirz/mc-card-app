@@ -238,6 +238,7 @@
   body.pink .dsDupBox { border-color:rgba(236,72,153,.5); }
   body.pink .dsDupRow b { color:#f472b6 !important; }
   body.pink .dsDupBox .btn.yellow { background:#ec4899; color:#fff; }
+  body.pink .dsTile button[onclick*="dsLinkPick"] { color:#f472b6 !important; border-color:rgba(236,72,153,.4) !important; }
 </style>
 <script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -274,7 +275,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.93</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.94</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -881,6 +882,7 @@ function agCloudPull(cb){ // v3.44: altijd verse server-data + gewijzigde afspra
       try{ var rs=doc.exists?doc.data().samen:null; if(rs&&rs.items){ var ls=smLoad(); if(Number(rs.e||0)>Number(ls.e||0)) smSaveLocal(rs); } }catch(e2){} // v3.49
       try{ var rd=doc.exists?doc.data().deals:null; if(rd&&rd.items){ var ld=dsLoad(); if(Number(rd.e||0)>Number(ld.e||0)) dsSaveLocal(rd); } }catch(e3){} // v3.56
       try{ var rh=doc.exists?doc.data().dsHist:null; if(rh&&rh.m){ var lh=dsHistLoad(), chH=false, tgK=false; for(var hk in rh.m){ var reH=rh.m[hk], leH=lh.m[hk], rT=(reH&&reH.pts&&reH.pts.length)?reH.pts[reH.pts.length-1].d:0, lT=(leH&&leH.pts&&leH.pts.length)?leH.pts[leH.pts.length-1].d:0; if(!leH||rT>lT){ if(reH&&leH&&leH.tg>0&&!(reH.tg>0)){ reH.tg=leH.tg; tgK=true; } lh.m[hk]=reH; chH=true; } else if(reH&&leH&&reH.tg>0&&!(leH.tg>0)){ leH.tg=reH.tg; chH=true; } } if(!lh.e||Number(rh.e||0)>lh.e) lh.e=Number(rh.e||0); if(chH){ dsHistSaveLocal(lh); if(tgK) try{ dsHistPush(); }catch(e5){} } } }catch(e4){} // v3.81: prijshistorie + doelprijzen van de ander meenemen
+      try{ var rlk=doc.exists?doc.data().dsLinks:null; if(rlk&&rlk.p){ var llk=dsLinkLoad(), chL=false, sp2={}; (llk.p||[]).forEach(function(pr){ sp2[pr[0]+"|"+pr[1]]=1; sp2[pr[1]+"|"+pr[0]]=1; }); (rlk.p||[]).forEach(function(pr){ if(pr&&pr.length===2&&!sp2[pr[0]+"|"+pr[1]]){ llk.p.push(pr); sp2[pr[0]+"|"+pr[1]]=1; sp2[pr[1]+"|"+pr[0]]=1; chL=true; } }); var ss2={}; (llk.s||[]).forEach(function(pr){ ss2[pr[0]+"|"+pr[1]]=1; ss2[pr[1]+"|"+pr[0]]=1; }); (rlk.s||[]).forEach(function(pr){ if(pr&&pr.length===2&&!ss2[pr[0]+"|"+pr[1]]){ llk.s=llk.s||[]; llk.s.push(pr); ss2[pr[0]+"|"+pr[1]]=1; ss2[pr[1]+"|"+pr[0]]=1; chL=true; } }); if(chL||Number(rlk.e||0)>Number(llk.e||0)){ llk.e=Math.max(Number(llk.e||0),Number(rlk.e||0)); dsLinkSaveLocal(llk); if(chL){ try{ if(document.getElementById("dealView").classList.contains("active")) dsRender(); }catch(e8){} } } } }catch(e6){} // v3.94: handmatige 🔗-koppelingen van de ander meenemen
       agSave(loc);
     }catch(e){}
     if(cb) cb();
@@ -1289,7 +1291,50 @@ setInterval(function(){ try{ if(FB.user&&document.visibilityState==="visible"&&d
 // ===== v3.92: ZELFDE PRODUCT BIJ MEERDERE WINKELS =====
 var dsDupList=[];
 function dsNormN(n){ return String(n||"").toLowerCase().replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim(); }
-function dsDupes(a){ // producten die de scanner bij 2+ van je winkels vond
+// ===== v3.94: HANDMATIG PRODUCTEN KOPPELEN (🔗) =====
+var DS_L_KEY="mcDsLinks", dsLinkSel=null; // dsLinkSel = product dat je hebt aangeklikt om te koppelen
+function dsLinkLoad(){ try{ var l=JSON.parse(localStorage.getItem(DS_L_KEY)); if(l&&l.p) return l; }catch(e){} return {e:0,p:[],s:[]}; }
+function dsLinkSaveLocal(l){ try{ localStorage.setItem(DS_L_KEY, JSON.stringify(l)); }catch(e){} }
+function dsLinkPush(){ if(!FB.ready||!FB.user) return; try{ FB.db.collection("shared").doc("mccard").set({ dsLinks:dsLinkLoad(), dlkT:Date.now() },{ merge:true }).catch(function(){}); }catch(e){} }
+function dsLinkSave(l){ l.e=Date.now(); dsLinkSaveLocal(l); dsLinkPush(); }
+function dsNote(t){ var b=document.getElementById("pushBanner"); if(!b) return; b.textContent=t; b.classList.add("show"); try{ if(navigator.vibrate) navigator.vibrate(40); }catch(e2){} clearTimeout(window._pbT); window._pbT=setTimeout(function(){ b.classList.remove("show"); },4200); }
+function dsGKeys(g){ var s={}; g.items.forEach(function(it){ s[it.k]=1; }); return s; }
+function dsLinkPick(ix){ // tik 1e product -> tik 2e product van een andere winkel = gekoppeld
+  var g=dsDupList[ix]; if(!g) return;
+  var k=g.items[0].k;
+  if(dsLinkSel&&dsLinkSel.k===k){ dsLinkSel=null; dsNote("Koppelen geannuleerd."); dsRender(); return; }
+  if(dsLinkSel){
+    var L=dsLinkLoad(), has=false;
+    (L.p||[]).forEach(function(pr){ if((pr[0]===dsLinkSel.k&&pr[1]===k)||(pr[0]===k&&pr[1]===dsLinkSel.k)) has=true; });
+    if(!has) L.p.push([dsLinkSel.k,k]);
+    var aS=dsGKeys(dsLinkSel.g), bS=dsGKeys(g); // eerdere "niet hetzelfde product" tussen deze 2 weer ongedaan maken
+    L.s=(L.s||[]).filter(function(pr){ return !((aS[pr[0]]&&bS[pr[1]])||(aS[pr[1]]&&bS[pr[0]])||(bS[pr[0]]&&aS[pr[1]])||(bS[pr[1]]&&aS[pr[0]])); });
+    dsLinkSave(L); dsLinkSel=null;
+    dsNote("🔗 Gekoppeld! Ze staan nu samen in één vergelijk-tegel.");
+    dsRender(); return;
+  }
+  dsLinkSel={k:k,g:g};
+  dsNote("🔗 Gekozen: "+g.n+". Tik nu op 🔗 bij hetzelfde product uit de andere winkel.");
+  dsRender();
+}
+function dsLinkUnlink(ix){ // koppeling ongedaan maken vanuit het vergelijk-scherm
+  var g=dsDupList[ix]; if(!g) return;
+  var L=dsLinkLoad(), ks=dsGKeys(g), keep=[];
+  (L.p||[]).forEach(function(pr){ if(ks[pr[0]]&&ks[pr[1]]) return; keep.push(pr); });
+  if(keep.length===L.p.length){ return false; }
+  L.p=keep; dsLinkSave(L);
+  dsNote("➗ Producten zijn losgekoppeld.");
+  return true;
+}
+function dsLinkNoMatch(ix){ // automatisch bij elkaar gezet maar toch niet hetzelfde product
+  var g=dsDupList[ix]; if(!g) return;
+  var L=dsLinkLoad();
+  for(var i=1;i<g.items.length;i++){ L.s=(L.s||[]).concat([[g.items[0].k,g.items[i].k]]); }
+  dsLinkSave(L);
+  dsNote("➗ Uit elkaar gehaald. Zijn ze toch hetzelfde? Koppel ze dan met 🔗.");
+}
+function dsDupes(a){ // v3.94: automatisch op naam + handmatige 🔗-koppelingen en loskoppelingen
+  var L=dsLinkLoad();
   var map={}, grp=[];
   a.items.forEach(function(e){
     var r=dsRes[e.id]; if(!r||r==="scan"||r.err) return;
@@ -1299,17 +1344,33 @@ function dsDupes(a){ // producten die de scanner bij 2+ van je winkels vond
       var k=dsNormN(p.n); if(k.length<4) return;
       var g=map[k]; if(!g){ g=map[k]={n:p.n, i:p.i||"", items:[]}; grp.push(g); }
       if(!g.i&&p.i) g.i=p.i;
-      g.items.push({sid:e.id, sn:e.name, p:p.p, u:p.u, st:p.st||""});
+      g.items.push({sid:e.id, sn:e.name, p:p.p, u:p.u, st:p.st||"", n:p.n, k:String(e.id)+"|"+k});
     });
   });
-  var out=[];
-  grp.forEach(function(g){
-    var sids={}, cnt=0;
-    g.items.forEach(function(it){ if(!sids[it.sid]){ sids[it.sid]=1; cnt++; } });
-    g.cnt=cnt; // v3.93: ook producten van 1 winkel meenemen
-    g.items.sort(function(x,y){ return x.p-y.p; });
-    out.push(g);
+  var units=[], idx={}, uf=[];
+  grp.forEach(function(g){ g.items.forEach(function(it){ idx[it.k]=units.length; units.push(it); uf.push(uf.length); }); });
+  function dsFind(x){ while(uf[x]!==x){ uf[x]=uf[uf[x]]; x=uf[x]; } return x; }
+  function dsUni(x,y){ x=dsFind(x); y=dsFind(y); if(x!==y) uf[x]=y; }
+  var blk={};
+  (L.s||[]).forEach(function(pr){ var x=idx[pr[0]], y=idx[pr[1]]; if(x!=null&&y!=null){ blk[x+"|"+y]=1; blk[y+"|"+x]=1; } });
+  grp.forEach(function(g){ // zelfde productnaam = zelfde product, tenzij je ze zelf hebt losgekoppeld
+    for(var i=0;i<g.items.length;i++) for(var j=i+1;j<g.items.length;j++){
+      var xi=idx[g.items[i].k], yj=idx[g.items[j].k];
+      if(!blk[xi+"|"+yj]) dsUni(xi,yj);
+    }
   });
+  (L.p||[]).forEach(function(pr){ var x=idx[pr[0]], y=idx[pr[1]]; if(x!=null&&y!=null) dsUni(x,y); }); // handmatige 🔗-koppelingen
+  var comps={};
+  units.forEach(function(it,i){ var rr=dsFind(i); (comps[rr]=comps[rr]||[]).push(it); });
+  var out=[];
+  for(var c in comps){
+    var its=comps[c], sids={}, cnt=0;
+    its.forEach(function(it){ if(!sids[it.sid]){ sids[it.sid]=1; cnt++; } });
+    its.sort(function(x,y){ return x.p-y.p; });
+    var g={n:its[0].n, i:its[0].i||"", items:its, cnt:cnt};
+    its.forEach(function(it){ if(!g.i&&it.i) g.i=it.i; });
+    out.push(g);
+  }
   out.sort(function(x,y){ return x.items[0].p-y.items[0].p; });
   return out.slice(0,60);
 }
@@ -1350,6 +1411,22 @@ function dsDupPick(ix){ // v3.92: alle prijzen naast elkaar + winkel kiezen
   var sb=document.createElement("div"); sb.className="n"; sb.style.margin="2px 0 4px";
   box.insertBefore(sb, box.firstChild.nextSibling);
   sb.textContent=cnt+" winkel(s) - tik op Kiezen om die winkel te openen";
+  var ksM=dsGKeys(g), LM=dsLinkLoad(), manM=0;
+  (LM.p||[]).forEach(function(pr){ if(ksM[pr[0]]&&ksM[pr[1]]) manM++; });
+  if(manM||cnt>1){
+    var barM=document.createElement("div"); barM.style.cssText="display:flex;gap:6px;margin-top:8px";
+    if(manM){ var ub=document.createElement("button"); ub.className="btn dark";
+      ub.style.cssText="flex:1;margin:0;font-size:11px;padding:7px";
+      ub.textContent="➗ Koppeling ongedaan maken";
+      ub.onclick=function(){ dsLinkUnlink(ix); dsDupClose(); dsRender(); };
+      barM.appendChild(ub); }
+    else { var nb=document.createElement("button"); nb.className="btn dark";
+      nb.style.cssText="flex:1;margin:0;font-size:11px;padding:7px;color:#f87171";
+      nb.textContent="➗ Dit zijn verschillende producten";
+      nb.onclick=function(){ dsLinkNoMatch(ix); dsDupClose(); dsRender(); };
+      barM.appendChild(nb); }
+    box.appendChild(barM);
+  }
   w.appendChild(box); document.body.appendChild(w);
 }
 function dsRender(){
@@ -1360,19 +1437,22 @@ function dsRender(){
   if(dups.length){
     h+='<div class="card" style="border:2px solid rgba(74,222,128,.35)">';
     h+='<div style="font-size:13px;font-weight:800">🛍 Alle producten - alle winkels samen</div>';
-    h+='<div class="n">Één lijst met alles wat de scanner vond, gesorteerd op laagste prijs. Zelfde product bij meerdere winkels? Tik op de foto om de prijzen te vergelijken en te kiezen.</div>';
+    h+='<div class="n">Één lijst met alles wat de scanner vond, gesorteerd op laagste prijs. Zelfde product bij meerdere winkels? Tik op de foto om te vergelijken. Klopt de automatische match niet of ontbreekt hij? Tik op 🔗 bij twee producten om ze zelf aan elkaar te koppelen (of in het vergelijk-scherm weer los te maken).</div>';
     h+='<div class="dsGrid">';
     dups.forEach(function(g,ix){
       var it=g.items[0];
       if(g.cnt>1){ // v3.93: zelfde product bij meerdere winkels -> vergelijken
-        h+='<div class="dsTile" onclick="dsDupPick('+ix+')" style="cursor:pointer">';
+        var selT=dsLinkSel&&g.items.some(function(t){ return t.k===dsLinkSel.k; });
+        h+='<div class="dsTile" onclick="dsDupPick('+ix+')" style="cursor:pointer'+(selT?';outline:2px solid #facc15':'')+'">';
         h+= g.i ? '<img src="'+colEsc(g.i)+'" loading="lazy">' : '';
         h+='<span>'+colEsc(g.n)+'</span><b>'+dsEuro(it.p)+'</b>';
-        h+='<div style="font-size:9px;color:#94a3b8">🔁 '+g.cnt+' winkels · vergelijk</div></div>';
+        h+='<div style="font-size:9px;color:#94a3b8">🔁 '+g.cnt+' winkels · vergelijk</div>';
+        h+='<button onclick="event.stopPropagation();dsLinkPick('+ix+')" style="width:100%;margin:3px 0 0;padding:4px;font-size:10px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#94a3b8;cursor:pointer">'+(selT?'🔗 (gekozen)':'🔗 Koppel')+'</button></div>';
       } else {
-        h+='<div class="dsTile"><a href="'+colEsc(it.u)+'" target="_blank" rel="noopener">';
+        var selS=dsLinkSel&&g.items.some(function(t){ return t.k===dsLinkSel.k; });
+        h+='<div class="dsTile" style="'+(selS?'outline:2px solid #facc15':'')+'"><a href="'+colEsc(it.u)+'" target="_blank" rel="noopener">';
         h+= g.i ? '<img src="'+colEsc(g.i)+'" loading="lazy">' : '';
-        h+='<span>'+colEsc(g.n)+'</span><b>'+dsEuro(it.p)+'</b></a>'+(it.st?'<div style="font-size:9px;color:#94a3b8;margin-top:2px">'+colEsc(it.st)+'</div>':'')+dsTileExtra(it.sid,{n:g.n,p:it.p,u:it.u,i:g.i})+'</div>';
+        h+='<span>'+colEsc(g.n)+'</span><b>'+dsEuro(it.p)+'</b></a>'+(it.st?'<div style="font-size:9px;color:#94a3b8;margin-top:2px">'+colEsc(it.st)+'</div>':'')+dsTileExtra(it.sid,{n:g.n,p:it.p,u:it.u,i:g.i})+'<button onclick="dsLinkPick('+ix+')" style="width:100%;margin:3px 0 0;padding:4px;font-size:10px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#94a3b8;cursor:pointer">'+(selS?'🔗 (gekozen)':'🔗 Koppel')+'</button></div>';
       }
     });
     h+='</div></div>';
@@ -1843,7 +1923,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.93";
+var VERSION="3.94";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
