@@ -181,15 +181,7 @@
   body.pink #colScroll .score b { color:#f472b6; }
   body.pink .lookupItem > div[style*="facc15"] { color:#f472b6 !important; }
   body.pink .n[style*="fbbf24"] { color:#f472b6 !important; }
-  /* v3.34: roze thema compleet - ook logo's, bovenbalk, alle cijfers en de ververs-knop */
-  body.pink .tbTitle svg text { fill:#f472b6 !important; }
-  body.pink .tbTitle svg rect[stroke='#facc15'] { stroke:#ec4899 !important; }
-  body.pink .tbTitle svg circle[stroke='#facc15'] { stroke:#ec4899 !important; }
-  body.pink #home header svg text { fill:#f472b6 !important; }
-  body.pink #home header svg rect[stroke='#facc15'] { stroke:#ec4899 !important; }
-  body.pink #home header svg circle[stroke='#facc15'] { stroke:#ec4899 !important; }
-  body.pink #home header svg line[stroke='#facc15'] { stroke:#ec4899 !important; }
-  body.pink #home header defs stop { stop-color:#ec4899; }
+  /* v3.35: roze accenten - het logo blijft overal gewoon geel */
   body.pink #refreshBtn { border-color:rgba(236,72,153,.6); color:#f472b6; }
   body.pink .score b { color:#f472b6; }
   body.pink .n span[style*='facc15'] { color:#f472b6 !important; }
@@ -228,7 +220,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.34</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.35</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -655,19 +647,26 @@ function agCloudPush(){
   if(a.length>1000) a=a.slice(-1000);
   FB.db.collection("shared").doc("mccard").set({ agenda:a, agT:Date.now() }, { merge:true }).catch(function(){});
 }
-function agAdd(){
+function agAdd(preTs){
   if(!FB.user){ showView("loginView"); return; }
-  var d=prompt("Op welke datum? (DD-MM-YYYY, bijv. 21-10-2026):");
-  if(d===null) return;
-  var p=String(d).trim().split(/[-/.]/); var dt=null;
-  if(p.length===3){ var dd=parseInt(p[0],10), mm=parseInt(p[1],10), yy=parseInt(p[2],10);
-    if(yy<100) yy+=2000;
-    if(dd>=1&&dd<=31&&mm>=1&&mm<=12&&yy>2000) dt=new Date(yy,mm-1,dd).getTime(); }
-  if(!dt){ alert("Datum niet begrepen - gebruik DD-MM-YYYY, bijv. 21-10-2026."); return; }
-  var txt=prompt("Wat is de afspraak?");
-  if(txt===null||!String(txt).trim()) return;
+  var dt=preTs||null;
+  if(!dt){ // v3.35: alleen vragen als er nog geen datum bekend is (bijv. via de kalender gekozen)
+    var d=prompt("Op welke datum? (DD-MM-YYYY, bijv. 21-10-2026):");
+    if(d===null) return;
+    var p=String(d).trim().split(/[-/.]/);
+    if(p.length===3){ var dd=parseInt(p[0],10), mm=parseInt(p[1],10), yy=parseInt(p[2],10);
+      if(yy<100) yy+=2000;
+      if(dd>=1&&dd<=31&&mm>=1&&mm<=12&&yy>2000) dt=new Date(yy,mm-1,dd).getTime(); }
+    if(!dt){ alert("Datum niet begrepen - gebruik DD-MM-YYYY, bijv. 21-10-2026."); return; }
+  }
+  var dtx=new Date(dt);
+  var txt=prompt("Afspraak op "+dtx.getDate()+"-"+(dtx.getMonth()+1)+"-"+dtx.getFullYear()+":");
+  if(txt===null) return;
+  txt=String(txt).trim();
+  if(!txt) return;
+  txt=txt.charAt(0).toUpperCase()+txt.slice(1); // v3.35: afspraak begint altijd met een hoofdletter
   var a=agLoad();
-  a.push({ id:Date.now(), d:dt, txt:String(txt).trim(), by:String(FB.user.email).toLowerCase() });
+  a.push({ id:Date.now(), d:dt, txt:txt, by:String(FB.user.email).toLowerCase() });
   a.sort(function(x,y){ return x.d-y.d; });
   agSave(a); agCloudPush(); agRender();
 }
@@ -725,7 +724,7 @@ function agRender(){
 function agShift(n){ agMonth=new Date(agMonth.getFullYear(), agMonth.getMonth()+n, 1); agRender(); }
 function agDay(k){
   var a=agLoad(), evs=a.filter(function(e){ var d2=new Date(e.d); return new Date(d2.getFullYear(),d2.getMonth(),d2.getDate()).getTime()===k; });
-  if(!evs.length){ agAdd(); return; }
+  if(!evs.length){ agAdd(k); return; } // v3.35: datum staat dan al vast
   var MA=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
   var d2=new Date(k), msg="";
   evs.forEach(function(e){ msg+=agName(e.by)+": "+e.txt+"\n"; });
@@ -892,7 +891,7 @@ function fbSync(interactive){
 <div class="view" id="agendaView">
   <div id="agendaScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="agendaScroll">
-    <button class="btn yellow" onclick="agendaAdd()">➕ Afspraak toevoegen</button>
+    <button class="btn yellow" onclick="agAdd()">➕ Afspraak toevoegen</button>
   </div>
 </div>
 
@@ -941,7 +940,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.34";
+var VERSION="3.35";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
