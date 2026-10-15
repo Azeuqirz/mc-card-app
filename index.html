@@ -214,6 +214,15 @@
   .smU { background:rgba(250,204,21,.13); color:#facc15; border:1px solid rgba(250,204,21,.4); }
   body.pink .smC { background:rgba(236,72,153,.32); }
   body.pink .smU { background:rgba(236,72,153,.16); color:#f9a8d4; border-color:rgba(244,114,182,.4); }
+  /* v3.69: product-tegels in de aanbiedingsscanner */
+  .dsGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
+  .dsTile { background:#1e293b; border-radius:10px; padding:6px; }
+  .dsTile:active { background:#334155; }
+  .dsTile a { display:flex; flex-direction:column; align-items:center; text-decoration:none; }
+  .dsTile img { width:100%; aspect-ratio:225/200; object-fit:contain; border-radius:6px; background:#0f172a; }
+  .dsTile span { font-size:10px; color:#cbd5e1; text-align:center; line-height:1.2; margin-top:4px;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; min-height:24px; }
+  .dsTile b { font-size:12px; color:#4ade80; margin-top:3px; }
 </style>
 <script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -249,7 +258,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.68</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.69</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1117,7 +1126,7 @@ function dsParse(html, pageUrl){
   if((html.match(/<a\s/gi)||[]).length<3){
     var pricesT=[], seenT={};
     var links=[], lr=/\[([^\]]*)\]\((https?:\/\/[^\s)]+)(?:\s+"([^"]*)")?\)/g, lm;
-    while((lm=lr.exec(html))){ links.push({end:lm.index+lm[0].length, txt:lm[1], u:lm[2], ttl:lm[3]||""}); }
+    while((lm=lr.exec(html))){ links.push({end:lm.index+lm[0].length, st:lm.index, txt:lm[1], u:lm[2], ttl:lm[3]||""}); }
     function dsBadLink(u){ return /winkelmand|shopping-cart|login|favorit|registr|account|\/c\/|#|images|logo|query\?name/i.test(u); }
     var prT=/\u20AC\s*(\d{1,4}(?:[.,]\d{1,2}))/g, qT;
     while((qT=prT.exec(html))){
@@ -1127,9 +1136,12 @@ function dsParse(html, pageUrl){
       if(!ln){ for(li2=links.length-1;li2>=0;li2--){ if(links[li2].end<=posT&&links[li2].end>posT-500&&!dsBadLink(links[li2].u)){ ln=links[li2]; break; } } }
       if(!ln) continue;
       var nmT=dsTxt(ln.ttl||ln.txt).replace(/^Meer informatie over\s*/i,"");
+      var imT="";
+      var segT=html.slice(Math.max(0,ln.st-400), ln.st), imM=/!\[[^\]]*\]\((https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|webp)[^\s)]*)\)/i.exec(segT);
+      if(imM) imT=imM[1];
       var uT=String(ln.u).split("#")[0];
       var kT=uT+"|"+vT; if(seenT[kT]) continue; seenT[kT]=1;
-      pricesT.push({n:nmT, p:vT, u:uT});
+      pricesT.push({n:nmT, p:vT, u:uT, i:imT});
     }
     if(pricesT.length){ pricesT.sort(function(a,b){ return a.p-b.p; }); return pricesT.slice(0,25); }
   }
@@ -1150,13 +1162,15 @@ function dsParse(html, pageUrl){
     var v=parseFloat(String(q[1]||q[2]).replace(",",".")); if(!(v>0&&v<10000)) continue;
     var pos=q.index, a=null, ai;
     for(ai=anchors.length-1;ai>=0;ai--){ if(anchors[ai].end<=pos){ a=anchors[ai]; break; } }
-    var href=pageUrl, nm="";
-    if(a && pos-a.end<2000){ href=a.u; nm=dsNameFor(a); }
+    var href=pageUrl, nm="", imU="";
+    if(a && pos-a.end<2000){ href=a.u; nm=dsNameFor(a);
+      var segI=html.slice(a.end, Math.min(pos, a.end+2000)), imH=/<img[^>]*src\s*=\s*["']([^"']+)["'][^>]*>/i.exec(segI);
+      if(imH && !/logo|icon|sprite|pixel/i.test(imH[1])) imU=imH[1]; }
     if(href && !/^https?:/i.test(href)){ try{ href=new URL(href, pageUrl).href; }catch(e2){} }
     href=String(href||pageUrl).split("#")[0];
     if(!nm) nm="(gevonden prijs op pagina)";
     var key=href+"|"+v; if(seenP[key]) continue; seenP[key]=1;
-    prices.push({n:nm, p:v, u:href});
+    prices.push({n:nm, p:v, u:href, i:imU});
   }
   prices.sort(function(a,b){ return a.p-b.p; });
   return prices.slice(0,25);
@@ -1222,7 +1236,13 @@ function dsRender(){
     else if(r&&r.err){ h+='<div class="n" style="color:#f87171">Mislukt: '+colEsc(r.err)+' - de site of de lees-dienst blokkeert automatisch lezen. Bij een eigen winkel-pagina helpt het om de URL van een zoek- of aanbiedingen-pagina in te vullen.</div>'; }
     else if(r&&r.ok){
       h+='<div class="n" style="color:#4ade80;font-weight:800">✅ '+r.hits.length+' product(en) onder '+dsEuro(e.max)+'!</div>';
-      r.hits.slice(0,25).forEach(function(p){ h+='<div class="n">🔥 <a href="'+colEsc(p.u)+'" target="_blank" rel="noopener" style="color:#fbbf24">'+colEsc(p.n)+'</a> · <b style="color:#4ade80">'+dsEuro(p.p)+'</b></div>'; });
+      h+='<div class="dsGrid">';
+      r.hits.slice(0,25).forEach(function(p){
+        h+='<div class="dsTile"><a href="'+colEsc(p.u)+'" target="_blank" rel="noopener">';
+        h+= p.i ? '<img src="'+colEsc(p.i)+'" loading="lazy">' : '';
+        h+='<span>'+colEsc(p.n)+'</span><b>'+dsEuro(p.p)+'</b></a></div>';
+      });
+      h+='</div>';
     }
     else if(r){ h+='<div class="n">Geen product onder '+dsEuro(e.max)+(r.lowest!=null?' - laagste gevonden: '+dsEuro(r.lowest):'')+'.</div>'; }
     h+='<div style="display:flex;gap:6px;margin-top:8px">';
@@ -1512,7 +1532,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.68";
+var VERSION="3.69";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
