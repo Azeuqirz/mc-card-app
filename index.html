@@ -241,7 +241,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.42</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.43</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -648,10 +648,12 @@ function cap1(s){ s=String(s||""); return s.charAt(0).toUpperCase()+s.slice(1); 
 function agTm(e){ return (e&&typeof e.tm==="number")?e.tm:540; } // v3.39: tijd in minuten, bestaande afspraken standaard 09:00
 function agFmt(tm){ var hh=Math.floor(tm/60), mm=tm%60; return (hh<10?"0":"")+hh+":"+(mm<10?"0":"")+mm; }
 // ===== v3.40: confetti bij verjaardag (1x per dag) + melding van nieuwe afspraken =====
-function agConfetti(nm, multi){ // v3.41: nm = naam van de jarige; v3.42: multi = regenboog voor een ander
+function agConfetti(nm, multi, quiet){ // v3.43: nm = naam of array namen; quiet = zonder liedje (bij agenda-open)
   var w=document.getElementById("confetti"); if(!w) return;
   w.style.display="block"; w.innerHTML="";
-  if(nm){ var t=document.createElement("b"); t.textContent="🎉 Gefeliciteerd "+nm+"! 🎂"; w.appendChild(t); }
+  var nms=Array.isArray(nm)?nm.filter(Boolean):(nm?[nm]:[]);
+  if(nms.length){ var t=document.createElement("b"); t.textContent="🎉 Gefeliciteerd "+nms.join(" en ")+"! 🎂"; w.appendChild(t); }
+
   var cols=multi ? ["#ef4444","#f97316","#facc15","#4ade80","#38bdf8","#818cf8","#a855f7","#ec4899"]
                 : ["#facc15","#f59e0b","#ec4899","#f472b6"], i, p;
   for(i=0;i<120;i++){
@@ -663,8 +665,27 @@ function agConfetti(nm, multi){ // v3.41: nm = naam van de jarige; v3.42: multi 
     p.style.animationDelay=(Math.random()*3)+"s";
     w.appendChild(p);
   }
-  agSong(); // v3.42: verjaardagsliedje erbij
+  if(!quiet) agSong(); // v3.42: liedje alleen bij de eerste keer openen die dag
   setTimeout(function(){ w.style.display="none"; w.innerHTML=""; }, 10500);
+}
+// v3.43: alle jarigen van vandaag uit de agenda halen (ook meerdere namen: "Chantal en Tim jarig")
+function agJarigen(){
+  var tK=new Date(); tK=new Date(tK.getFullYear(),tK.getMonth(),tK.getDate()).getTime();
+  var nms=[];
+  agLoad().forEach(function(e){
+    var d2=new Date(e.d);
+    if(new Date(d2.getFullYear(),d2.getMonth(),d2.getDate()).getTime()!==tK) return;
+    var txt=e.txt||""; if(!/verjaardag|jarig/i.test(txt)) return;
+    var s="", m;
+    if(m=/verjaardag(?:\s+van)?\s+([^.,:!\-]+)/i.exec(txt)) s=m[1];
+    else if(m=/([^.,:!\-]+?)\s+(?:is\s+)?jarig/i.exec(txt)) s=m[1];
+    else if(m=/([^.,:!\-]+?)\s+verjaardag/i.exec(txt)) s=m[1];
+    if(s && s.trim()) s.trim().split(/\s*(?:,|&|\ben\b)\s*/i).forEach(function(n){
+      n=String(n||"").trim();
+      if(!n||n.length>20) return; // geen hele zinnen als naam
+NaN    });
+  });
+  return nms;
 }
 // v3.42: "Happy Birthday" op WebAudio (~11 sec, geen geluidsbestand nodig)
 var AG_AC=null;
@@ -703,16 +724,9 @@ document.addEventListener("DOMContentLoaded", function(){
     try{
       var tK=new Date(); tK=new Date(tK.getFullYear(),tK.getMonth(),tK.getDate()).getTime();
       if(Number(localStorage.getItem("mcConfDay"))===tK) return;
-      var a=agLoad(), has=false, jarige="";
-      a.forEach(function(e){ var d2=new Date(e.d);
-        if(new Date(d2.getFullYear(),d2.getMonth(),d2.getDate()).getTime()===tK && /verjaardag/i.test(e.txt)){ has=true;
-          var na=/verjaardag(?:\s+van)?\s+([^.,:!\-]+)/i.exec(e.txt); // v3.41: naam na "verjaardag (van)"
-          var vo=/([^.,:!\-]+?)\s+verjaardag/i.exec(e.txt);
-          if(na && na[1] && na[1].trim()) jarige=na[1].trim();
-          else if(vo && vo[1] && vo[1].trim()) jarige=vo[1].trim();
-        } });
-      var multi=jarige && !/chantal/i.test(jarige) && !/uber/i.test(jarige); // v3.42: ander dan ons 2 -> regenboog
-      if(has){ localStorage.setItem("mcConfDay", String(tK)); agConfetti(jarige, multi); }
+      var jarige=agJarigen(); // v3.43: meerdere namen + ook "jarig" gedetecteerd
+      var multi=jarige.some(function(n){ return !/chantal|uber/i.test(n); }); // iemand anders dan ons 2 -> regenboog
+      if(jarige.length){ localStorage.setItem("mcConfDay", String(tK)); agConfetti(jarige, multi); }
     }catch(e){}
   }, 900);
 });
@@ -740,7 +754,16 @@ function menuGoAgenda(){ toggleMenu(); renderAgenda(); }
 function renderAgenda(){
   if(FB.ready&&!FB.user){ showView("loginView"); var m=document.getElementById("logMsg"); if(m) m.textContent="Log in om de gedeelde agenda te bekijken."; return; }
   showView("agendaView");
-  agCloudPull(function(){ agRender(); }); agRender();
+  agCloudPull(function(){ agRender(); agParty(); }); agRender(); agParty(); // v3.43: confetti bij elke agenda-open als er een verjaardag is
+}
+var AG_PARTY=0; // v3.43: niet 2x tegelijk (pull + lokale render)
+function agParty(){
+  try{
+    var n=Date.now(); if(n-AG_PARTY<60000) return; // max 1x per minuut
+    var jarige=agJarigen(); if(!jarige.length) return;
+    var multi=jarige.some(function(x){ return !/chantal|uber/i.test(x); });
+    AG_PARTY=n; agConfetti(jarige, multi, true); // quiet: geen liedje bij agenda-open
+  }catch(e){}
 }
 function agCloudPull(cb){
   if(!FB.ready||!FB.user){ if(cb) cb(); return; }
@@ -1096,7 +1119,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.42";
+var VERSION="3.43";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
