@@ -249,7 +249,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.54</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.55</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -944,7 +944,6 @@ function agRender(){
     h+='</div>';
   }
   h+='</div><div class="n" style="margin-top:8px">Tik op een dag om de afspraken te zien. ⬅ ➡ = andere maand.</div></div>';
-  h+=smRender(y,m); // v3.49: samen-dagen van deze maand
   // afspraken deze maand
   var mA=[]; a.forEach(function(e){ var d2=new Date(e.d); if(d2.getFullYear()===y&&d2.getMonth()===m) mA.push(e); });
   if(!mA.length){ h+='<div class="note">Nog geen afspraken in '+MA[m]+'. Tik op "Afspraak toevoegen".</div>'; }
@@ -963,6 +962,7 @@ function agRender(){
       h+='</div>';
     });
   }
+  h+=smRender(y,m); // v3.55: samen-kader altijd onderaan
   sc.innerHTML=h;
   try{ localStorage.setItem("mcAgSeen", String(agMaxId())); }catch(e){} // v3.46: gezien t/m hoogste id
 }
@@ -1027,8 +1027,8 @@ function smAskWho(pre){ var w=prompt("Wie is waar?\n1 = Bij Chantal (jij bent bi
   w=String(w).trim(); return w==="1"?"chantal":(w==="2"?"uber":null); }
 function smMenu(){ // v3.49: samen-dagen toevoegen / wijzigen / verwijderen
   if(!FB.user){ showView("loginView"); return; }
-  var s=smLoad(), L=[];
-  s.items.forEach(function(e,ix){
+  var s=smLoad(), L=[], vis=s.items.filter(function(e){ return !(e.k==="w"&&Date.now()<new Date(2026,9,26).getTime()); }); // v3.55: 2-weekse regel pas na 26 okt tonen
+  vis.forEach(function(e,ix){
     L.push((ix+1)+". "+(e.k==="w"?("Elke 2 weken · "+smWho(e.who)+" · "+e.len+" dagen vanaf "+smFmtD(e.start)):(smWho(e.who)+" · "+smFmtD(e.from)+" t/m "+smFmtD(e.to))));
   });
   if(!L.length) L.push("(nog niets ingesteld)");
@@ -1044,10 +1044,10 @@ function smMenu(){ // v3.49: samen-dagen toevoegen / wijzigen / verwijderen
     s.items.push(c==="1"?{id:Date.now(),k:"s",from:st,to:t,who:w}:{id:Date.now(),k:"w",start:st,len:ln,who:w});
     smSave(s); agRender();
   } else if(c==="3"||c==="4"){
-    var nr=parseInt(prompt("Welk nummer? (1 t/m "+s.items.length+")"),10);
-    if(isNaN(nr)||nr<1||nr>s.items.length){ alert("Nummer niet gevonden."); return; }
-    if(c==="4"){ s.items.splice(nr-1,1); smSave(s); agRender(); return; }
-    var e=s.items[nr-1];
+    var nr=parseInt(prompt("Welk nummer? (1 t/m "+vis.length+")"),10);
+    if(isNaN(nr)||nr<1||nr>vis.length){ alert("Nummer niet gevonden."); return; }
+    if(c==="4"){ s.items.splice(s.items.indexOf(vis[nr-1]),1); smSave(s); agRender(); return; }
+    var e=vis[nr-1];
     if(e.k==="w"){
       var st2=smParseD(prompt("Startdatum (DD-MM-YYYY):",smFmtIn(e.start))); if(st2===null){ alert("Datum niet begrepen."); return; }
       var ln2=parseInt(prompt("Hoeveel dagen per bezoek?",String(e.len)),10); if(!ln2||ln2<1||ln2>14) ln2=e.len;
@@ -1233,7 +1233,7 @@ function fbSync(interactive){
   <div id="agendaScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="agendaScroll" style="display:flex;gap:8px">
     <button class="btn yellow" onclick="agAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Afspraak toevoegen</span></button>
-    <button class="btn dark" onclick="smMenu()" style="flex:none;width:110px;margin-top:0"><span class="bt"><span class="bi">💑</span>Samen</span></button>
+    <button class="btn dark" onclick="smMenu()" style="flex:none;width:110px;margin-top:0"><span class="bt">Samen</span></button>
   </div>
 </div>
 
@@ -1282,7 +1282,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.54";
+var VERSION="3.55";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
