@@ -683,7 +683,8 @@ function agJarigen(){
     if(s && s.trim()) s.trim().split(/\s*(?:,|&|\ben\b)\s*/i).forEach(function(n){
       n=String(n||"").trim();
       if(!n||n.length>20) return; // geen hele zinnen als naam
-NaN    });
+      if(nms.indexOf(n)<0) nms.push(n);
+    });
   });
   return nms;
 }
