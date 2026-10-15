@@ -258,7 +258,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.70</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.71</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1217,7 +1217,7 @@ function dsScan(id){
     var prods=dsParse(html, target);
     if(e.term){ var tl=e.term.toLowerCase(); prods=prods.filter(function(p){ return String(p.n).toLowerCase().indexOf(tl)>=0||String(p.u).toLowerCase().indexOf(tl)>=0||String(p.n).indexOf("(gevonden prijs")===0; }); } // v3.64: gezochte naam, product-URL of naamloze valprijzen
     var hits=prods.filter(function(p){ return p.p<=(e.max||0); });
-    dsRes[id]= hits.length?{ok:true,hits:hits}: {ok:false, lowest: prods.length?prods[0].p:null, prods:prods.length};
+    dsRes[id]= hits.length?{ok:true,hits:hits,prods:prods.length,lowest:prods.length?prods[0].p:null}: {ok:false, lowest: prods.length?prods[0].p:null, prods:prods.length}; // v3.71
     dsRender();
   }).catch(function(err){
     dsRes[id]={err: (err&&err.message)||"geen verbinding"};
@@ -1239,6 +1239,7 @@ function dsRender(){
     else if(r&&r.err){ h+='<div class="n" style="color:#f87171">Mislukt: '+colEsc(r.err)+' - de site of de lees-dienst blokkeert automatisch lezen. Bij een eigen winkel-pagina helpt het om de URL van een zoek- of aanbiedingen-pagina in te vullen.</div>'; }
     else if(r&&r.ok){
       h+='<div class="n" style="color:#4ade80;font-weight:800">✅ '+r.hits.length+' product(en) onder '+dsEuro(e.max)+'!</div>';
+      if(r.prods>r.hits.length) h+='<div class="n" style="color:#94a3b8">Scanner vond '+r.prods+' producten - de overige '+(r.prods-r.hits.length)+' liggen boven je max (vanaf '+dsEuro(r.lowest)+').</div>';
       h+='<div class="dsGrid">';
       r.hits.slice(0,25).forEach(function(p){
         h+='<div class="dsTile"><a href="'+colEsc(p.u)+'" target="_blank" rel="noopener">';
@@ -1535,7 +1536,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.70";
+var VERSION="3.71";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
