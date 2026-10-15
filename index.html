@@ -208,6 +208,12 @@
   body.pink #confetti b { color:#f472b6; }
   /* v3.44: ververs-knop agenda in roze thema */
   body.pink #agRefreshBtn { background:#4a1030; color:#f472b6; }
+  /* v3.49: samen-dagen - badges in de agenda */
+  .smB { border-radius:8px; padding:5px 8px; font-size:11px; font-weight:800; margin:4px 0; }
+  .smC { background:rgba(236,72,153,.18); color:#f472b6; border:1px solid rgba(236,72,153,.45); }
+  .smU { background:rgba(250,204,21,.13); color:#facc15; border:1px solid rgba(250,204,21,.4); }
+  body.pink .smC { background:rgba(236,72,153,.32); }
+  body.pink .smU { background:rgba(236,72,153,.16); color:#f9a8d4; border-color:rgba(244,114,182,.4); }
 </style>
 <script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -243,7 +249,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.48</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.49</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -815,6 +821,7 @@ function agCloudPull(cb){ // v3.44: altijd verse server-data + gewijzigde afspra
           if(rT>=lT){ var ix=loc.indexOf(cur); if(ix>=0) loc[ix]=e; }
         }
       });
+      try{ var rs=doc.exists?doc.data().samen:null; if(rs&&rs.items){ var ls=smLoad(); if(Number(rs.e||0)>Number(ls.e||0)) smSaveLocal(rs); } }catch(e2){} // v3.49
       agSave(loc);
     }catch(e){}
     if(cb) cb();
@@ -924,17 +931,20 @@ function agRender(){
   for(var i=0;i<firstDow;i++) h+='<div></div>';
   for(var dd=1;dd<=days;dd++){
     var k=new Date(y,m,dd).getTime(); var evs=byDay[k]||[];
-    var isT=k===tKey;
-    h+='<div onclick="agDay('+k+')" style="text-align:center;padding:6px 0;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;'+(isT?'background:#1e293b;':'')+'">'+dd;
+    var isT=k===tKey; var sm=smDay(k); // v3.49: samen-dag?
+    var smBg=sm?(sm.who==="chantal"?"background:rgba(236,72,153,.25);":"background:rgba(250,204,21,.16);"):"";
+    h+='<div onclick="agDay('+k+')" style="text-align:center;padding:6px 0;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;'+(isT?'background:#1e293b;':smBg)+'">'+dd;
     if(evs.length){
       var pink=false, yellow=false;
       evs.forEach(function(e){ if(e.by==="chantalbelshofts@gmail.com") pink=true; else yellow=true; });
       if(pink) h+='<div style="width:6px;height:6px;border-radius:50%;background:#ec4899;display:inline-block;margin:0 1px"></div>';
       if(yellow) h+='<div style="width:6px;height:6px;border-radius:50%;background:#facc15;display:inline-block;margin:0 1px"></div>';
     }
+    if(sm) h+='<div style="font-size:10px;line-height:1">'+(sm.who==="chantal"?"💗":"💛")+'</div>'; // v3.49
     h+='</div>';
   }
   h+='</div><div class="n" style="margin-top:8px">Tik op een dag om de afspraken te zien. ⬅ ➡ = andere maand.</div></div>';
+  h+=smRender(y,m); // v3.49: samen-dagen van deze maand
   // afspraken deze maand
   var mA=[]; a.forEach(function(e){ var d2=new Date(e.d); if(d2.getFullYear()===y&&d2.getMonth()===m) mA.push(e); });
   if(!mA.length){ h+='<div class="note">Nog geen afspraken in '+MA[m]+'. Tik op "Afspraak toevoegen".</div>'; }
@@ -955,6 +965,91 @@ function agRender(){
   }
   sc.innerHTML=h;
   try{ localStorage.setItem("mcAgSeen", String(agMaxId())); }catch(e){} // v3.46: gezien t/m hoogste id
+}
+// ===== v3.49: SAMEN-DAGEN - zien wanneer we bij elkaar zijn =====
+var SM_KEY="mcSamen";
+function smDn(t){ var d=new Date(t); return Math.round(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000); }
+function smLoad(){
+  try{ var s=JSON.parse(localStorage.getItem(SM_KEY)); if(s&&s.items) return s; }catch(e){}
+  var seed={e:Date.now(),items:[
+    {id:1,k:"w",start:new Date(2026,8,6).getTime(),len:3,who:"uber"}, // Chantal elke 2 weken bij Uber, vanaf 6 september
+    {id:2,k:"s",from:new Date(2026,9,23).getTime(),to:new Date(2026,9,26).getTime(),who:"chantal"} // Uber bij Chantal, 23 t/m 26 oktober
+  ]};
+  try{ localStorage.setItem(SM_KEY,JSON.stringify(seed)); }catch(e){}
+  return seed;
+}
+function smSaveLocal(s){ try{ localStorage.setItem(SM_KEY,JSON.stringify(s)); }catch(e){} }
+function smPush(){ if(!FB.ready||!FB.user) return; try{ FB.db.collection("shared").doc("mccard").set({ samen:smLoad(), sT:Date.now() },{ merge:true }).catch(function(){}); }catch(e){} }
+function smSave(s){ s.e=Date.now(); smSaveLocal(s); smPush(); } // v3.49: bewerken -> ook naar de cloud
+function smWho(w){ return w==="chantal"?"Bij Chantal 💗":"Bij Uber 💛"; }
+function smDay(k){ // wat is er op dag k? eenmalige periode wint van de 2-weekse regel
+  var s=smLoad(), i, e;
+  for(i=0;i<s.items.length;i++){ e=s.items[i]; if(e.k==="s"&&k>=e.from&&k<=e.to) return e; }
+  for(i=0;i<s.items.length;i++){ e=s.items[i]; if(e.k==="w"){ var d=smDn(k)-smDn(e.start); if(d>=0&&d%14<Number(e.len||3)) return e; } }
+  return null;
+}
+var SM_MA=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+function smFmtD(t){ var d=new Date(t); return d.getDate()+" "+SM_MA[d.getMonth()]; }
+function smFmtIn(t){ var d=new Date(t), p=function(n){ return (n<10?"0":"")+n; }; return p(d.getDate())+"-"+p(d.getMonth()+1)+"-"+d.getFullYear(); }
+function smRender(y,m){ // overzicht van samen-dagen in deze maand
+  var rows=[], cur=null, dd, k, sm;
+  var days=new Date(y,m+1,0).getDate();
+  for(dd=1;dd<=days;dd++){
+    k=new Date(y,m,dd).getTime(); sm=smDay(k);
+    if(sm){ var key=sm.who+"|"+sm.k; if(cur&&cur.key===key&&cur.till===k-86400000){ cur.till=k; } else { cur={key:key,who:sm.who,k:sm.k,from:k,till:k}; rows.push(cur); } }
+    else cur=null;
+  }
+  if(!rows.length) return "";
+  var MA2=["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+  var out='<div class="card" style="border:2px solid rgba(250,204,21,.35)">';
+  out+='<div style="font-size:13px;font-weight:800">💑 Samen in '+MA2[m]+'</div>';
+  rows.forEach(function(r){
+    out+='<div class="smB '+(r.who==="chantal"?"smC":"smU")+'">'+smWho(r.who)+" · "+(r.from===r.till?smFmtD(r.from):smFmtD(r.from)+" t/m "+smFmtD(r.till))+(r.k==="w"?" · elke 2 weken":"")+'</div>';
+  });
+  out+='<div class="n" style="margin-top:6px">Samen-dagen - beheer ze met de knop Samen onderaan.</div></div>';
+  return out;
+}
+function smParseD(t){ var p=String(t||"").trim().split(/[-\/.]/); if(p.length!==3) return null;
+  var dd=parseInt(p[0],10), mm=parseInt(p[1],10), yy=parseInt(p[2],10); if(yy<100) yy+=2000;
+  if(dd<1||dd>31||mm<1||mm>12||yy<2000) return null; return new Date(yy,mm-1,dd).getTime(); }
+function smAskWho(pre){ var w=prompt("Wie is waar?\n1 = Bij Chantal (jij bent bij haar)\n2 = Bij Uber (Chantal is bij jou)",pre||"2"); if(w===null) return null;
+  w=String(w).trim(); return w==="1"?"chantal":(w==="2"?"uber":null); }
+function smMenu(){ // v3.49: samen-dagen toevoegen / wijzigen / verwijderen
+  if(!FB.user){ showView("loginView"); return; }
+  var s=smLoad(), L=[];
+  s.items.forEach(function(e,ix){
+    L.push((ix+1)+". "+(e.k==="w"?("Elke 2 weken · "+smWho(e.who)+" · "+e.len+" dagen vanaf "+smFmtD(e.start)):(smWho(e.who)+" · "+smFmtD(e.from)+" t/m "+smFmtD(e.to))));
+  });
+  if(!L.length) L.push("(nog niets ingesteld)");
+  var c=prompt("💑 Samen-dagen:\n\n"+L.join("\n")+"\n\n1 = Periode toevoegen\n2 = Elke-2-weken regel toevoegen\n3 = Wijzigen (nummer invullen)\n4 = Verwijderen (nummer invullen)\nLeeg = annuleren");
+  if(c===null) return; c=String(c).trim();
+  if(c==="1"||c==="2"){
+    var st=smParseD(prompt(c==="1"?"Van welke datum? (DD-MM-YYYY, bijv. 23-10-2026):":"Vanaf welke datum begint het patroon? (DD-MM-YYYY, bijv. 06-09-2026):"));
+    if(st===null){ alert("Datum niet begrepen - gebruik DD-MM-YYYY."); return; }
+    var t=st, ln=3;
+    if(c==="1"){ t=smParseD(prompt("Tot en met welke datum? (DD-MM-YYYY):")); if(t===null||t<st){ alert("Datum niet begrepen."); return; } }
+    else{ ln=parseInt(prompt("Hoeveel dagen per bezoek? (3 = weekend, 4 = ook maandag):","3"),10); if(!ln||ln<1||ln>14) ln=3; }
+    var w=smAskWho(); if(!w) return;
+    s.items.push(c==="1"?{id:Date.now(),k:"s",from:st,to:t,who:w}:{id:Date.now(),k:"w",start:st,len:ln,who:w});
+    smSave(s); agRender();
+  } else if(c==="3"||c==="4"){
+    var nr=parseInt(prompt("Welk nummer? (1 t/m "+s.items.length+")"),10);
+    if(isNaN(nr)||nr<1||nr>s.items.length){ alert("Nummer niet gevonden."); return; }
+    if(c==="4"){ s.items.splice(nr-1,1); smSave(s); agRender(); return; }
+    var e=s.items[nr-1];
+    if(e.k==="w"){
+      var st2=smParseD(prompt("Startdatum (DD-MM-YYYY):",smFmtIn(e.start))); if(st2===null){ alert("Datum niet begrepen."); return; }
+      var ln2=parseInt(prompt("Hoeveel dagen per bezoek?",String(e.len)),10); if(!ln2||ln2<1||ln2>14) ln2=e.len;
+      var w2=smAskWho(e.who==="chantal"?"1":"2"); if(!w2) return;
+      e.start=st2; e.len=ln2; e.who=w2;
+    } else {
+      var f2=smParseD(prompt("Van (DD-MM-YYYY):",smFmtIn(e.from))); if(f2===null){ alert("Datum niet begrepen."); return; }
+      var t2=smParseD(prompt("Tot en met (DD-MM-YYYY):",smFmtIn(e.to))); if(t2===null||t2<f2){ alert("Datum niet begrepen."); return; }
+      var w3=smAskWho(e.who==="chantal"?"1":"2"); if(!w3) return;
+      e.from=f2; e.to=t2; e.who=w3;
+    }
+    smSave(s); agRender();
+  }
 }
 function agShift(n){ agMonth=new Date(agMonth.getFullYear(), agMonth.getMonth()+n, 1); agRender(); }
 function agDay(k){
@@ -1125,8 +1220,9 @@ function fbSync(interactive){
 <!-- ===== AGENDA (v3.32) ===== -->
 <div class="view" id="agendaView">
   <div id="agendaScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
-  <div class="bottomBar" data-scroll="agendaScroll">
-    <button class="btn yellow" onclick="agAdd()"><span class="bt"><span class="bi">➕</span>Afspraak toevoegen</span></button>
+  <div class="bottomBar" data-scroll="agendaScroll" style="display:flex;gap:8px">
+    <button class="btn yellow" onclick="agAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Afspraak toevoegen</span></button>
+    <button class="btn dark" onclick="smMenu()" style="flex:none;width:110px;margin-top:0"><span class="bt"><span class="bi">💑</span>Samen</span></button>
   </div>
 </div>
 
@@ -1175,7 +1271,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.48";
+var VERSION="3.49";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
