@@ -184,7 +184,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.19</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.20</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -287,6 +287,13 @@ function colSaveH(a){ localStorage.setItem(COL_HIST, JSON.stringify(a.slice(-500
 function colTotal(a){ var v=0; a.forEach(function(c){ v+=(c.price||0)*(c.qty||1); }); return v; }
 function colEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 var colLast=null;
+// v3.20: prijzen in euro - live USD-naar-EUR koers (frankfurter.app), fallback 0.92
+var EURR=0.92;
+try{ fetch("https://api.frankfurter.app/latest?from=USD&to=EUR",{cache:"no-store"})
+  .then(function(r){ return r.json(); })
+  .then(function(j){ var e=j&&j.rates&&j.rates.EUR; if(e>0){ EURR=e; try{ if(document.getElementById("collectionView").classList.contains("active")) colRender(); }catch(err){} } })
+  .catch(function(){}); }catch(e){}
+function fmtE(usd){ return "\u20AC "+(((usd||0)*EURR)).toFixed(2); }
 
 function renderCollection(){
   if(FB.ready&&!FB.user){ fbGo="collectionView"; showView("loginView"); var m=document.getElementById("logMsg"); if(m) m.textContent="Log in om de gedeelde collectie te bekijken."; return; }
@@ -306,8 +313,8 @@ function colLineChart(hist){
   var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%">';
   svg+='<line x1="'+P+'" y1="'+(H-P)+'" x2="'+(W-P)+'" y2="'+(H-P)+'" stroke="#1e293b" stroke-width="1"/>';
   svg+='<polyline points="'+pts+'" fill="none" stroke="#facc15" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
-  svg+='<text x="'+P+'" y="12" font-size="10" fill="#64748b">$ '+max.toFixed(2)+'</text>';
-  svg+='<text x="'+P+'" y="'+(H-2)+'" font-size="10" fill="#64748b">$ '+min.toFixed(2)+'</text>';
+  svg+='<text x="'+P+'" y="12" font-size="10" fill="#64748b">'+fmtE(max)+'</text>';
+  svg+='<text x="'+P+'" y="'+(H-2)+'" font-size="10" fill="#64748b">'+fmtE(min)+'</text>';
   if(hist.length){
     var d0=new Date(hist[0].t), d1=new Date(hist[hist.length-1].t);
     svg+='<text x="'+(W-P)+'" y="12" text-anchor="end" font-size="10" fill="#64748b">'+(d1.getDate())+'-'+(d1.getMonth()+1)+'</text>';
@@ -321,7 +328,7 @@ function colBarChart(top,tot){
   var mx=top[0].price||1, s='<div class="n">Duurste kaarten</div>';
   top.forEach(function(c){
     var w=Math.round(100*(c.price||0)/mx);
-    s+='<div style="margin:4px 0"><div class="n" style="margin:0">'+colEsc(c.name)+' <span style="color:#facc15">$ '+((c.price||0)*(c.qty||1)).toFixed(2)+'</span></div>';
+    s+='<div style="margin:4px 0"><div class="n" style="margin:0">'+colEsc(c.name)+' <span style="color:#facc15">'+fmtE((c.price||0)*(c.qty||1))+'</span></div>';
     s+='<div class="bar" style="margin:2px 0 6px"><div style="width:'+w+'%;background:#facc15"></div></div></div>';
   });
   return s;
@@ -330,8 +337,8 @@ function colBarChart(top,tot){
 function colRender(){
   var a=colLoad(), sc=document.getElementById("colScroll"), h="";
   var tot=colTotal(a), n=0; a.forEach(function(c){ n+=(c.qty||1); });
-  h+='<div class="card"><div class="score"><span>Totale collectie-waarde</span><b>$ '+tot.toFixed(2)+'</b></div>';
-  h+='<div class="n">'+n+' kaarten in '+a.length+' entries - prijzen: TCGPlayer marktprijs (USD), ververst bij het openen van de app</div></div>';
+  h+='<div class="card"><div class="score"><span>Totale collectie-waarde</span><b>'+fmtE(tot)+'</b></div>';
+  h+='<div class="n">'+n+' kaarten in '+a.length+' entries - prijzen: TCGPlayer marktprijs, omgerekend naar euro (koers '+EURR.toFixed(4)+'), ververst bij het openen van de app</div></div>';
   if(!a.length){
     h+='<div class="note">Nog geen kaarten in je collectie. Tik op "Kaart toevoegen" en zoek op naam - de set, nummer en waarde worden automatisch opgehaald.</div>';
   } else {
@@ -409,7 +416,7 @@ function colShowResults(data, q){
     h+='<div class="lookupItem" onclick="colAdd('+i+')">';
     h+='<img src="'+colEsc(cd.images&&cd.images.small||"")+'" alt="">';
     h+='<div class="si"><div style="font-size:13px;font-weight:700">'+colEsc(cd.name)+'</div>';
-    h+='<div class="sd">'+colEsc(setN)+' &middot; #'+colEsc(cd.number)+' &middot; $ '+colPriceOf(cd).toFixed(2)+'</div></div>';
+    h+='<div class="sd">'+colEsc(setN)+' &middot; #'+colEsc(cd.number)+' &middot; '+fmtE(colPriceOf(cd))+'</div></div>';
     h+='<div style="color:#facc15;font-weight:800">+</div></div>';
   });
   box.innerHTML=h;
@@ -466,8 +473,8 @@ function colDetail(id){
   h+='<div class="n">Set: '+colEsc(c.set)+(c.setS?' ('+colEsc(c.setS)+')':'')+'</div>';
   h+='<div class="n">Nummer: '+colEsc(c.num)+'</div>';
   if(c.rarity) h+='<div class="n">Rarity: '+colEsc(c.rarity)+'</div>';
-  h+='<div class="score" style="margin-top:8px"><span>Waarde</span><b>$ '+((c.price||0)*(c.qty||1)).toFixed(2)+'</b></div>';
-  h+='<div class="n">(per stuk: $ '+(c.price||0).toFixed(2)+' - TCGPlayer marktprijs)</div>';
+  h+='<div class="score" style="margin-top:8px"><span>Waarde</span><b>'+fmtE((c.price||0)*(c.qty||1))+'</b></div>';
+  h+='<div class="n">(per stuk: '+fmtE(c.price||0)+' - TCGPlayer marktprijs in euro)</div>';
   if(!(c.price>0)) h+='<div class="n" style="color:#fbbf24">Geen marktprijs in de database - voer zelf een waarde in.</div>';
   h+='<button class="btn dark" style="margin-top:8px;font-size:13px" onclick="colSetPrice(\''+c.id+'\')">💶 Waarde zelf invoeren / aanpassen</button>';
   h+='<div style="display:flex;gap:8px;margin-top:10px">';
@@ -489,9 +496,9 @@ function colDetail(id){
 
 // v3.13: handmatige prijs-invoer als de database geen prijs heeft
 function colSetPrice(id){
-  var v=prompt("Voer de waarde per kaart in (USD, bijv. 12.50):");
+  var v=prompt("Voer de waarde per kaart in (EUR, bijv. 12.50):");
   if(v===null) return;
-  v=parseFloat(String(v).replace(",","."))||0;
+  v=(parseFloat(String(v).replace(",","."))||0)/EURR; // v3.20: euro-invoer wordt intern als USD opgeslagen
   var a=colLoad(); a.forEach(function(c){ if(c.id===id){ c.price=v; c.manual=(v>0); c.priceT=Date.now(); } });
   colSave(a); colHistPoint(); colDetail(id);
 }
@@ -725,7 +732,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.19";
+var VERSION="3.20";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
