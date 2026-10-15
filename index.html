@@ -263,7 +263,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.82</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.83</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1249,6 +1249,8 @@ function dsScanFin(id, e, prods){ // v3.79: filter + resultaat, losgemaakt van d
   if(dsAutoRun){ try{ dsAutoNote(id, e, hits.length, dsAlarms(id, prods)); }catch(e3){} } // v3.81: melding bij automatische start-scan
 }
 function dsScanAll(auto){ var a=dsLoad(); if(!a.items.length) return; if(auto){ dsAutoRun=true; dsAutoLeft=a.items.length; dsAutoMsgs=[]; } a.items.forEach(function(e){ dsScan(e.id); }); } // v3.81: auto=true bij de start-scan van de app
+// v3.83: elke 15 min een stille scan voor de prijshistorie (alleen als de app open is en je ingelogd bent - geen meldingen)
+setInterval(function(){ try{ if(FB.user&&document.visibilityState==="visible"&&dsLoad().items.length) dsScanAll(false); }catch(e){} }, 900000);
 function dsRender(){
   var sc=document.getElementById("dealScroll"), a=dsLoad(), h="";
   h+='<div class="card"><div style="font-size:13px;font-weight:800">🔥 Aanbiedingsscanner</div>';
@@ -1353,8 +1355,8 @@ function dsHistRec(id, prods){ // v3.82: elke gewijzigde prijs (of na 1 uur) wor
     if(p.i&&!en.i){ en.i=p.i; changed=true; }
     if(!en.pts) en.pts=[];
     var last=en.pts.length?en.pts[en.pts.length-1]:null;
-    if(last&&last.p===p.p&&now-last.d<3600e3){ return; } // zelfde prijs binnen 1 uur -> nog geen nieuw punt
-    if(last&&last.p===p.p){ en.pts.push({d:now,p:p.p}); } // v3.82: zelfde prijs, wel >1 uur geleden -> meetpunt
+    if(last&&last.p===p.p&&now-last.d<900e3){ return; } // v3.83: zelfde prijs binnen 15 min -> nog geen nieuw punt
+    if(last&&last.p===p.p){ en.pts.push({d:now,p:p.p}); } // v3.83: zelfde prijs, wel >15 min geleden -> meetpunt
     else { en.pts.push({d:now,p:p.p}); changed=true; }
     if(en.pts.length>200) en.pts=en.pts.slice(-200);
   });
@@ -1413,7 +1415,8 @@ function dsHistRender(){
     out+='<b style="color:#4ade80;font-size:15px;flex:none">'+(last?dsEuro(last.p):"-")+'</b></div>';
     if(en.pts.length) out+=dsChart(en.pts); // v3.82: grafiek ook bij 1 meetpunt
     if(en.pts.length){ var dL=new Date(last.d), p2=function(nn){ return (nn<10?"0":"")+nn; };
-      out+='<div class="n" style="margin:2px 0 0">Laatst: '+dL.getDate()+'-'+(dL.getMonth()+1)+' '+p2(dL.getHours())+':'+p2(dL.getMinutes())+' · laagste: '+dsEuro(mn)+' · hoogste: '+dsEuro(mx)+' · '+en.pts.length+' meting(en)</div>'; }
+      var oud=(dL.getHours()===0&&dL.getMinutes()===0&&dL.getSeconds()===0); // v3.83: oude meting uit v3.81 (dag zonder tijd) -> alleen datum
+      out+='<div class="n" style="margin:2px 0 0">Laatst: '+dL.getDate()+'-'+(dL.getMonth()+1)+' '+(oud?'(vóór v3.82)':p2(dL.getHours())+':'+p2(dL.getMinutes()))+' · laagste: '+dsEuro(mn)+' · hoogste: '+dsEuro(mx)+' · '+en.pts.length+' meting(en)</div>'; }
     if(en.tg>0) out+='<div class="n dsTgt" style="margin:2px 0 0">🎯 Doelprijs: '+dsEuro(en.tg)+(last&&last.p<=en.tg?" - GEHAALD! 🎉":"")+'</div>';
     out+='<button class="btn dark" style="margin:8px 0 0;font-size:12px;padding:8px" onclick="dsSetTg(\''+ek+'\')">🎯 Doelprijs '+(en.tg>0?"wijzigen":"instellen")+'</button>';
     out+='</div>';
@@ -1679,7 +1682,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.82";
+var VERSION="3.83";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
