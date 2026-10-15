@@ -284,7 +284,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.108</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.109</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -396,7 +396,7 @@
 <div class="view" id="colDetailView">
   <div id="colDetailScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="colDetailScroll">
-    <button class="btn dark" onclick="showView('collectionView');colRender()"><span class="bt"><span class="bi">⬅</span>Terug naar collectie</span></button>
+    <button class="btn dark" onclick="goBackTo('collectionView');colRender()"><span class="bt"><span class="bi">⬅</span>Terug naar collectie</span></button>
   </div>
 </div>
 <script>
@@ -1579,7 +1579,7 @@ function dsSaveForm(){
     if(hit){ hit.name=nm; hit.url=u; hit.term=tm; hit.max=mx; } }
   else a.items.push({id:Date.now(), name:nm, url:u, term:tm, max:mx});
   dsSave(a); delete dsRes[dsEditId];
-  if(dsEditId){ showView("dealView"); dsRender(); return; }
+  if(dsEditId){ goBackTo("dealView"); dsRender(); return; }
   var sg=document.getElementById("dsSavedMsg"); if(sg) sg.textContent="✅ "+nm+" toegevoegd - vul de volgende winkel in (of ga terug)."; // v3.93: meerdere winkels achter elkaar
   ["dsName","dsTerm","dsMax"].forEach(function(i){ document.getElementById(i).value=""; });
   document.getElementById("dsUrl").value="https://www.";
@@ -1644,7 +1644,7 @@ function dsHistView(sid){ dsHistSite=sid; showView("dsHistView"); dsHistRender()
 function dsHistRender(){
   var sc=document.getElementById("dsHistScroll"); if(!sc) return;
   var a=dsLoad(), e=null; a.items.forEach(function(x){ if(x.id===dsHistSite) e=x; });
-  if(!e){ showView("dealView"); dsRender(); return; }
+  if(!e){ goBackTo("dealView"); dsRender(); return; }
   var h=dsHistLoad(), out='<div class="card"><div style="font-size:15px;font-weight:800">📈 Prijshistorie - '+colEsc(e.name)+'</div>';
   out+='<div class="n">Alle producten die de scanner hier vond, met hun prijsgeschiedenis (1 meting per dag). Stel per product een 🎯 doelprijs in: zit een scan daaronder, dan krijg je meteen een melding.</div></div>';
   var rows=[];
@@ -1914,7 +1914,7 @@ function fbSync(interactive){
 <div class="view" id="dsHistView">
   <div id="dsHistScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="dsHistScroll">
-    <button class="btn dark" onclick="showView('dealView');dsRender()"><span class="bt"><span class="bi">⬅</span>Terug naar scanner</span></button>
+    <button class="btn dark" onclick="goBackTo('dealView');dsRender()"><span class="bt"><span class="bi">⬅</span>Terug naar scanner</span></button>
   </div>
 </div>
 
@@ -1952,7 +1952,7 @@ function fbSync(interactive){
 <!-- ===== SCAN-DETAIL ===== -->
 <div class="view" id="detailView">
   <div id="detailScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
-  <div class="bottomBar" data-scroll="detailScroll"><button class="btn dark" onclick="showView('historyView')"><span class="bt"><span class="bi">⬅</span>Terug naar database</span></button></div>
+  <div class="bottomBar" data-scroll="detailScroll"><button class="btn dark" onclick="goBackTo('historyView')"><span class="bt"><span class="bi">⬅</span>Terug naar database</span></button></div>
 </div>
 
 <!-- ===== HISTORIE & RAPPORT ===== -->
@@ -1979,7 +1979,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.108";
+var VERSION="3.109";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -1992,6 +1992,7 @@ function showView(id, noPush){
   // v2.70: alleen vooruit-navigatie bouwt geschiedenis op; terug-knop (noPush) bouwt af -
   // anders bleef je heen en weer springen tussen twee paginas
   if(!noPush && id!=="home" && id!==curView) viewStack.push(curView); // v2.60: paginageschiedenis voor terug-knop
+  if(curView==="loginView" && id!=="loginView"){ viewStack=viewStack.filter(function(v){ return v!=="loginView"; }); } // v3.109: login was een omweg, niet een stap in de geschiedenis
   curView=id;
   document.getElementById(id).classList.add("active");
   document.getElementById("backBtn").style.visibility=(id==="home")?"hidden":"visible"; // v2.62
@@ -1999,6 +2000,11 @@ function showView(id, noPush){
 }
 // v2.60: terug naar vorige pagina
 function goBack(){ showView(viewStack.pop()||"home", true); } // v2.70: pop zonder opnieuw te pushen
+function goBackTo(id){ // v3.109: "terug naar X" bouwt de geschiedenis af in plaats van op te bouwen - geen lussen meer
+  var i=viewStack.lastIndexOf(id);
+  if(i>=0){ viewStack.length=i; showView(id,true); return; }
+  showView(viewStack.pop()||id, true); // X niet in de geschiedenis? dan toch 1 laag terug
+}
 // v3.33: beginscherm verversen (herlaadt de app + haalt alles opnieuw op)
 function refreshHome(){ try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){} location.replace(location.pathname+'?v='+VERSION+'&r='+Date.now()); }
 function refreshBtnTap(){ // v3.47: bovenbalk-verversknop: agenda of beginscherm
@@ -3601,5 +3607,6 @@ function exportCSV(){
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="KtKTTyxIoFtDli9TQwL1tQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
+
 
 
