@@ -165,6 +165,14 @@
   body.pink .colQty { background:#ec4899; color:#fff; }
   body.pink .note { color:#f472b6; border-color:rgba(244,114,182,.3); }
   body.pink #zoomInd { color:#f472b6; }
+  /* v3.27: push-stijl melding bij eigen login */
+  #pushBanner { position:fixed; top:calc(10px + env(safe-area-inset-top)); left:50%;
+    transform:translateX(-50%) translateY(-90px); z-index:300; background:#1e293b;
+    color:#facc15; font-weight:800; font-size:14px; border:1px solid #facc15;
+    border-radius:14px; padding:12px 18px; box-shadow:0 6px 20px rgba(0,0,0,.5);
+    opacity:0; transition:all .35s ease; pointer-events:none; max-width:90%;
+    text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #pushBanner.show { transform:translateX(-50%) translateY(0); opacity:1; }
 </style>
 <script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -172,6 +180,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+<div id="pushBanner"></div>
 
 <!-- v2.62: vaste bovenbalk: terug links, logo+naam midden, verversen rechts -->
 <div class="topBar">
@@ -196,7 +205,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.26</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.27</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -548,7 +557,7 @@ function fbInit(){
       fbStatus(fbErr(err));
     });
     FB.auth.onAuthStateChanged(function(u){
-      FB.user=u; fbUpdateMenu(); updateHome(); applyTheme();
+      FB.user=u; fbUpdateMenu(); updateHome(); applyTheme(); loginPush(u);
       if(u){
         var g=fbGo; fbGo=null;
         if(g==="collectionView") renderCollection();
@@ -572,6 +581,17 @@ document.addEventListener("DOMContentLoaded", updateHome);
 function applyTheme(){
   var e=(FB.user&&FB.user.email)?String(FB.user.email).toLowerCase():"";
   document.body.classList.toggle("pink", e==="chantalbelshofts@gmail.com");
+}
+// v3.27: push-achtige melding op je eigen telefoon zodra jij zelf inlogt
+function loginPush(u){
+  var e=(u&&u.email)?String(u.email).toLowerCase():"";
+  if(e!=="yda9qqc6@gmail.com") return;
+  var b=document.getElementById("pushBanner"); if(!b) return;
+  b.textContent="🔔 Azeuqirz Vibe — je bent ingelogd!";
+  b.classList.add("show");
+  try{ if(navigator.vibrate) navigator.vibrate(80); }catch(e2){}
+  clearTimeout(window._pbT);
+  window._pbT=setTimeout(function(){ b.classList.remove("show"); },5000);
 }
 
 // ---- menu ----
@@ -759,7 +779,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.26";
+var VERSION="3.27";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
