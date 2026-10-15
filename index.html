@@ -184,7 +184,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.16</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.17</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -517,6 +517,11 @@ function fbInit(){
     firebase.initializeApp(FIREBASE_CONFIG);
     FB.auth=firebase.auth(); FB.db=firebase.firestore();
     FB.ready=true;
+    FB.auth.getRedirectResult().catch(function(err){
+      var m=document.getElementById("logMsg");
+      if(m) m.textContent=fbErr(err);
+      fbStatus(fbErr(err));
+    });
     FB.auth.onAuthStateChanged(function(u){
       FB.user=u; fbUpdateMenu();
       if(u) fbSync(false); // v3.07-keuze: verversen bij het openen van de app
@@ -548,6 +553,9 @@ function fbErr(e){
   if(c.indexOf("network")>=0) return "Geen internetverbinding.";
   if(c.indexOf("too-many-requests")>=0) return "Te veel pogingen — even wachten.";
   if(c.indexOf("api-key-not-valid")>=0||c.indexOf("configuration-not-found")>=0) return "Firebase-instelling klopt nog niet (config).";
+  if(c.indexOf("unauthorized-domain")>=0) return "Dit domein staat nog niet in Firebase: Authentication > Settings > Authorized domains > voeg azeuqirz.github.io toe.";
+  if(c.indexOf("operation-not-allowed")>=0) return "Google-inloggen staat nog niet aan in Firebase: Authentication > Sign-in method > Google > Enable.";
+  if(c.indexOf("admin-restricted-operation")>=0) return "Firestore-regels blokkeren nog: plak de users-regels bij Firestore > Rules."
   return "Mislukt: "+((e&&e.message)||"onbekende fout");
 }
 function fbRenderLogin(){
@@ -701,7 +709,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.16";
+var VERSION="3.17";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
