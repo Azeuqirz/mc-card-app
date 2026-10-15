@@ -277,7 +277,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.98</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.99</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1414,17 +1414,20 @@ function dsDupPick(ix){ // v3.92: alle prijzen naast elkaar + winkel kiezen
   var seen={}, cnt=0;
   g.items.forEach(function(it){
     if(seen[it.sid]) return; seen[it.sid]=1; cnt++;
-    var row=document.createElement("div"); row.className="dsDupRow";
+    // v3.99: winkel en prijs netjes onder elkaar + kleine Kiezen-knop
+    var row=document.createElement("div"); row.className="dsDupRow"; row.style.cssText="display:block";
+    var tp=document.createElement("div"); tp.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:8px";
     var lf=document.createElement("div"); lf.style.cssText="flex:1;min-width:0";
     var nm=document.createElement("div"); nm.textContent=it.sn;
     nm.style.cssText="font-size:12px;font-weight:700"; lf.appendChild(nm);
     var ur=document.createElement("div"); ur.textContent=it.u;
     ur.style.cssText="font-size:9px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"; lf.appendChild(ur);
-    row.appendChild(lf);
+    tp.appendChild(lf);
     var pr=document.createElement("b"); pr.textContent=dsEuro(it.p);
-    pr.style.cssText="font-size:14px;color:#4ade80;flex:none"; row.appendChild(pr);
+    pr.style.cssText="font-size:15px;color:#4ade80;flex:none"; tp.appendChild(pr);
+    row.appendChild(tp);
     var bt=document.createElement("button"); bt.className="btn yellow"; bt.textContent="Kiezen";
-    bt.style.cssText="flex:none;margin:0;padding:8px 10px;font-size:12px";
+    bt.style.cssText="display:block;margin:8px 0 0;padding:7px 14px;font-size:12px;width:auto";
     bt.onclick=function(){ window.open(it.u,"_blank"); dsDupClose(); };
     row.appendChild(bt); box.appendChild(row);
   });
@@ -1943,7 +1946,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.98";
+var VERSION="3.99";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
