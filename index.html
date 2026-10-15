@@ -189,6 +189,14 @@
   body.pink .score b { color:#f472b6; }
   body.pink .n span[style*='facc15'] { color:#f472b6 !important; }
   body.pink h1 { color:#f9a8d4; }
+  /* v3.40: confetti bij verjaardag in de agenda */
+  #confetti { position:fixed; inset:0; z-index:400; pointer-events:none; overflow:hidden; display:none; }
+  #confetti i { position:absolute; top:-20px; display:block; border-radius:2px;
+    animation:confFall linear forwards; }
+  @keyframes confFall {
+    0% { transform:translateY(0) rotate(0deg); opacity:1; }
+    100% { transform:translateY(105vh) rotate(720deg); opacity:.85; }
+  }
 </style>
 <script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -197,6 +205,7 @@
 </head>
 <body>
 <div id="pushBanner"></div>
+<div id="confetti"></div>
 
 <!-- v2.62: vaste bovenbalk: terug links, logo+naam midden, verversen rechts -->
 <div class="topBar">
@@ -223,7 +232,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.39</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.40</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -590,6 +599,7 @@ function fbInit(){
         else if(g==="historyView") renderHistory();
         else { var lv=document.getElementById("loginView"); if(lv&&lv.classList.contains("active")) showView("home"); }
         fbSync(false); // v3.07-keuze: verversen bij het openen van de app
+        agCloudPull(function(){ setTimeout(agNotifyNew, 6000); }); // v3.40: melding van nieuwe afspraken, ná de inlog-melding
       }
     });
   }catch(e){}
@@ -628,6 +638,52 @@ function agSave(a){ localStorage.setItem(AG_KEY, JSON.stringify(a)); }
 function cap1(s){ s=String(s||""); return s.charAt(0).toUpperCase()+s.slice(1); } // v3.38: afspraak begint altijd met een hoofdletter
 function agTm(e){ return (e&&typeof e.tm==="number")?e.tm:540; } // v3.39: tijd in minuten, bestaande afspraken standaard 09:00
 function agFmt(tm){ var hh=Math.floor(tm/60), mm=tm%60; return (hh<10?"0":"")+hh+":"+(mm<10?"0":"")+mm; }
+// ===== v3.40: confetti bij verjaardag (1x per dag) + melding van nieuwe afspraken =====
+function agConfetti(){
+  var w=document.getElementById("confetti"); if(!w) return;
+  w.style.display="block"; w.innerHTML="";
+  var cols=["#facc15","#f59e0b","#ec4899","#f472b6"], i, p;
+  for(i=0;i<90;i++){
+    p=document.createElement("i");
+    p.style.left=(Math.random()*100)+"vw";
+    p.style.width=p.style.height=(6+Math.random()*7)+"px";
+    p.style.background=cols[i%cols.length];
+    p.style.animationDuration=(2.4+Math.random()*1.8)+"s";
+    p.style.animationDelay=(Math.random()*0.9)+"s";
+    w.appendChild(p);
+  }
+  setTimeout(function(){ w.style.display="none"; w.innerHTML=""; }, 5200);
+}
+document.addEventListener("DOMContentLoaded", function(){
+  setTimeout(function(){
+    try{
+      var tK=new Date(); tK=new Date(tK.getFullYear(),tK.getMonth(),tK.getDate()).getTime();
+      if(Number(localStorage.getItem("mcConfDay"))===tK) return;
+      var a=agLoad(), has=false;
+      a.forEach(function(e){ var d2=new Date(e.d);
+        if(new Date(d2.getFullYear(),d2.getMonth(),d2.getDate()).getTime()===tK && /verjaardag/i.test(e.txt)) has=true; });
+      if(has){ localStorage.setItem("mcConfDay", String(tK)); agConfetti(); }
+    }catch(e){}
+  }, 900);
+});
+var AG_SEEN="mcAgSeen"; // v3.40: tot wanneer afspraken gezien zijn
+function agNotifyNew(){
+  try{
+    if(!FB.user) return;
+    var me=String(FB.user.email).toLowerCase();
+    var seen=Number(localStorage.getItem(AG_SEEN))||0;
+    if(!seen){ localStorage.setItem(AG_SEEN, String(Date.now())); return; } // eerste keer: niet melden
+    var news=agLoad().filter(function(e){ return e.id>seen && e.by!==me; });
+    if(!news.length) return;
+    var b=document.getElementById("pushBanner"); if(!b) return;
+    if(news.length===1){ var d2=new Date(news[0].d);
+      b.textContent="📅 Nieuwe afspraak van "+agName(news[0].by)+" "+d2.getDate()+"-"+(d2.getMonth()+1)+" om "+agFmt(agTm(news[0]))+": "+cap1(news[0].txt); }
+    else b.textContent="📅 "+news.length+" nieuwe afspraken in de gedeelde agenda";
+    b.classList.add("show");
+    try{ if(navigator.vibrate) navigator.vibrate(80); }catch(e2){}
+    clearTimeout(window._pbT); window._pbT=setTimeout(function(){ b.classList.remove("show"); },6000);
+  }catch(e){}
+}
 function agName(by){ return by==="chantalbelshofts@gmail.com" ? "Chantal" : "Jij"; }
 function agColor(by){ return by==="chantalbelshofts@gmail.com" ? "#ec4899" : "#facc15"; }
 function menuGoAgenda(){ toggleMenu(); renderAgenda(); }
@@ -769,6 +825,7 @@ function agRender(){
     });
   }
   sc.innerHTML=h;
+  try{ localStorage.setItem("mcAgSeen", String(Date.now())); }catch(e){} // v3.40: vanaf nu gezien
 }
 function agShift(n){ agMonth=new Date(agMonth.getFullYear(), agMonth.getMonth()+n, 1); agRender(); }
 function agDay(k){
@@ -989,7 +1046,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.39";
+var VERSION="3.40";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
