@@ -285,7 +285,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.116</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.117</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1507,7 +1507,7 @@ function dsRender(){
     h+='<div class="dsGrid">';
     dups.forEach(function(g,ix){
       var it=g.items[0];
-      if(g.cnt>1){ // v3.93: zelfde product bij meerdere winkels -> vergelijken
+      if(g.items.length>1){ // v3.117: vergelijk-tegel bij meer dan 1 product - ook als ze bij dezelfde winkel horen ( anders "verdween" het 2e product van de tegel)
         var selT=dsLinkSel&&g.items.some(function(t){ return dsLinkSel.ks[t.k]; });
         h+='<div class="dsTile" onclick="dsDupPick('+ix+')" style="cursor:pointer'+(selT?';outline:2px solid #facc15':'')+'">';
         h+= g.i ? '<img src="'+colEsc(g.i)+'" loading="lazy">' : '';
@@ -1995,7 +1995,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.116";
+var VERSION="3.117";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3629,6 +3629,7 @@ function exportCSV(){
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="KtKTTyxIoFtDli9TQwL1tQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
+
 
 
 
