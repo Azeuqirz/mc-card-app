@@ -241,7 +241,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.41</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.42</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -648,21 +648,55 @@ function cap1(s){ s=String(s||""); return s.charAt(0).toUpperCase()+s.slice(1); 
 function agTm(e){ return (e&&typeof e.tm==="number")?e.tm:540; } // v3.39: tijd in minuten, bestaande afspraken standaard 09:00
 function agFmt(tm){ var hh=Math.floor(tm/60), mm=tm%60; return (hh<10?"0":"")+hh+":"+(mm<10?"0":"")+mm; }
 // ===== v3.40: confetti bij verjaardag (1x per dag) + melding van nieuwe afspraken =====
-function agConfetti(nm){ // v3.41: nm = naam van de jarige
+function agConfetti(nm, multi){ // v3.41: nm = naam van de jarige; v3.42: multi = regenboog voor een ander
   var w=document.getElementById("confetti"); if(!w) return;
   w.style.display="block"; w.innerHTML="";
   if(nm){ var t=document.createElement("b"); t.textContent="🎉 Gefeliciteerd "+nm+"! 🎂"; w.appendChild(t); }
-  var cols=["#facc15","#f59e0b","#ec4899","#f472b6"], i, p;
-  for(i=0;i<90;i++){
+  var cols=multi ? ["#ef4444","#f97316","#facc15","#4ade80","#38bdf8","#818cf8","#a855f7","#ec4899"]
+                : ["#facc15","#f59e0b","#ec4899","#f472b6"], i, p;
+  for(i=0;i<120;i++){
     p=document.createElement("i");
     p.style.left=(Math.random()*100)+"vw";
     p.style.width=p.style.height=(6+Math.random()*7)+"px";
     p.style.background=cols[i%cols.length];
-    p.style.animationDuration=(2.4+Math.random()*1.8)+"s";
-    p.style.animationDelay=(Math.random()*0.9)+"s";
+    p.style.animationDuration=(3+Math.random()*3)+"s";
+    p.style.animationDelay=(Math.random()*3)+"s";
     w.appendChild(p);
   }
-  setTimeout(function(){ w.style.display="none"; w.innerHTML=""; }, 5200);
+  agSong(); // v3.42: verjaardagsliedje erbij
+  setTimeout(function(){ w.style.display="none"; w.innerHTML=""; }, 10500);
+}
+// v3.42: "Happy Birthday" op WebAudio (~11 sec, geen geluidsbestand nodig)
+var AG_AC=null;
+function agSong(){
+  try{
+    if(!AG_AC) AG_AC=new (window.AudioContext||window.webkitAudioContext)();
+    var go=function(){ if(AG_AC.state!=="running") return false; agSongPlay(AG_AC); return true; };
+    AG_AC.resume().then(function(){ if(!go()){ // iOS: wachten op eerste tikje
+      var un=function(){ AG_AC.resume().then(function(){ go(); }); document.removeEventListener("touchstart",un,true); document.removeEventListener("pointerdown",un,true); };
+      document.addEventListener("touchstart",un,true); document.addEventListener("pointerdown",un,true); } });
+  }catch(e){}
+}
+function agSongPlay(ac){
+  if(ac._agBusy) return; ac._agBusy=true; setTimeout(function(){ ac._agBusy=false; }, 12000);
+  var N={G:392,A:440,B:493.88,C:523.25,D:587.33,E:659.25,F:698.46,H:783.99},
+      seq=[["G",.5],["G",.5],["A",1],["G",1],["C",1],["B",2],
+           ["G",.5],["G",.5],["A",1],["G",1],["D",1],["C",2],
+           ["G",.5],["G",.5],["H",1],["E",1],["C",1],["B",1],["A",2],
+           ["F",.5],["F",.5],["E",1],["C",1],["D",1],["C",2]],
+      t=ac.currentTime+.05, b=.42;
+  seq.forEach(function(s){
+    var o=ac.createOscillator(), g=ac.createGain();
+    o.type="triangle"; o.frequency.value=N[s[0]];
+    var d=s[1]*b;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(.25,t+.03);
+    g.gain.setValueAtTime(.25,t+d-.05);
+    g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g); g.connect(ac.destination);
+    o.start(t); o.stop(t+d+.02);
+    t+=d;
+  });
 }
 document.addEventListener("DOMContentLoaded", function(){
   setTimeout(function(){
@@ -677,7 +711,8 @@ document.addEventListener("DOMContentLoaded", function(){
           if(na && na[1] && na[1].trim()) jarige=na[1].trim();
           else if(vo && vo[1] && vo[1].trim()) jarige=vo[1].trim();
         } });
-      if(has){ localStorage.setItem("mcConfDay", String(tK)); agConfetti(jarige); }
+      var multi=jarige && !/chantal/i.test(jarige) && !/uber/i.test(jarige); // v3.42: ander dan ons 2 -> regenboog
+      if(has){ localStorage.setItem("mcConfDay", String(tK)); agConfetti(jarige, multi); }
     }catch(e){}
   }, 900);
 });
@@ -1061,7 +1096,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.41";
+var VERSION="3.42";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
