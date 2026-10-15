@@ -176,6 +176,8 @@
     opacity:0; transition:all .35s ease; pointer-events:none; max-width:90%;
     text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #pushBanner.show { transform:translateX(-50%) translateY(0); opacity:1; }
+  /* v3.96: melding ingedrukt houden = hele tekst zichtbaar (anders afgekapt met ...) */
+  #pushBanner.full { white-space:normal; overflow:visible; text-overflow:clip; line-height:1.35; }
   /* v3.31: roze thema compleet - ook banner, menu-kop, grafieken en gele accent-tekst */
   body.pink #pushBanner { color:#f472b6; border-color:#ec4899; }
   body.pink .mHead { color:#ec4899; }
@@ -275,7 +277,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.95</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.96</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -695,6 +697,18 @@ function pbSwipe(){
   }, {passive:true});
 }
 document.addEventListener("DOMContentLoaded", pbSwipe);
+// v3.96: melding ingedrukt houden -> hele melding tonen zolang je hem vasthoudt
+function pbHold(){
+  var b=document.getElementById("pushBanner"); if(!b) return;
+  var tm=null;
+  b.addEventListener("touchstart", function(){ clearTimeout(tm); tm=setTimeout(function(){ b.classList.add("full"); try{ if(navigator.vibrate) navigator.vibrate(15); }catch(e){} }, 350); }, {passive:true});
+  var off=function(){ clearTimeout(tm); tm=null; b.classList.remove("full"); };
+  b.addEventListener("touchend", off);
+  b.addEventListener("touchcancel", off);
+  b.addEventListener("mousedown", function(){ clearTimeout(tm); tm=setTimeout(function(){ b.classList.add("full"); }, 350); });
+  b.addEventListener("mouseup", off);
+}
+document.addEventListener("DOMContentLoaded", pbHold);
 function loginPush(u){
   var e=(u&&u.email)?String(u.email).toLowerCase():"";
   if(e!=="yda9qqc6@gmail.com"&&e!=="chantalbelshofts@gmail.com") return;
@@ -1922,7 +1936,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.95";
+var VERSION="3.96";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
