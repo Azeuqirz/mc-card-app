@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>M&amp;C ai Card App</title>
-<meta name="apple-mobile-web-app-title" content="M&amp;C Cards">
+<title>M&amp;C App</title>
+<meta name="apple-mobile-web-app-title" content="M&amp;C App">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2"><link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png?v=2">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect x='14' y='8' width='78' height='104' rx='10' fill='%23f59e0b' transform='rotate(8 53 60)'/%3E%3Crect x='28' y='12' width='78' height='104' rx='10' fill='%231e293b' stroke='%23facc15' stroke-width='3'/%3E%3Ccircle cx='67' cy='64' r='34' fill='none' stroke='%23facc15' stroke-width='2.5' stroke-dasharray='4 5'/%3E%3Ctext x='67' y='74' text-anchor='middle' font-size='26' font-weight='800' fill='%23facc15' font-family='system-ui'%3EM%26C%3C/text%3E%3C/svg%3E">
 <style>
@@ -164,7 +164,7 @@
 <!-- v2.62: vaste bovenbalk: terug links, logo+naam midden, verversen rechts -->
 <div class="topBar">
   <div style="display:flex;gap:6px;flex:none"><button class="topBtn" id="menuBtn" onclick="toggleMenu()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button><button class="topBtn" id="backBtn" style="visibility:hidden" onclick="goBack()" aria-label="Terug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button></div>
-  <div class="tbTitle"><svg viewBox="0 0 120 120"><rect x="14" y="8" width="78" height="104" rx="10" fill="#f59e0b" transform="rotate(8 53 60)"/><rect x="28" y="12" width="78" height="104" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="3"/><text x="67" y="72" text-anchor="middle" font-size="28" font-weight="800" fill="#facc15" font-family="system-ui">M&amp;C</text></svg><span>M&amp;C ai Card App</span><span class="tbVer"></span></div>
+  <div class="tbTitle"><svg viewBox="0 0 120 120"><rect x="14" y="8" width="78" height="104" rx="10" fill="#f59e0b" transform="rotate(8 53 60)"/><rect x="28" y="12" width="78" height="104" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="3"/><text x="67" y="72" text-anchor="middle" font-size="28" font-weight="800" fill="#facc15" font-family="system-ui">M&amp;C</text></svg><span>M&amp;C App</span><span class="tbVer"></span></div>
   <!-- v2.84: ververs-knop verwijderd -->
 </div>
 
@@ -184,7 +184,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.24</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.25</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -201,8 +201,7 @@
       <line x1="87" y1="64" x2="105" y2="64" stroke="#facc15" stroke-width="2.5"/>
       <text x="67" y="72" text-anchor="middle" font-size="28" font-weight="800" fill="#facc15" font-family="system-ui, sans-serif">M&amp;C</text>
     </svg>
-    <h1>M&amp;C ai Card App</h1>
-    <p class="sub">Foto maken → centering checken</p>
+    <h1>M&amp;C App</h1>
   </header>
   <!-- v2.78: eigen camera-scherm met gele kaart-kader; native camera als fallback -->
   <!-- v3.22: actie-knoppen alleen zichtbaar als je ingelogd bent -->
@@ -215,7 +214,6 @@
   </label>
   <button class="btn dark" onclick="renderCollection()">🗂 Mijn collectie</button>
   <button class="btn dark" onclick="renderHistory()">📚 Mijn gescande kaarten &amp; rapport</button>
-  <p class="tip">Tip: kaart volledig in beeld, plat liggen, iPhone er recht boven, egale ondergrond zonder schaduw of glans.</p>
   </div>
   <button class="btn yellow" id="homeLogin" onclick="showView('loginView');fbRenderLogin()">🔐 Inloggen</button>
 </div>
@@ -744,7 +742,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.24";
+var VERSION="3.25";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
