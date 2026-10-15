@@ -206,6 +206,8 @@
     100% { opacity:1; transform:translateX(-50%) scale(1); }
   }
   body.pink #confetti b { color:#f472b6; }
+  /* v3.44: ververs-knop agenda in roze thema */
+  body.pink #agRefreshBtn { background:#4a1030; color:#f472b6; }
 </style>
 <script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -241,7 +243,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.43</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.44</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -766,16 +768,39 @@ function agParty(){
     AG_PARTY=n; agConfetti(jarige, multi, true); // quiet: geen liedje bij agenda-open
   }catch(e){}
 }
-function agCloudPull(cb){
+function agCloudPull(cb){ // v3.44: altijd verse server-data + gewijzigde afspraken meenemen
   if(!FB.ready||!FB.user){ if(cb) cb(); return; }
-  FB.db.collection("shared").doc("mccard").get().then(function(doc){
-    try{ var rem=doc.exists?(doc.data().agenda||[]):[];
-      var loc=agLoad(), have={}; loc.forEach(function(e){ have[e.id]=1; });
-      rem.forEach(function(e){ if(!have[e.id]) loc.push(e); });
+  var one=function(o){ return FB.db.collection("shared").doc("mccard").get(o); };
+  var merge=function(doc){
+    try{
+      var rem=doc.exists?(doc.data().agenda||[]):[];
+      var loc=agLoad(), map={};
+      loc.forEach(function(e){ map[e.id]=e; });
+      rem.forEach(function(e){
+        if(!e||!e.id) return;
+        var cur=map[e.id];
+        if(!cur) loc.push(e); // nieuw van de ander
+        else if(JSON.stringify(cur)!==JSON.stringify(e)){ // gewijzigd door de ander
+          var rT=Number(e.mTs)||Number(e.ts)||0, lT=Number(cur.mTs)||Number(cur.ts)||0;
+          if(rT>=lT){ var ix=loc.indexOf(cur); if(ix>=0) loc[ix]=e; }
+        }
+      });
       agSave(loc);
     }catch(e){}
     if(cb) cb();
-  }).catch(function(){ if(cb) cb(); });
+  };
+  one({source:"server"}).then(merge).catch(function(){ // geen internet: cache proberen
+    one().then(merge).catch(function(){ if(cb) cb(); });
+  });
+}
+function agRefresh(){ // v3.44: ververs-knop op de agenda-pagina
+  var b=document.getElementById("agRefreshBtn");
+  if(b){ b.style.opacity=".4"; b.disabled=true; }
+  agCloudPull(function(){
+    agRender();
+    if(b){ b.style.opacity=""; b.disabled=false; }
+    try{ if(navigator.vibrate) navigator.vibrate(20); }catch(e){}
+  });
 }
 function agCloudPush(){
   if(!FB.ready||!FB.user) return;
@@ -1070,8 +1095,9 @@ function fbSync(interactive){
 <!-- ===== AGENDA (v3.32) ===== -->
 <div class="view" id="agendaView">
   <div id="agendaScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
-  <div class="bottomBar" data-scroll="agendaScroll">
-    <button class="btn yellow" onclick="agAdd()"><span class="bt"><span class="bi">➕</span>Afspraak toevoegen</span></button>
+  <div class="bottomBar" data-scroll="agendaScroll" style="display:flex;gap:8px">
+    <button class="btn yellow" style="flex:1" onclick="agAdd()"><span class="bt"><span class="bi">➕</span>Afspraak toevoegen</span></button>
+    <button class="btn dark" id="agRefreshBtn" style="flex:none;padding:12px 16px" onclick="agRefresh()" aria-label="Verversen"><span class="bt"><span class="bi">🔄</span>Verversen</span></button>
   </div>
 </div>
 
@@ -1120,7 +1146,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.43";
+var VERSION="3.44";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
