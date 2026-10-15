@@ -255,6 +255,7 @@
     <button class="mItem" onclick="menuGoLogin()">🔐 Inloggen / account</button>
     <button class="mItem" onclick="fbSyncNow()">☁️ Nu synchroniseren</button>
     <button class="mItem" onclick="menuGoAgenda()">📅 Gedeelde agenda</button>
+    <button class="mItem" onclick="menuGoNotif()">🔔 Melding-geschiedenis</button>
     <button class="mItem danger" onclick="fbLogout()">⏏ Uitloggen</button>
     <div id="menuSync" class="n" style="padding:8px 10px 0"></div>
   </div>
@@ -263,7 +264,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.87</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.88</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -339,6 +340,14 @@
       <button class="btn dark" onclick="fbRegister()"><span class="bt"><span class="bi">✨</span>Account aanmaken</span></button>
       <div id="logMsg" class="n" style="margin-top:8px"></div>
     </div>
+  </div>
+</div>
+
+<!-- ===== MELDINGEN (v3.88) ===== -->
+<div class="view" id="ntView">
+  <div id="ntScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <div class="bottomBar" data-scroll="ntScroll">
+    <button class="btn dark" style="color:#f87171" onclick="ntClear()"><span class="bt"><span class="bi">🗑</span>Meldingen wissen</span></button>
   </div>
 </div>
 
@@ -1442,6 +1451,27 @@ function dsHistDel(ek){ // v3.85: product uit de historie verwijderen
   if(!confirm("Dit product uit de historie verwijderen?\n"+nm)) return;
   delete h.m[k]; dsHistSave(h); dsHistRender();
 }
+// ===== v3.88: MELDING-GESCHIEDENIS =====
+var NT_KEY="mcNotif";
+function ntLoad(){ try{ var a=JSON.parse(localStorage.getItem(NT_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function ntSave(a){ try{ localStorage.setItem(NT_KEY, JSON.stringify(a.slice(-100))); }catch(e){} }
+function ntLog(msg){ if(!msg) return; var a=ntLoad(); a.push({t:Date.now(), m:String(msg)}); ntSave(a); }
+document.addEventListener("DOMContentLoaded", function(){
+  var b=document.getElementById("pushBanner"); if(!b) return;
+  try{ new MutationObserver(function(){ if(b.classList.contains("show")&&b.textContent.trim()) ntLog(b.textContent.trim()); }).observe(b, {attributes:true, attributeFilter:["class"], childList:true, characterData:true, subtree:true}); }catch(e){}
+});
+function menuGoNotif(){ toggleMenu(); showView("ntView"); ntRender(); }
+function ntRender(){
+  var sc=document.getElementById("ntScroll"); if(!sc) return;
+  var a=ntLoad().slice().reverse(), out='<div class="card"><div style="font-size:15px;font-weight:800">🔔 Melding-geschiedenis</div><div class="n">De laatste 100 meldingen van de app - nieuwe afspraken, aanbiedingen en doelprijzen die onder de meldingsbalk zijn geweest.</div></div>';
+  if(!a.length) out+='<div class="note">Nog geen meldingen. Zodra de app er één toont (bovenin het gele/roze balkje), wordt die hier automatisch bewaard.</div>';
+  a.forEach(function(e){
+    var d=new Date(e.t), p=function(n){ return (n<10?"0":"")+n; };
+    out+='<div class="dsHistRow"><div class="n" style="margin:0;color:#94a3b8">'+d.getDate()+'-'+(d.getMonth()+1)+' '+p(d.getHours())+':'+p(d.getMinutes())+'</div><div style="font-size:13px;margin-top:2px">'+colEsc(e.m)+'</div></div>';
+  });
+  sc.innerHTML=out;
+}
+function ntClear(){ if(!confirm("Alle meldingen wissen?")) return; ntSave([]); ntRender(); }
 function agShift(n){ agMonth=new Date(agMonth.getFullYear(), agMonth.getMonth()+n, 1); agRender(); }
 function agDay(k){
   var a=agLoad(), evs=a.filter(function(e){ var d2=new Date(e.d); return new Date(d2.getFullYear(),d2.getMonth(),d2.getDate()).getTime()===k; });
@@ -1694,7 +1724,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.87";
+var VERSION="3.88";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
