@@ -184,7 +184,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.18</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.19</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -289,7 +289,7 @@ function colEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/<
 var colLast=null;
 
 function renderCollection(){
-  if(FB.ready&&!FB.user){ showView("loginView"); var m=document.getElementById("logMsg"); if(m) m.textContent="Log in om de gedeelde collectie te bekijken."; return; }
+  if(FB.ready&&!FB.user){ fbGo="collectionView"; showView("loginView"); var m=document.getElementById("logMsg"); if(m) m.textContent="Log in om de gedeelde collectie te bekijken."; return; }
   showView("collectionView"); colRender(); colRefresh();
 }
 
@@ -513,6 +513,7 @@ function colDel(id){
 // Zolang dit null is, blijven login en sync uitgeschakeld en werkt de app zoals voorheen (alles lokaal).
 var FIREBASE_CONFIG={apiKey:"AIzaSyCBWCNOTe8M5Wj9HmcdRZLSy_tlVALRkFQ",authDomain:"mc-card-app-bd39a.firebaseapp.com",projectId:"mc-card-app-bd39a",storageBucket:"mc-card-app-bd39a.firebasestorage.app",messagingSenderId:"325933558486",appId:"1:325933558486:web:6d88cd6985ce934f653777"};
 var FB={ ready:false, auth:null, db:null, user:null };
+var fbGo=null; // v3.19: view waar je na het inloggen automatisch naartoe gaat
 
 function fbInit(){
   if(FB.ready||!FIREBASE_CONFIG||typeof firebase==="undefined") return;
@@ -527,7 +528,13 @@ function fbInit(){
     });
     FB.auth.onAuthStateChanged(function(u){
       FB.user=u; fbUpdateMenu();
-      if(u) fbSync(false); // v3.07-keuze: verversen bij het openen van de app
+      if(u){
+        var g=fbGo; fbGo=null;
+        if(g==="collectionView") renderCollection();
+        else if(g==="historyView") renderHistory();
+        else { var lv=document.getElementById("loginView"); if(lv&&lv.classList.contains("active")) showView("home"); }
+        fbSync(false); // v3.07-keuze: verversen bij het openen van de app
+      }
     });
   }catch(e){}
 }
@@ -718,7 +725,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.18";
+var VERSION="3.19";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -2261,7 +2268,7 @@ function clearScans(){
   renderHistory();
 }
 function renderHistory(){
-  if(FB.ready&&!FB.user){ showView("loginView"); var m=document.getElementById("logMsg"); if(m) m.textContent="Log in om de gescande kaarten te bekijken."; return; }
+  if(FB.ready&&!FB.user){ fbGo="historyView"; showView("loginView"); var m=document.getElementById("logMsg"); if(m) m.textContent="Log in om de gescande kaarten te bekijken."; return; }
   var scans=getScans(), el=document.getElementById("histScroll"), html="";
   if(scans.length===0){
     html='<div class="note" style="margin-top:16px">Nog geen gescande kaarten. Maak een foto en analyseer hem — daarna verschijnt hij hier automatisch in je collectie.</div>';
