@@ -263,7 +263,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.81</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.82</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1344,16 +1344,19 @@ function dsHistSaveLocal(h){ try{ localStorage.setItem(DS_H_KEY, JSON.stringify(
 function dsHistPush(){ if(!FB.ready||!FB.user) return; try{ FB.db.collection("shared").doc("mccard").set({ dsHist:dsHistLoad(), dhT:Date.now() },{ merge:true }).catch(function(){}); }catch(e3){} }
 function dsHistSave(h){ h.e=Date.now(); dsHistSaveLocal(h); dsHistPush(); }
 function dsHistKey(id, p){ return String(id)+"|"+String(p.n||"").toLowerCase().slice(0,80); }
-function dsHistRec(id, prods){ // prijzen van deze scan bewaren (1 meting per dag per product)
-  var h=dsHistLoad(), now=new Date(), day=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(), changed=false;
+function dsHistRec(id, prods){ // v3.82: elke gewijzigde prijs (of na 1 uur) wordt een nieuw meetpunt
+  var h=dsHistLoad(), now=Date.now(), changed=false;
   prods.forEach(function(p){
     if(!p.p||String(p.n).indexOf("(gevonden prijs")===0) return;
     var k=dsHistKey(id,p), en=h.m[k];
     if(!en){ en=h.m[k]={sid:id, n:p.n, u:p.u||"", i:p.i||"", tg:0, pts:[]}; changed=true; }
     if(p.i&&!en.i){ en.i=p.i; changed=true; }
     if(!en.pts) en.pts=[];
-    if(en.pts.length&&en.pts[en.pts.length-1].d===day){ if(en.pts[en.pts.length-1].p!==p.p){ en.pts[en.pts.length-1].p=p.p; changed=true; } }
-    else{ en.pts.push({d:day,p:p.p}); changed=true; if(en.pts.length>40) en.pts=en.pts.slice(-40); }
+    var last=en.pts.length?en.pts[en.pts.length-1]:null;
+    if(last&&last.p===p.p&&now-last.d<3600e3){ return; } // zelfde prijs binnen 1 uur -> nog geen nieuw punt
+    if(last&&last.p===p.p){ en.pts.push({d:now,p:p.p}); } // v3.82: zelfde prijs, wel >1 uur geleden -> meetpunt
+    else { en.pts.push({d:now,p:p.p}); changed=true; }
+    if(en.pts.length>200) en.pts=en.pts.slice(-200);
   });
   if(changed) dsHistSave(h);
 }
@@ -1378,12 +1381,15 @@ function dsAutoNote(id, e, nHits, alarms){ // meldingen van de automatische star
   else if(nHits){ dsAutoMsgs.push("🔔 "+e.name+": "+nHits+" product(en) onder je max!"); }
   dsAutoTick();
 }
-function dsChart(pts){ // klein prijs-grafiekje per product
+function dsChart(pts){ // v3.82: klein prijs-grafiekje per product - ook 1 punt (stip) en x-as op tijd
   var W=120,H=40,P=4, i, mn=1e12, mx=-1e12;
   for(i=0;i<pts.length;i++){ if(pts[i].p<mn)mn=pts[i].p; if(pts[i].p>mx)mx=pts[i].p; }
   if(mx-mn<0.01) mx=mn+1;
-  var s="", dn=pts.length-1;
-  for(i=0;i<pts.length;i++){ var x=P+(dn>0?(W-2*P)*i/dn:0), y=H-P-(H-2*P)*(pts[i].p-mn)/(mx-mn); s+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1); }
+  var t0=pts[0].d, t1=pts[pts.length-1].d, dn=(t1>t0)?(t1-t0):1;
+  var xy=[];
+  for(i=0;i<pts.length;i++){ var x=P+(W-2*P)*(pts[i].d-t0)/dn, y=H-P-(H-2*P)*(pts[i].p-mn)/(mx-mn); xy.push([x,y]); }
+  if(pts.length===1){ var c0=xy[0]; return '<svg viewBox="0 0 '+W+' '+H+'" class="dsChart" style="width:120px;height:40px"><circle cx="'+c0[0].toFixed(1)+'" cy="'+c0[1].toFixed(1)+'" r="3" fill="#facc15"/></svg>'; }
+  var s=""; for(i=0;i<xy.length;i++){ s+=(i?" ":"")+xy[i][0].toFixed(1)+","+xy[i][1].toFixed(1); }
   return '<svg viewBox="0 0 '+W+' '+H+'" class="dsChart" style="width:120px;height:40px"><polyline points="'+s+'" fill="none" stroke="#facc15" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 }
 function dsHistView(sid){ dsHistSite=sid; showView("dsHistView"); dsHistRender(); }
@@ -1405,8 +1411,9 @@ function dsHistRender(){
     out+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">';
     out+='<div style="font-size:13px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(en.i?'<img src="'+colEsc(en.i)+'" loading="lazy" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#1e293b;vertical-align:middle;margin-right:8px">':'')+'<a href="'+colEsc(en.u)+'" target="_blank" rel="noopener" style="color:#f1f5f9;text-decoration:none">'+colEsc(en.n)+'</a></div>';
     out+='<b style="color:#4ade80;font-size:15px;flex:none">'+(last?dsEuro(last.p):"-")+'</b></div>';
-    if(en.pts.length>1) out+=dsChart(en.pts);
-    if(en.pts.length) out+='<div class="n" style="margin:2px 0 0">Laagste: '+dsEuro(mn)+' · hoogste: '+dsEuro(mx)+' · '+en.pts.length+' meting(en)</div>';
+    if(en.pts.length) out+=dsChart(en.pts); // v3.82: grafiek ook bij 1 meetpunt
+    if(en.pts.length){ var dL=new Date(last.d), p2=function(nn){ return (nn<10?"0":"")+nn; };
+      out+='<div class="n" style="margin:2px 0 0">Laatst: '+dL.getDate()+'-'+(dL.getMonth()+1)+' '+p2(dL.getHours())+':'+p2(dL.getMinutes())+' · laagste: '+dsEuro(mn)+' · hoogste: '+dsEuro(mx)+' · '+en.pts.length+' meting(en)</div>'; }
     if(en.tg>0) out+='<div class="n dsTgt" style="margin:2px 0 0">🎯 Doelprijs: '+dsEuro(en.tg)+(last&&last.p<=en.tg?" - GEHAALD! 🎉":"")+'</div>';
     out+='<button class="btn dark" style="margin:8px 0 0;font-size:12px;padding:8px" onclick="dsSetTg(\''+ek+'\')">🎯 Doelprijs '+(en.tg>0?"wijzigen":"instellen")+'</button>';
     out+='</div>';
@@ -1672,7 +1679,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.81";
+var VERSION="3.82";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
