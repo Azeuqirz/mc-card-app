@@ -249,7 +249,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.61</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.62</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1118,22 +1118,23 @@ function dsParse(html, pageUrl){
   prices.sort(function(a,b){ return a-b; });
   return prices.slice(0,5).map(function(v){ return {n:"(gevonden prijs op pagina)", p:v, u:pageUrl}; });
 }
-function dsFetch(url){ // v3.61: meerdere lees-kanaalen - Bol en co blokkeren sommige proxies
+function dsFetch(url){ // v3.62: 5 lees-kanaalen incl. tekst-lezer + direct
   return new Promise(function(resolve, reject){
     var hosts=[
       function(u){ return "https://api.allorigins.win/raw?url="+encodeURIComponent(u); },
       function(u){ return "https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u); },
-      function(u){ return "https://corsproxy.io/?url="+encodeURIComponent(u); }
+      function(u){ return "https://corsproxy.io/?url="+encodeURIComponent(u); },
+      function(u){ return "https://r.jina.ai/"+u; }, // tekst-lezer: leesbare tekst vd pagina
+      null // rechtstreeks zonder proxy (als de site dat toestaat)
     ];
-    var hi=0, tries=0, lastErr=null;
+    var hi=0, lastErr=null;
     function go(){
       if(hi>=hosts.length){ reject(lastErr||new Error("geen verbinding")); return; }
-      fetch(hosts[hi](url), {cache:"no-store"})
+      var target = hosts[hi] ? hosts[hi](url) : url;
+      fetch(target, {cache:"no-store"})
         .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.text(); })
-        .then(function(txt){ if(!txt||txt.length<200) throw new Error("leeg antwoord"); resolve(txt); })
-        .catch(function(e){ lastErr=e; tries++;
-          if(tries%2===0) hi++; // na 2 mislukkingen volgend kanaal
-          setTimeout(go, 700); });
+        .then(function(txt){ if(!txt||txt.length<100) throw new Error("leeg antwoord"); resolve(txt); })
+        .catch(function(e){ lastErr=e; hi++; setTimeout(go, 600); });
     }
     go();
   });
@@ -1176,7 +1177,7 @@ function dsRender(){
     h+='<div class="n"><a href="'+colEsc(e.url)+'" target="_blank" rel="noopener" style="color:#facc15">open pagina</a></div>';
     var r=dsRes[e.id];
     if(r==="scan"){ h+='<div class="n" style="color:#facc15">⏳ Scannen...</div>'; }
-    else if(r&&r.err){ h+='<div class="n" style="color:#f87171">Mislukt: '+colEsc(r.err)+' - sommige sites blokkeren automatisch lezen.</div>'; }
+    else if(r&&r.err){ h+='<div class="n" style="color:#f87171">Mislukt: '+colEsc(r.err)+' - de site of de lees-dienst blokkeert automatisch lezen. Bij een eigen winkel-pagina helpt het om de URL van een zoek- of aanbiedingen-pagina in te vullen.</div>'; }
     else if(r&&r.ok){
       h+='<div class="n" style="color:#4ade80;font-weight:800">✅ '+r.hits.length+' product(en) onder '+dsEuro(e.max)+'!</div>';
       r.hits.slice(0,10).forEach(function(p){ h+='<div class="n">🔥 <a href="'+colEsc(p.u)+'" target="_blank" rel="noopener" style="color:#fbbf24">'+colEsc(p.n)+'</a> · <b style="color:#4ade80">'+dsEuro(p.p)+'</b></div>'; });
@@ -1469,7 +1470,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.61";
+var VERSION="3.62";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
