@@ -285,7 +285,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.117</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.118</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -645,8 +645,7 @@ function colSetPrice(id){
 function colQty(id,d){
   var a=colLoad();
   a.forEach(function(c){ if(c.id===id){ c.qty=Math.max(1,(c.qty||1)+d); c.qtyT=Date.now(); } });
-  colSave(a); colHistPoint(); colDetail(id);
-  fbSync(); // v3.114: aantal-wijziging meteen naar de cloud - anders zet de sync het oude aantal terug
+  colSave(a); colHistPoint(); fbSync(); colDetail(id); // v3.114: aantal-wijziging meteen naar de cloud - anders zet de sync het oude aantal terug
 }
 function colDel(id){
   var a=colLoad().filter(function(c){ return c.id!==id; });
@@ -1434,7 +1433,7 @@ function dsDupes(a){ // v3.94: automatisch op naam + handmatige 🔗-koppelingen
     its.forEach(function(it){ if(!g.i&&it.i) g.i=it.i; });
     out.push(g);
   }
-  out.sort(function(x,y){ var mx=x.cnt>1?0:1, my=y.cnt>1?0:1; return mx-my || x.items[0].p-y.items[0].p; }); // v3.97: samengevoegde producten bovenaan
+  out.sort(function(x,y){ var mx=x.items.length>1?0:1, my=y.items.length>1?0:1; return mx-my || x.items[0].p-y.items[0].p; }); // v3.118: alle gekoppelde producten bovenaan - ook bij dezelfde winkel
   return out.slice(0,60);
 }
 function dsDupClose(){ var m=document.getElementById("dsDupModal"); if(m) m.parentNode.removeChild(m); }
@@ -1507,7 +1506,7 @@ function dsRender(){
     h+='<div class="dsGrid">';
     dups.forEach(function(g,ix){
       var it=g.items[0];
-      if(g.items.length>1){ // v3.117: vergelijk-tegel bij meer dan 1 product - ook als ze bij dezelfde winkel horen ( anders "verdween" het 2e product van de tegel)
+      if(g.items.length>1){ // v3.117: vergelijk-tegel bij meer dan 1 product - ook als ze bij dezelfde winkel horen (anders "verdween" het 2e product van de tegel)
         var selT=dsLinkSel&&g.items.some(function(t){ return dsLinkSel.ks[t.k]; });
         h+='<div class="dsTile" onclick="dsDupPick('+ix+')" style="cursor:pointer'+(selT?';outline:2px solid #facc15':'')+'">';
         h+= g.i ? '<img src="'+colEsc(g.i)+'" loading="lazy">' : '';
@@ -1995,7 +1994,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.117";
+var VERSION="3.118";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3629,9 +3628,6 @@ function exportCSV(){
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" nonce="KtKTTyxIoFtDli9TQwL1tQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
-
-
-
 
 
 
