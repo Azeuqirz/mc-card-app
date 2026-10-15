@@ -243,7 +243,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.47</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.48</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -654,7 +654,8 @@ function agConfetti(nm, multi, quiet){ // v3.43: nm = naam of array namen; quiet
   var w=document.getElementById("confetti"); if(!w) return;
   w.style.display="block"; w.innerHTML="";
   var nms=Array.isArray(nm)?nm.filter(Boolean):(nm?[nm]:[]);
-  if(nms.length){ var t=document.createElement("b"); t.textContent="🎉 Gefeliciteerd "+nms.join(" en ")+"! 🎂"; w.appendChild(t); }
+  var schat=nms.some(function(x){ return /chantal/i.test(x); }); // v3.48: Chantal jarig -> schatje
+  if(nms.length){ var t=document.createElement("b"); t.textContent=schat?"🎉 Gefeliciteerd schatje! 🎂":("🎉 Gefeliciteerd "+nms.join(" en ")+"! 🎂"); w.appendChild(t); }
 
   var cols=multi ? ["#ef4444","#f97316","#facc15","#4ade80","#38bdf8","#818cf8","#a855f7","#ec4899"]
                 : ["#facc15","#f59e0b","#ec4899","#f472b6"], i, p;
@@ -668,7 +669,24 @@ function agConfetti(nm, multi, quiet){ // v3.43: nm = naam of array namen; quiet
     w.appendChild(p);
   }
   if(!quiet) agSong(); // v3.42: liedje alleen bij de eerste keer openen die dag
-  setTimeout(function(){ w.style.display="none"; w.innerHTML=""; }, 10500);
+  // v3.48: bij Chantal extra confetti-regen zodat het hele beeld vol zit na ~15 s
+  var tot=10500;
+  if(schat){
+    tot=21000;
+    var rc=0, rIv=setInterval(function(){
+      if(rc>=660){ clearInterval(rIv); return; }
+      for(var j=0;j<22&&rc<660;j++){
+        var q=document.createElement("i");
+        q.style.left=(Math.random()*100)+"vw";
+        q.style.width=q.style.height=(5+Math.random()*7)+"px";
+        q.style.background=cols[rc%cols.length];
+        q.style.animationDuration=(6+Math.random()*8)+"s";
+        q.style.animationDelay="0s";
+        w.appendChild(q); rc++;
+      }
+    },500);
+  }
+  setTimeout(function(){ w.style.display="none"; w.innerHTML=""; }, tot);
 }
 // v3.43: alle jarigen van vandaag uit de agenda halen (ook meerdere namen: "Chantal en Tim jarig")
 function agJarigen(){
@@ -1157,7 +1175,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.47";
+var VERSION="3.48";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
