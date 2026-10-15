@@ -249,7 +249,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.66</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.67</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1118,26 +1118,10 @@ function dsParse(html, pageUrl){
   var anchors=[], am, ar=/<a\s[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi;
   while((am=ar.exec(html))){ anchors.push({u:am[1], end:am.index+am[0].length, tag:am[0]}); }
   function dsTxt(s){ return String(s).replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&#39;|&apos;/g,"'").replace(/&quot;/g,'"').replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\s+/g," ").trim(); }
-  // v3.66: naam uit afbeelding-alt in de link, dan linktekst, dan tekst tot de prijs
-  function dsNameOk(tx){
-    if(!tx||!/[a-zA-Z]/.test(tx)) return false;
-    if(/^(vanaf|van|ab\s|incl|excl|op voorraad|niet op voorraad|uitverkocht|in winkelwagen|voeg toe|toevoegen|bekijk|bestel|levertijd|levering|bezorging|gratis|korting|sale|aanbieding|nieuw|nu voor|middel|product toegevoegd)/i.test(tx)) return false;
-    if(/^[\d\s.,%\u20AC]+$/.test(tx)) return false;
-    return true;
-  }
-  function dsNameFor(a, pos){
-    var best="";
-    var tagAlt=/(?:alt|title|aria-label)\s*=\s*["']([^"']{3,140})["']/i.exec(a.tag);
-    if(tagAlt && dsNameOk(dsTxt(tagAlt[1]))) best=dsTxt(tagAlt[1]);
-    var close=html.indexOf("</a>", a.end);
-    var inner=(close>a.end && close<a.end+4000)?html.slice(a.end, close):html.slice(a.end, a.end+800);
-    var inAlt=/(?:alt|title|aria-label)\s*=\s*["']([^"']{3,140})["']/i.exec(inner);
-    if(inAlt && !best && dsNameOk(dsTxt(inAlt[1]))) best=dsTxt(inAlt[1]);
-    var tmatch, tr=/[A-Za-z\u00C0-\u024F][^<>{}|]{2,140}/g;
-    while((tmatch=tr.exec(inner.replace(/<[^>]*>/g," ")))){ var tx=dsTxt(tmatch[0]); if(dsNameOk(tx)&&tx.length>best.length) best=tx; }
-    var end=pos>a.end?pos:(a.end+800);
-    var seg=html.slice(a.end, Math.min(end, a.end+2000)), tr2=/>([^<>]{2,140})</g, tm2;
-    while((tm2=tr2.exec(seg))){ var tx2=dsTxt(tm2[1]); if(dsNameOk(tx2)&&tx2.length>best.length) best=tx2; }
+  function dsNameFor(a){
+    var seg=html.slice(a.end, a.end+1500), best="", tmatch, tr=/>([^<>]{2,120})</g;
+    while((tmatch=tr.exec(seg))){ var tx=dsTxt(tmatch[1]); if(/[a-zA-Z]/.test(tx)&&tx.length>best.length&&!/^(vanaf|van|ab\s)/i.test(tx)) best=tx; }
+    if(!best){ var alt=/(?:alt|title)\s*=\s*["']([^"']{3,120})["']/i.exec(a.tag); if(alt) best=dsTxt(alt[1]); }
     return best;
   }
   var pr=/(?:\u20AC|&euro;|EUR)[\s\u00a0]*(\d{1,4}(?:[.,]\d{1,2}))|"price"\s*:\s*"?(\d+(?:[.,]\d{1,2})?)/g, q;
@@ -1146,7 +1130,7 @@ function dsParse(html, pageUrl){
     var pos=q.index, a=null, ai;
     for(ai=anchors.length-1;ai>=0;ai--){ if(anchors[ai].end<=pos){ a=anchors[ai]; break; } }
     var href=pageUrl, nm="";
-    if(a && pos-a.end<2000){ href=a.u; nm=dsNameFor(a, pos); }
+    if(a && pos-a.end<2000){ href=a.u; nm=dsNameFor(a); }
     if(href && !/^https?:/i.test(href)){ try{ href=new URL(href, pageUrl).href; }catch(e2){} }
     href=String(href||pageUrl).split("#")[0];
     if(!nm) nm="(gevonden prijs op pagina)";
@@ -1507,7 +1491,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.66";
+var VERSION="3.67";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
