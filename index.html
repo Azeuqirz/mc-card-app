@@ -285,7 +285,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.127</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.128</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1505,7 +1505,7 @@ function dsRender(){
   var dups=dsDupes(a); dsDupList=dups; // v3.92
   if(dups.length){
     h+='<div class="card" style="border:2px solid rgba(74,222,128,.35)">';
-    h+='<div style="font-size:13px;font-weight:800">🛍 Alle producten - alle winkels samen</div>'; /* v3.127 */
+    /* v3.128: titel "Alle producten" weggehaald */
     h+='<div class="dsGrid">';
     dups.forEach(function(g,ix){
       var it=g.items[0];
@@ -1996,7 +1996,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.127";
+var VERSION="3.128";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
