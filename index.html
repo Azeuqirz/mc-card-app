@@ -249,7 +249,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header>
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.55</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.56</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -288,6 +288,7 @@
   </label>
   <button class="btn dark" onclick="renderCollection()"><span class="bt"><span class="bi">🗂</span>Mijn collectie</span></button>
   <button class="btn dark" onclick="renderHistory()"><span class="bt"><span class="bi">📚</span>Scanrapport</span></button>
+  <button class="btn dark" onclick="renderDeals()"><span class="bt"><span class="bi">🔥</span>Aanbiedingsscanner</span></button>
   </div>
 </div>
 
@@ -822,6 +823,7 @@ function agCloudPull(cb){ // v3.44: altijd verse server-data + gewijzigde afspra
         }
       });
       try{ var rs=doc.exists?doc.data().samen:null; if(rs&&rs.items){ var ls=smLoad(); if(Number(rs.e||0)>Number(ls.e||0)) smSaveLocal(rs); } }catch(e2){} // v3.49
+      try{ var rd=doc.exists?doc.data().deals:null; if(rd&&rd.items){ var ld=dsLoad(); if(Number(rd.e||0)>Number(ld.e||0)) dsSaveLocal(rd); } }catch(e3){} // v3.56
       agSave(loc);
     }catch(e){}
     if(cb) cb();
@@ -1062,6 +1064,108 @@ function smMenu(){ // v3.49: samen-dagen toevoegen / wijzigen / verwijderen
     smSave(s); agRender();
   }
 }
+// ===== v3.56: AANBIEDINGSSCANNER =====
+var DS_KEY="mcDeals";
+function dsLoad(){ try{ var a=JSON.parse(localStorage.getItem(DS_KEY)); if(a&&a.items) return a; }catch(e){}
+  var seed={e:Date.now(),items:[]}; dsSaveLocal(seed); return seed; }
+function dsSaveLocal(a){ try{ localStorage.setItem(DS_KEY, JSON.stringify(a)); }catch(e){} }
+function dsPush(){ if(!FB.ready||!FB.user) return; try{ FB.db.collection("shared").doc("mccard").set({ deals:dsLoad(), dlT:Date.now() },{ merge:true }).catch(function(){}); }catch(e){} }
+function dsSave(a){ a.e=Date.now(); dsSaveLocal(a); dsPush(); }
+var dsRes={}; // scan-resultaten per site-id (alleen lokaal, deze sessie)
+function renderDeals(){
+  if(FB.ready&&!FB.user){ showView("loginView"); var m=document.getElementById("logMsg"); if(m) m.textContent="Log in om de aanbiedingsscanner te gebruiken."; return; }
+  showView("dealView"); dsRender();
+}
+function dsEuro(v){ return "\u20AC "+(v||0).toFixed(2).replace(".",","); }
+function dsParse(html, pageUrl){
+  var out=[];
+  var re=/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi, m, seen={};
+  function walk(o){ // JSON-LD: schema.org Product/Offer/AggregateOffer
+    if(!o||typeof o!=="object") return;
+    if(Array.isArray(o)){ o.forEach(walk); return; }
+    var tp=o["@type"];
+    if(tp==="Product"&&o.offers){
+      var of=Array.isArray(o.offers)?o.offers[0]:o.offers, p=0;
+      while(of&&of["@type"]==="AggregateOffer"){ of=of.offers?(Array.isArray(of.offers)?of.offers[0]:of.offers):null; }
+      if(of&&of.price){ p=parseFloat(String(of.price).replace(",",".")); var nm=String(o.name||"Product"); var key=nm+"|"+p;
+        if(p>0&&!seen[key]){ seen[key]=1; out.push({n:nm, p:p, u:of.url||pageUrl}); } }
+    }
+    for(var k in o){ walk(o[k]); }
+  }
+  while((m=re.exec(html))){ try{ walk(JSON.parse(m[1])); }catch(e){} }
+  if(out.length) return out;
+  // fallback: alle euro-bedragen op de pagina, laagste 5 terug
+  var pr=/(?:\u20AC|&euro;|EUR)\s?(\d{1,4}(?:[.,]\d{1,2}))/g, q, prices=[];
+  while((q=pr.exec(html))){ var v=parseFloat(q[1].replace(",",".")); if(v>0) prices.push(v); }
+  prices.sort(function(a,b){ return a-b; });
+  return prices.slice(0,5).map(function(v){ return {n:"(gevonden prijs op pagina)", p:v, u:pageUrl}; });
+}
+function dsFetch(url){
+  return new Promise(function(resolve, reject){
+    var tries=0;
+    function go(){
+      fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(url), {cache:"no-store"})
+        .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.text(); })
+        .then(resolve)
+        .catch(function(e){ tries++; if(tries<3){ setTimeout(go, 800*tries); } else reject(e); });
+    }
+    go();
+  });
+}
+function dsScan(id){
+  var a=dsLoad(), e=null; a.items.forEach(function(x){ if(x.id===id) e=x; }); if(!e) return;
+  dsRes[id]="scan";
+  dsRender();
+  dsFetch(e.url).then(function(html){
+    var prods=dsParse(html, e.url), hits=prods.filter(function(p){ return p.p<=(e.max||0); });
+    dsRes[id]= hits.length?{ok:true,hits:hits}: {ok:false, lowest: prods.length?prods[0].p:null, prods:prods.length};
+    dsRender();
+  }).catch(function(err){
+    dsRes[id]={err: (err&&err.message)||"geen verbinding"};
+    dsRender();
+  });
+}
+function dsScanAll(){ var a=dsLoad(); a.items.forEach(function(e){ dsScan(e.id); }); }
+function dsRender(){
+  var sc=document.getElementById("dealScroll"), a=dsLoad(), h="";
+  h+='<div class="card"><div style="font-size:13px;font-weight:800">🔥 Aanbiedingsscanner</div>';
+  h+='<div class="n">Je eigen lijst met sites - de app kijkt of er producten onder jouw maximumprijs te vinden zijn. Voeg bijv. een Bol.com-zoekpagina of een cardshop toe.</div></div>';
+  if(!a.items.length){ h+='<div class="note">Nog geen sites. Tik op "Site toevoegen" en vul de URL van de pagina (bijv. zoekresultaat of aanbiedingen-pagina) + je maximumprijs in.</div>'; }
+  a.items.forEach(function(e){
+    h+='<div class="card"><div style="font-size:15px;font-weight:800">'+colEsc(e.name)+'</div>';
+    h+='<div class="n">Max: '+dsEuro(e.max)+' · <a href="'+colEsc(e.url)+'" target="_blank" rel="noopener" style="color:#facc15">open pagina</a></div>';
+    var r=dsRes[e.id];
+    if(r==="scan"){ h+='<div class="n" style="color:#facc15">⏳ Scannen...</div>'; }
+    else if(r&&r.err){ h+='<div class="n" style="color:#f87171">Mislukt: '+colEsc(r.err)+' - sommige sites blokkeren automatisch lezen.</div>'; }
+    else if(r&&r.ok){
+      h+='<div class="n" style="color:#4ade80;font-weight:800">✅ '+r.hits.length+' product(en) onder '+dsEuro(e.max)+'!</div>';
+      r.hits.slice(0,10).forEach(function(p){ h+='<div class="n">🔥 <a href="'+colEsc(p.u)+'" target="_blank" rel="noopener" style="color:#fbbf24">'+colEsc(p.n)+'</a> · <b style="color:#4ade80">'+dsEuro(p.p)+'</b></div>'; });
+    }
+    else if(r){ h+='<div class="n">Geen product onder '+dsEuro(e.max)+(r.lowest!=null?' - laagste gevonden: '+dsEuro(r.lowest):'')+'.</div>'; }
+    h+='<div style="display:flex;gap:6px;margin-top:8px">';
+    h+='<button class="btn yellow" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="dsScan('+e.id+')"><span class="bt"><span class="bi">🔍</span>Scannen</span></button>';
+    h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="dsEdit('+e.id+')"><span class="bt"><span class="bi">✏️</span>Wijzigen</span></button>';
+    h+='<button class="btn dark" style="flex:none;margin:0;font-size:12px;padding:8px;color:#f87171" onclick="dsDel('+e.id+')"><span class="bt"><span class="bi">🗑</span></span></button>';
+    h+='</div></div>';
+  });
+  sc.innerHTML=h;
+}
+function dsAdd(){
+  if(!FB.user){ showView("loginView"); return; }
+  var nm=prompt("Naam (bijv. Bol pikachu of Cardshop X):"); if(!nm) return;
+  var u=prompt("URL van de pagina om te scannen\n(bijv. https://www.bol.com/nl/s/... of een aanbiedingen-pagina):"); if(!u) return; u=u.trim();
+  if(!/^https?:\/\//.test(u)){ alert("URL moet beginnen met https://"); return; }
+  var mx=prompt("Maximumprijs in euro (bijv. 25):"); if(mx===null) return; mx=parseFloat(String(mx).replace(",","."))||0;
+  var a=dsLoad(); a.items.push({id:Date.now(), name:nm, url:u, max:mx}); dsSave(a); dsRender();
+}
+function dsEdit(id){
+  var a=dsLoad(), e=null; a.items.forEach(function(x){ if(x.id===id) e=x; }); if(!e) return;
+  var nm=prompt("Naam:", e.name); if(nm===null) return; if(nm) e.name=nm;
+  var u=prompt("URL:", e.url); if(u===null) return; if(u.trim()) e.url=u.trim();
+  var mx=prompt("Maximumprijs in euro:", String(e.max)); if(mx===null) return; mx=parseFloat(String(mx).replace(",",".")); if(mx>0) e.max=mx;
+  dsSave(a); dsRender();
+}
+function dsDel(id){ var a=dsLoad(); a.items=a.items.filter(function(x){ return x.id!==id; }); dsSave(a); delete dsRes[id]; dsRender(); }
 function agShift(n){ agMonth=new Date(agMonth.getFullYear(), agMonth.getMonth()+n, 1); agRender(); }
 function agDay(k){
   var a=agLoad(), evs=a.filter(function(e){ var d2=new Date(e.d); return new Date(d2.getFullYear(),d2.getMonth(),d2.getDate()).getTime()===k; });
@@ -1237,6 +1341,15 @@ function fbSync(interactive){
   </div>
 </div>
 
+<!-- ===== AANBIEDINGSSCAN (v3.56) ===== -->
+<div class="view" id="dealView">
+  <div id="dealScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <div class="bottomBar" data-scroll="dealScroll" style="display:flex;gap:8px">
+    <button class="btn yellow" onclick="dsAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Site toevoegen</span></button>
+    <button class="btn dark" onclick="dsScanAll()" style="flex:none;width:130px;margin-top:0"><span class="bt">Alles scannen</span></button>
+  </div>
+</div>
+
 <!-- ===== SCAN ===== -->
 <div class="view" id="scan">
   <div id="cropWrap"><div id="cropZoom"><img id="cropImg"><svg id="cropSvg"></svg></div></div>
@@ -1282,7 +1395,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.55";
+var VERSION="3.56";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
