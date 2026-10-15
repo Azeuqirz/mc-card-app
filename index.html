@@ -223,6 +223,11 @@
   .dsTile span { font-size:10px; color:#cbd5e1; text-align:center; line-height:1.2; margin-top:4px;
     overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; min-height:24px; }
   .dsTile b { font-size:12px; color:#4ade80; margin-top:3px; }
+  /* v3.81: prijshistorie per product */
+  .dsHistRow { background:#0f172a; border-radius:12px; padding:10px; margin-bottom:8px; }
+  body.pink .dsChart polyline { stroke:#f472b6 !important; }
+  .dsTgt { color:#facc15; }
+  body.pink .dsTgt { color:#f472b6 !important; }
 </style>
 <script type='text/javascript' nonce='KtKTTyxIoFtDli9TQwL1tQ==' src='https://chat.mistral.ai/LmEogiH_HG0_G7QkbU-VTI-uySunVHm55c-ZUGdnMBsAFQBrEaxzCwS5nul_s5VKiVa0XKreQY-gstHe1D08VOWsWG3lF71kgcBt8-VEtE0tG8FIC5tOEb3alnN3u5V9KBJk5PZZ3ieBt5KNFlsCvYbFWOIq1wKNQUWKnIbEMVJW8qQC6qGH6uj_BOah4BC2skLoUUhvKk-Cnt0ou_uZK2FdS3n8SPAOB6Go7Cvww2bUscuaJ-iGo1FgDrRJB9qN0cDFL_yi0KeVqWU6cDmUTCBe_77at-P__6LOQHjSsr1mRGKzludtCseVBmThm3plu7LkBPvZteL0NnXw3ZYYhDgXhKpWMPK33IJBY0cn130F4BR_X1HHtw3zypRmgWY95m5pZIzaqtfrDGccq2ituYhjphw0AC1gk8n8PFZaV0CFtWB9L9TeYu-JQSi_-e0q7PBXuiyH3YJ2s61Hp0e8c8MoEJ-_EW6FWvAzRcIJpIzRT7jurqQlQ1mYbOKM130lanUIHg4qD5NrpJD09ZX_HFdUm_Q66lr5bI5WRAW6uhgG62HpAFahm8K1o4L__0s-jXy8N-2MnJgU24lCpl7-TfOEAWVwMA'></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -258,7 +263,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.80</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.81</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -628,6 +633,7 @@ function fbInit(){
         else if(g==="historyView") renderHistory();
         else { var lv=document.getElementById("loginView"); if(lv&&lv.classList.contains("active")) showView("home"); }
         fbSync(false); // v3.07-keuze: verversen bij het openen van de app
+        setTimeout(function(){ try{ if(dsLoad().items.length) dsScanAll(true); }catch(e2){} }, 15000); // v3.81: alle sites automatisch scannen bij het openen van de app
         agCloudPull(function(){ setTimeout(agNotifyNew, 6000); }); // v3.40: melding van nieuwe afspraken, ná de inlog-melding
       }
     });
@@ -853,6 +859,7 @@ function agCloudPull(cb){ // v3.44: altijd verse server-data + gewijzigde afspra
       });
       try{ var rs=doc.exists?doc.data().samen:null; if(rs&&rs.items){ var ls=smLoad(); if(Number(rs.e||0)>Number(ls.e||0)) smSaveLocal(rs); } }catch(e2){} // v3.49
       try{ var rd=doc.exists?doc.data().deals:null; if(rd&&rd.items){ var ld=dsLoad(); if(Number(rd.e||0)>Number(ld.e||0)) dsSaveLocal(rd); } }catch(e3){} // v3.56
+      try{ var rh=doc.exists?doc.data().dsHist:null; if(rh&&rh.m){ var lh=dsHistLoad(), chH=false; for(var hk in rh.m){ var reH=rh.m[hk], leH=lh.m[hk], rT=(reH&&reH.pts&&reH.pts.length)?reH.pts[reH.pts.length-1].d:0, lT=(leH&&leH.pts&&leH.pts.length)?leH.pts[leH.pts.length-1].d:0; if(!leH||rT>lT){ lh.m[hk]=reH; chH=true; } } if(!lh.e||Number(rh.e||0)>lh.e) lh.e=Number(rh.e||0); if(chH) dsHistSaveLocal(lh); } }catch(e4){} // v3.81: prijshistorie + doelprijzen van de ander meenemen
       agSave(loc);
     }catch(e){}
     if(cb) cb();
@@ -1229,6 +1236,7 @@ function dsScan(id){
   }).catch(function(err){
     dsRes[id]={err: (err&&err.message)||"geen verbinding"};
     dsRender();
+    if(dsAutoRun){ try{ dsAutoTick(); }catch(e3){} } // v3.81: automatische start-scan telt door
   });
 }
 function dsScanFin(id, e, prods){ // v3.79: filter + resultaat, losgemaakt van dsScan
@@ -1236,9 +1244,11 @@ function dsScanFin(id, e, prods){ // v3.79: filter + resultaat, losgemaakt van d
   if(e.term){ var tl=e.term.toLowerCase(); var wds=tl.split(/[^a-z0-9]+/).filter(function(w){ return w.length>=3; }); prods=prods.filter(function(p){ var nm=String(p.n).toLowerCase(); if(nm.indexOf("(gevonden prijs")===0) return true; if(nm.indexOf(tl)>=0||String(p.u).toLowerCase().indexOf(tl)>=0) return true; for(var wi=0;wi<wds.length;wi++){ if(nm.indexOf(wds[wi])>=0) return true; } if(p.p<=(e.max||0)) hidArr.push(p); return false; }); } // v3.79: weggefilterde produkten onder de max bewaren
   var hits=prods.filter(function(p){ return p.p<=(e.max||0); });
   dsRes[id]= hits.length?{ok:true,hits:hits,prods:prods.length,lowest:prods.length?prods[0].p:null,hid:hidArr.length,hidArr:hidArr}: {ok:false, lowest: prods.length?prods[0].p:null, prods:prods.length, hid:hidArr.length, hidArr:hidArr};
+  try{ dsHistRec(id, prods); }catch(e2){} // v3.81: prijzen bewaren voor de historie
   dsRender();
+  if(dsAutoRun){ try{ dsAutoNote(id, e, hits.length, dsAlarms(id, prods)); }catch(e3){} } // v3.81: melding bij automatische start-scan
 }
-function dsScanAll(){ var a=dsLoad(); a.items.forEach(function(e){ dsScan(e.id); }); }
+function dsScanAll(auto){ var a=dsLoad(); if(!a.items.length) return; if(auto){ dsAutoRun=true; dsAutoLeft=a.items.length; dsAutoMsgs=[]; } a.items.forEach(function(e){ dsScan(e.id); }); } // v3.81: auto=true bij de start-scan van de app
 function dsRender(){
   var sc=document.getElementById("dealScroll"), a=dsLoad(), h="";
   h+='<div class="card"><div style="font-size:13px;font-weight:800">🔥 Aanbiedingsscanner</div>';
@@ -1285,6 +1295,7 @@ function dsRender(){
       } }
     h+='<div style="display:flex;gap:6px;margin-top:8px">';
     h+='<button class="btn yellow" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="dsScan('+e.id+')">Scannen</button>';
+    h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="dsHistView('+e.id+')">📈 Historie</button>';
     h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="dsEdit('+e.id+')">Wijzigen</button>';
     h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px;color:#f87171" onclick="dsDel('+e.id+')">Verwijderen</button>';
     h+='</div></div>';
@@ -1326,6 +1337,89 @@ function dsSaveForm(){
   dsSave(a); delete dsRes[dsEditId]; showView("dealView"); dsRender();
 }
 function dsDel(id){ var a=dsLoad(); a.items=a.items.filter(function(x){ return x.id!==id; }); dsSave(a); delete dsRes[id]; dsRender(); }
+// ===== v3.81: PRODUCT-HISTORIE + DOELPRIJS + START-MELDING =====
+var DS_H_KEY="mcDsHist", dsAutoRun=false, dsAutoLeft=0, dsAutoMsgs=[], dsHistSite=null;
+function dsHistLoad(){ try{ var h=JSON.parse(localStorage.getItem(DS_H_KEY)); if(h&&h.m) return h; }catch(e){} return {e:0,m:{}}; }
+function dsHistSaveLocal(h){ try{ localStorage.setItem(DS_H_KEY, JSON.stringify(h)); }catch(e2){} }
+function dsHistPush(){ if(!FB.ready||!FB.user) return; try{ FB.db.collection("shared").doc("mccard").set({ dsHist:dsHistLoad(), dhT:Date.now() },{ merge:true }).catch(function(){}); }catch(e3){} }
+function dsHistSave(h){ h.e=Date.now(); dsHistSaveLocal(h); dsHistPush(); }
+function dsHistKey(id, p){ return String(id)+"|"+String(p.n||"").toLowerCase().slice(0,80); }
+function dsHistRec(id, prods){ // prijzen van deze scan bewaren (1 meting per dag per product)
+  var h=dsHistLoad(), now=new Date(), day=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(), changed=false;
+  prods.forEach(function(p){
+    if(!p.p||String(p.n).indexOf("(gevonden prijs")===0) return;
+    var k=dsHistKey(id,p), en=h.m[k];
+    if(!en){ en=h.m[k]={sid:id, n:p.n, u:p.u||"", i:p.i||"", tg:0, pts:[]}; changed=true; }
+    if(p.i&&!en.i){ en.i=p.i; changed=true; }
+    if(!en.pts) en.pts=[];
+    if(en.pts.length&&en.pts[en.pts.length-1].d===day){ if(en.pts[en.pts.length-1].p!==p.p){ en.pts[en.pts.length-1].p=p.p; changed=true; } }
+    else{ en.pts.push({d:day,p:p.p}); changed=true; if(en.pts.length>40) en.pts=en.pts.slice(-40); }
+  });
+  if(changed) dsHistSave(h);
+}
+function dsAlarms(id, prods){ // producten onder hun doelprijs
+  var h=dsHistLoad(), out=[];
+  prods.forEach(function(p){ var en=h.m[dsHistKey(id,p)]; if(en&&en.tg>0&&p.p<=en.tg) out.push({n:p.n,p:p.p}); });
+  return out;
+}
+function dsAutoTick(){
+  dsAutoLeft--; if(dsAutoLeft>0) return;
+  dsAutoRun=false;
+  if(!dsAutoMsgs.length) return;
+  var b=document.getElementById("pushBanner"); if(!b) return;
+  var msg=dsAutoMsgs.slice(0,2).join(" · ");
+  if(dsAutoMsgs.length>2) msg+=" · (+"+(dsAutoMsgs.length-2)+" meer)";
+  b.textContent=msg; b.classList.add("show");
+  try{ if(navigator.vibrate) navigator.vibrate(120); }catch(e2){}
+  clearTimeout(window._pbT); window._pbT=setTimeout(function(){ b.classList.remove("show"); },7000);
+}
+function dsAutoNote(id, e, nHits, alarms){ // meldingen van de automatische start-scan
+  if(alarms&&alarms.length){ alarms.slice(0,2).forEach(function(a){ dsAutoMsgs.push("🎯 "+a.n+" onder je doelprijs: "+dsEuro(a.p)+"!"); }); }
+  else if(nHits){ dsAutoMsgs.push("🔔 "+e.name+": "+nHits+" product(en) onder je max!"); }
+  dsAutoTick();
+}
+function dsChart(pts){ // klein prijs-grafiekje per product
+  var W=120,H=40,P=4, i, mn=1e12, mx=-1e12;
+  for(i=0;i<pts.length;i++){ if(pts[i].p<mn)mn=pts[i].p; if(pts[i].p>mx)mx=pts[i].p; }
+  if(mx-mn<0.01) mx=mn+1;
+  var s="", dn=pts.length-1;
+  for(i=0;i<pts.length;i++){ var x=P+(dn>0?(W-2*P)*i/dn:0), y=H-P-(H-2*P)*(pts[i].p-mn)/(mx-mn); s+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1); }
+  return '<svg viewBox="0 0 '+W+' '+H+'" class="dsChart" style="width:120px;height:40px"><polyline points="'+s+'" fill="none" stroke="#facc15" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+function dsHistView(sid){ dsHistSite=sid; showView("dsHistView"); dsHistRender(); }
+function dsHistRender(){
+  var sc=document.getElementById("dsHistScroll"); if(!sc) return;
+  var a=dsLoad(), e=null; a.items.forEach(function(x){ if(x.id===dsHistSite) e=x; });
+  if(!e){ showView("dealView"); dsRender(); return; }
+  var h=dsHistLoad(), out='<div class="card"><div style="font-size:15px;font-weight:800">📈 Prijshistorie - '+colEsc(e.name)+'</div>';
+  out+='<div class="n">Alle producten die de scanner hier vond, met hun prijsgeschiedenis (1 meting per dag). Stel per product een 🎯 doelprijs in: zit een scan daaronder, dan krijg je meteen een melding.</div></div>';
+  var rows=[];
+  for(var k in h.m){ if(h.m[k]&&h.m[k].sid===dsHistSite) rows.push({k:k,en:h.m[k]}); }
+  rows.sort(function(x,y){ var a2=(x.en.pts&&x.en.pts.length)?x.en.pts[x.en.pts.length-1].p:1e12, b2=(y.en.pts&&y.en.pts.length)?y.en.pts[y.en.pts.length-1].p:1e12; return a2-b2; });
+  if(!rows.length) out+='<div class="note">Nog geen historie - scan eerst een keer bij dit item, dan verschijnen de producten hier automatisch.</div>';
+  rows.slice(0,60).forEach(function(r){
+    var en=r.en, last=en.pts.length?en.pts[en.pts.length-1]:null, i, mn=1e12, mx=-1e12;
+    for(i=0;i<en.pts.length;i++){ if(en.pts[i].p<mn)mn=en.pts[i].p; if(en.pts[i].p>mx)mx=en.pts[i].p; }
+    var ek=encodeURIComponent(r.k).replace(/'/g,"%27");
+    out+='<div class="dsHistRow">';
+    out+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">';
+    out+='<div style="font-size:13px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(en.i?'<img src="'+colEsc(en.i)+'" loading="lazy" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#1e293b;vertical-align:middle;margin-right:8px">':'')+'<a href="'+colEsc(en.u)+'" target="_blank" rel="noopener" style="color:#f1f5f9;text-decoration:none">'+colEsc(en.n)+'</a></div>';
+    out+='<b style="color:#4ade80;font-size:15px;flex:none">'+(last?dsEuro(last.p):"-")+'</b></div>';
+    if(en.pts.length>1) out+=dsChart(en.pts);
+    if(en.pts.length) out+='<div class="n" style="margin:2px 0 0">Laagste: '+dsEuro(mn)+' · hoogste: '+dsEuro(mx)+' · '+en.pts.length+' meting(en)</div>';
+    if(en.tg>0) out+='<div class="n dsTgt" style="margin:2px 0 0">🎯 Doelprijs: '+dsEuro(en.tg)+(last&&last.p<=en.tg?" - GEHAALD! 🎉":"")+'</div>';
+    out+='<button class="btn dark" style="margin:8px 0 0;font-size:12px;padding:8px" onclick="dsSetTg(\''+ek+'\')">🎯 Doelprijs '+(en.tg>0?"wijzigen":"instellen")+'</button>';
+    out+='</div>';
+  });
+  sc.innerHTML=out;
+}
+function dsSetTg(ek){
+  var k=decodeURIComponent(ek), h=dsHistLoad(), en=h.m[k]; if(!en) return;
+  var v=prompt("Doelprijs in euro voor "+en.n+" (leeg of 0 = verwijderen):", en.tg>0?String(en.tg):"");
+  if(v===null) return;
+  var tg=parseFloat(String(v).replace(",","."))||0;
+  en.tg=tg>0?tg:0; dsHistSave(h); dsHistRender();
+}
 function agShift(n){ agMonth=new Date(agMonth.getFullYear(), agMonth.getMonth()+n, 1); agRender(); }
 function agDay(k){
   var a=agLoad(), evs=a.filter(function(e){ var d2=new Date(e.d); return new Date(d2.getFullYear(),d2.getMonth(),d2.getDate()).getTime()===k; });
@@ -1510,6 +1604,14 @@ function fbSync(interactive){
   </div>
 </div>
 
+<!-- ===== PRODUCT-HISTORIE (v3.81) ===== -->
+<div class="view" id="dsHistView">
+  <div id="dsHistScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <div class="bottomBar" data-scroll="dsHistScroll">
+    <button class="btn dark" onclick="showView('dealView');dsRender()"><span class="bt"><span class="bi">⬅</span>Terug naar scanner</span></button>
+  </div>
+</div>
+
 <!-- ===== AANBIEDING TOEVOEGEN (v3.57) ===== -->
 <div class="view" id="dealAddView">
   <div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;">
@@ -1570,7 +1672,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.80";
+var VERSION="3.81";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
