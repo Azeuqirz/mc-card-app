@@ -294,7 +294,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.154</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.155</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1877,12 +1877,70 @@ function ibBadge(){
   var n=ibCountNew();
   el.textContent=n; el.style.display=n?"flex":"none";
 }
+var IB_NTF_KEY="mcIdeasNtf";
+function ibMaxOtherTs(){
+  var me=FB.user?String(FB.user.email).toLowerCase():"";
+  var mx=0;
+  ibLoad().forEach(function(e){
+    if(e.by!==me) mx=Math.max(mx, e.ts||0);
+    if(e.c) e.c.forEach(function(c){ if(c.by!==me) mx=Math.max(mx, c.ts||0); });
+  });
+  return mx;
+}
+function ibNotifyCheck(){
+  try{
+    if(!FB.user) return;
+    var me=String(FB.user.email).toLowerCase();
+    var mx=ibMaxOtherTs();
+    var seen=Number(localStorage.getItem(IB_NTF_KEY))||0;
+    if(!seen){ localStorage.setItem(IB_NTF_KEY, String(mx)); return; } // eerste keer: niet melden
+    if(mx<=seen) return;
+    if(typeof curView!=="undefined"&&curView==="ideaView"){ localStorage.setItem(IB_NTF_KEY, String(mx)); return; } // zit al in de bus: stil bijwerken
+    var news=[];
+    ibLoad().forEach(function(e){
+      if(e.by!==me&&(e.ts||0)>seen) news.push({by:e.by,txt:e.t});
+      if(e.c) e.c.forEach(function(c){ if(c.by!==me&&(c.ts||0)>seen) news.push({by:c.by,txt:c.t}); });
+    });
+    if(!news.length){ localStorage.setItem(IB_NTF_KEY, String(mx)); return; }
+    var b=document.getElementById("pushBanner");
+    if(b){
+      if(news.length===1) b.textContent="💡 "+ibName(news[0].by)+": "+cap1(String(news[0].txt));
+      else b.textContent="💡 "+news.length+" nieuwe ideeën/reacties";
+      b.classList.remove("full");
+      b.classList.add("show");
+    }
+    try{ if(navigator.vibrate) navigator.vibrate(80); }catch(e2){}
+    ibPling();
+    localStorage.setItem(IB_NTF_KEY, String(mx));
+    clearTimeout(window._pbT); window._pbT=setTimeout(function(){ if(b) b.classList.remove("show"); },6000);
+  }catch(e){}
+}
+function ibPling(){ // v3.155: WhatsApp-achtig pling via WebAudio (geen geluidsbestand nodig)
+  try{
+    if(!AG_AC) AG_AC=new (window.AudioContext||window.webkitAudioContext)();
+    AG_AC.resume().then(function(){
+      try{
+        var ac=AG_AC;
+        [[1568,0],[2093,0.13]].forEach(function(t){
+          var o=ac.createOscillator(), g=ac.createGain();
+          o.type="sine"; o.frequency.value=t[0];
+          var t0=ac.currentTime+t[1];
+          g.gain.setValueAtTime(0.001,t0);
+          g.gain.exponentialRampToValueAtTime(0.25,t0+0.02);
+          g.gain.exponentialRampToValueAtTime(0.001,t0+0.35);
+          o.connect(g); g.connect(ac.destination);
+          o.start(t0); o.stop(t0+0.4);
+        });
+      }catch(e3){}
+    });
+  }catch(e){}
+}
 var _ibChkT=0;
 function ibChkNew(){
   if(!FB.ready||!FB.user) return;
   var n=Date.now(); if(n-_ibChkT<30000) return; _ibChkT=n;
   FB.db.collection("shared").doc("mccard").get({source:"server"}).then(function(doc){
-    ibMergeDoc(doc); ibBadge();
+    ibMergeDoc(doc); ibBadge(); ibNotifyCheck();
   }).catch(function(){});
 }
 function ibFmt(ts){ var d=new Date(ts); var hh=d.getHours(), mm=d.getMinutes(); return d.getDate()+"-"+(d.getMonth()+1)+"-"+d.getFullYear()+" "+(hh<10?"0":"")+hh+":"+(mm<10?"0":"")+mm; }
@@ -1908,7 +1966,7 @@ function ibRender(){
   sc.innerHTML=h;
   try{ ibBadge(); }catch(e4){}
 }
-function ibOpen(){ showView("ideaView"); ibPull(function(){ try{ localStorage.setItem(IB_SEEN_KEY, String(Date.now())); }catch(e3){} ibRender(); ibBadge(); }); }
+function ibOpen(){ showView("ideaView"); ibPull(function(){ try{ localStorage.setItem(IB_SEEN_KEY, String(Date.now())); }catch(e3){} try{ localStorage.setItem(IB_NTF_KEY, String(ibMaxOtherTs())); }catch(e5){} ibRender(); ibBadge(); }); }
 function ibAdd(){
   if(!FB.user){ showView("loginView"); return; }
   var t=prompt("Wat is het idee?");
@@ -2252,7 +2310,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.154";
+var VERSION="3.155";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3885,7 +3943,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.154-->
+<!--v:3.155-->
 
 
 
