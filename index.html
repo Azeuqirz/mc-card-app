@@ -294,7 +294,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.157</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.158</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1974,14 +1974,15 @@ function ibRender(){
     a.forEach(function(e){
       h+='<div class="card" style="border:2px solid '+ibClr(e.by)+';margin-bottom:6px;padding:10px">';
       h+='<div style="font-size:11px;font-weight:800;color:'+ibClr(e.by)+'">'+ibName(e.by)+' · '+ibFmt(e.ts)+(e.ed?' · ✏️ bewerkt '+ibFmt(e.ed):'')+'</div>';
-      h+='<div style="font-size:14px;margin-top:3px">'+colEsc(e.t)+'</div>';
-      if(e.i){ h+='<img src="'+e.i+'" alt="" style="width:100%;border-radius:8px;margin-top:6px;display:block">'; }
+      if(e.i){ h+='<div style="display:flex;gap:8px;margin-top:3px;align-items:flex-start"><img src="'+e.i+'" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px;cursor:pointer;flex:none" onclick="ibFull(this.src)"><div style="font-size:14px;flex:1;min-width:0">'+colEsc(e.t)+'</div></div>'; }
+      else h+='<div style="font-size:14px;margin-top:3px">'+colEsc(e.t)+'</div>';
       var me=FB.user?String(FB.user.email).toLowerCase():"";
-      if(e.c&&e.c.length){ e.c.forEach(function(c){ h+='<div class="ibCmt" style="border:1px solid '+ibClr(c.by)+'33"><div style="font-size:10px;font-weight:800;color:'+ibClr(c.by)+'">'+ibName(c.by)+' · '+ibFmt(c.ts)+(c.by===me?' <b style="color:#f87171;cursor:pointer" onclick="ibCmtDel('+e.id+','+c.id+')">✕</b>':'')+'</div><div style="font-size:13px;margin-top:1px">'+colEsc(c.t)+'</div>'+(c.i?'<img src="'+c.i+'" alt="" style="width:100%;border-radius:8px;margin-top:4px;display:block">':'')+'</div>'; }); }
+      if(e.c&&e.c.length){ e.c.forEach(function(c){ h+='<div class="ibCmt" style="border:1px solid '+ibClr(c.by)+'33"><div style="font-size:10px;font-weight:800;color:'+ibClr(c.by)+'">'+ibName(c.by)+' · '+ibFmt(c.ts)+(c.by===me?' <b style="color:#f87171;cursor:pointer" onclick="ibCmtDel('+e.id+','+c.id+')">✕</b>':'')+'</div><div style="display:flex;gap:6px;margin-top:1px;align-items:flex-start">'+(c.i?'<img src="'+c.i+'" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;cursor:pointer;flex:none" onclick="ibFull(this.src)">':'')+'<div style="font-size:13px;flex:1;min-width:0">'+colEsc(c.t)+'</div></div></div>'; }); }
       h+='<div style="display:flex;gap:6px;margin-top:6px">';
-      if(e.by===me){ h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibEdit('+e.id+')"><span class="bt"><span class="bi">✏️</span>Bewerk</span></button>'; h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibPick('+e.id+',0)"><span class="bt"><span class="bi">📷</span>Foto</span></button>'; }
+      if(e.by===me){ h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibEdit('+e.id+')"><span class="bt"><span class="bi">✏️</span>Bewerk</span></button>'; }
       h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibCmt('+e.id+')"><span class="bt"><span class="bi">💬</span>Reactie</span></button>';
-      h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px;color:#f87171" onclick="ibDel('+e.id+')"><span class="bt"><span class="bi">🗑</span>Weg</span></button></div>';
+      h+='<button class="btn dark" style="flex:.5;margin:0;font-size:15px;padding:8px" onclick="ibPick('+e.id+',0)">📷</button>';
+      h+='<button class="btn dark" style="flex:.5;margin:0;font-size:15px;padding:8px;color:#f87171" onclick="ibDel('+e.id+')">🗑</button></div>';
       h+='</div>';
     });
   }
@@ -1999,7 +2000,6 @@ function ibAdd(){
   a.push({ id:nid, t:t, by:String(FB.user.email).toLowerCase(), ts:nid });
   a.sort(function(x,y){ return y.id-x.id; });
   ibSave(a); ibPush(); ibRender();
-  if(confirm("Foto toevoegen? (galerij of live)")) ibPick(nid,0);
 }
 function ibDel(id){ if(!confirm("Idee weggooien?")) return; var a=ibLoad().filter(function(e){ return e.id!==id; }); var del=ibLoadDel().filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()}); ibSaveDel(del); ibSave(a); ibPush(); ibRender(); }
 function ibEdit(id){ if(!FB.user){ showView("loginView"); return; } var a=ibLoad(), e=null; a.forEach(function(x){ if(x.id===id) e=x; }); if(!e) return; if(String(FB.user.email).toLowerCase()!==e.by){ alert("Alleen je eigen idee kun je bewerken."); return; } var t=prompt("Idee aanpassen:",e.t); if(t===null) return; t=String(t).trim(); if(!t||t===e.t) return; e.t=t; e.ed=Date.now(); e.m=Date.now(); a.sort(function(x,y){ return y.id-x.id; }); ibSave(a); ibPush(); ibRender(); }
@@ -2038,6 +2038,14 @@ function ibImgSet(d){
     else e.i=d;
     e.m=Date.now(); ibSave(a); ibPush(); ibRender();
   }catch(e2){}
+}
+function ibFull(src){ // v3.158: foto op ware grootte - tik om te sluiten
+  if(!src) return;
+  var w=document.getElementById("ibFullWrap");
+  if(!w){ w=document.createElement("div"); w.id="ibFullWrap"; w.style.cssText="position:fixed;inset:0;z-index:500;background:rgba(2,6,23,.94);display:none;align-items:center;justify-content:center;cursor:pointer"; document.body.appendChild(w); }
+  w.innerHTML='<img src="'+src+'" alt="" style="max-width:96%;max-height:96%;border-radius:10px">';
+  w.style.display="flex";
+  w.onclick=function(){ w.style.display="none"; w.onclick=null; };
 }
 // ===== v3.148: junk-productnamen (footer/service) globaal filteren =====
 var DS_JUNK=/^(werken bij|gratis verzending|gratis bezorg|klantenservice|contact|algemene voorwaarden|privacy|verzending|bezorg|veelgestelde vragen|hoe kunnen we|beoordeeld|vandaag besteld|morgen in huis)/i; // v3.148: deze tekst is nooit een product
@@ -2369,7 +2377,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.157";
+var VERSION="3.158";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4002,7 +4010,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.157-->
+<!--v:3.158-->
 
 
 
