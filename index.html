@@ -284,7 +284,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.140</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.141</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1689,7 +1689,7 @@ function dsHistRec(id, prods){ // v3.82: elke gewijzigde prijs (of na 1 uur) wor
 }
 function dsAlarms(id, prods){ // producten onder hun doelprijs
   var h=dsHistLoad(), out=[];
-  prods.forEach(function(p){ var en=h.m[dsHistKey(id,p)]; if(en&&en.tg>0&&p.p<=en.tg) out.push({n:p.n,p:p.p}); });
+  prods.forEach(function(p){ var en=h.m[dsHistKey(id,p)]; if(en&&en.tg>0&&p.p<=en.tg) out.push({n:p.n,p:p.p,k:dsHistKey(id,p),sid:id}); });
   return out;
 }
 function dsAutoTick(){
@@ -1697,15 +1697,23 @@ function dsAutoTick(){
   dsAutoRun=false;
   if(!dsAutoMsgs.length) return;
   var b=document.getElementById("pushBanner"); if(!b) return;
-  var msg=dsAutoMsgs.slice(0,2).join(" · ");
+  var msg=dsAutoMsgs.slice(0,2).map(function(x){ return x.t; }).join(" · ");
   if(dsAutoMsgs.length>2) msg+=" · (+"+(dsAutoMsgs.length-2)+" meer)";
   b.textContent=msg; b.classList.add("show");
+  b.style.pointerEvents="auto"; // v3.141: tik op de melding -> naar het product
+  b.onclick=function(){
+    var g=dsAutoMsgs[0]; if(!g||!g.sid) return;
+    b.classList.remove("show"); b.onclick=null; b.style.pointerEvents="";
+    dsHistView(g.sid);
+    if(g.k){ var el=document.getElementById("dsh_"+encodeURIComponent(g.k).replace(/'/g,"%27"));
+      if(el){ el.scrollIntoView({block:"center"}); el.style.boxShadow="0 0 0 2px #facc15"; setTimeout(function(){ el.style.boxShadow=""; },2500); } }
+  };
   try{ if(navigator.vibrate) navigator.vibrate(120); }catch(e2){}
-  clearTimeout(window._pbT); window._pbT=setTimeout(function(){ b.classList.remove("show"); },7000);
+  clearTimeout(window._pbT); window._pbT=setTimeout(function(){ b.classList.remove("show"); b.onclick=null; b.style.pointerEvents=""; },7000);
 }
-function dsAutoNote(id, e, nHits, alarms){ // meldingen van de automatische start-scan
-  if(alarms&&alarms.length){ alarms.slice(0,2).forEach(function(a){ dsAutoMsgs.push("🎯 "+a.n+" onder je doelprijs: "+dsEuro(a.p)+"!"); }); }
-  else if(nHits){ dsAutoMsgs.push("🔔 "+e.name+": "+nHits+" product(en) onder je max!"); }
+function dsAutoNote(id, e, nHits, alarms){ // v3.141: melding onthoudt winkel+product zodat je erop kunt tikken
+  if(alarms&&alarms.length){ alarms.slice(0,2).forEach(function(a){ dsAutoMsgs.push({t:"🎯 "+a.n+" onder je doelprijs: "+dsEuro(a.p)+"!", sid:a.sid, k:a.k}); }); }
+  else if(nHits){ dsAutoMsgs.push({t:"🔔 "+e.name+": "+nHits+" product(en) onder je max!", sid:id, k:""}); }
   dsAutoTick();
 }
 function dsChart(pts){ // v3.82: klein prijs-grafiekje per product - ook 1 punt (stip) en x-as op tijd
@@ -1726,6 +1734,7 @@ function dsHistRender(){
   if(!e){ goBackTo("dealView"); dsRender(); return; }
   var h=dsHistLoad(), out='<div class="card"><div style="font-size:15px;font-weight:800">📈 Prijshistorie - '+colEsc(e.name)+'</div>';
   out+='<div class="n">Alle producten die de scanner hier vond, met hun prijsgeschiedenis (1 meting per dag). Stel per product een 🎯 doelprijs in: zit een scan daaronder, dan krijg je meteen een melding.</div></div>';
+  if(rows.length) out+='<button class="btn dark" style="color:#f87171" onclick="dsHistWipe()">🗑 Alle producten uit deze historie wissen ('+rows.length+')</button>';
   var rows=[];
   for(var k in h.m){ if(h.m[k]&&h.m[k].sid===dsHistSite) rows.push({k:k,en:h.m[k]}); }
   rows.sort(function(x,y){ var a2=(x.en.pts&&x.en.pts.length)?x.en.pts[x.en.pts.length-1].p:1e12, b2=(y.en.pts&&y.en.pts.length)?y.en.pts[y.en.pts.length-1].p:1e12; return a2-b2; });
@@ -1734,7 +1743,7 @@ function dsHistRender(){
     var en=r.en, last=en.pts.length?en.pts[en.pts.length-1]:null, i, mn=1e12, mx=-1e12;
     for(i=0;i<en.pts.length;i++){ if(en.pts[i].p<mn)mn=en.pts[i].p; if(en.pts[i].p>mx)mx=en.pts[i].p; }
     var ek=encodeURIComponent(r.k).replace(/'/g,"%27");
-    out+='<div class="dsHistRow">';
+    out+='<div class="dsHistRow" id="dsh_'+ek+'">';
     out+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">';
     out+='<div style="font-size:13px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(en.i?'<img src="'+colEsc(en.i)+'" loading="lazy" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#1e293b;vertical-align:middle;margin-right:8px">':'')+'<a href="'+colEsc(en.u)+'" target="_blank" rel="noopener" style="color:#f1f5f9;text-decoration:none">'+colEsc(en.n)+'</a></div>';
     out+='<b style="color:#4ade80;font-size:15px;flex:none">'+(last?dsEuro(last.p):"-")+'</b></div>';
@@ -1764,6 +1773,14 @@ function dsHistDel(ek){ // v3.85: product uit de historie verwijderen
   var nm=h.m[k].n;
   if(!confirm("Dit product uit de historie verwijderen?\n"+nm)) return;
   delete h.m[k]; dsHistSave(h); dsHistRender();
+}
+function dsHistWipe(){ // v3.141: hele historie van deze winkel in één keer wissen
+  var h=dsHistLoad(), keys=[], k;
+  for(k in h.m){ if(h.m[k]&&h.m[k].sid===dsHistSite) keys.push(k); }
+  if(!keys.length) return;
+  if(!confirm("Alle "+keys.length+" producten uit deze historie wissen?")) return;
+  keys.forEach(function(k2){ delete h.m[k2]; });
+  dsHistSave(h); dsHistRender(); dsNote("✅ Historie gewist");
 }
 // ===== v3.88: MELDING-GESCHIEDENIS =====
 var NT_KEY="mcNotif";
@@ -2058,7 +2075,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.140";
+var VERSION="3.141";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
