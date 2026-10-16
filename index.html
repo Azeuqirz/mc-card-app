@@ -294,7 +294,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.158</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.159</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2054,12 +2054,15 @@ var VER_URL=location.origin+location.pathname.split("?")[0]; // v3.150: zelfde o
 var RAW_URL="https://raw.githubusercontent.com/Azeuqirz/mc-card-app/main/index.html"; // v3.147
 function verNewer(a,b){ var pa=String(a).split("."),pb=String(b).split("."); for(var i=0;i<Math.max(pa.length,pb.length);i++){ var x=parseInt(pa[i]||"0",10),y=parseInt(pb[i]||"0",10); if(x!==y) return x>y; } return false; }
 function verChkFin(nv){
-  if(!nv||!verNewer(nv,VERSION)||document.getElementById("verBanner")) return;
-  var vb=document.createElement("div"); vb.id="verBanner";
-  vb.innerHTML="🔄 Update v"+colEsc(nv)+" beschikbaar - tik om te herladen";
-  vb.style.cssText="position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:350;background:#1e293b;color:#facc15;font-weight:800;font-size:13px;border:1px solid #facc15;border-radius:14px;padding:12px 18px;box-shadow:0 6px 20px rgba(0,0,0,.5);cursor:pointer;max-width:92%;text-align:center";
-  vb.onclick=function(){ location.replace(location.pathname.split("?")[0]+"?v="+encodeURIComponent(nv)); }; // v3.147: ?v= forceert verse versie langs de CDN-cache
-  document.body.appendChild(vb);
+  if(!nv||!verNewer(nv,VERSION)) return; // v3.159: geen tik-banner meer - de app vernieuwt zichzelf
+  var va=null; try{ va=JSON.parse(localStorage.getItem("mcVerAuto")||"null"); }catch(e){}
+  if(va&&va.nv===nv&&Date.now()-va.ts<120000) return; // herlaad-storm-guard: edge-cache serveert anders misschien nog de oude versie
+  try{ localStorage.setItem("mcVerAuto",JSON.stringify({nv:nv,ts:Date.now()})); }catch(e){}
+  var b=document.getElementById("pushBanner");
+  if(b){ b.textContent="🔄 Update v"+colEsc(nv)+" - de app laadt zichzelf opnieuw..."; b.classList.remove("full"); b.classList.add("show"); }
+  try{ if(navigator.vibrate) navigator.vibrate(120); }catch(e){}
+  clearTimeout(window._pbT); window._pbT=setTimeout(function(){ var b2=document.getElementById("pushBanner"); if(b2) b2.classList.remove("show"); },6000); // v3.159: melding bovenin, verdwijnt vanzelf
+  setTimeout(function(){ location.replace(location.pathname.split("?")[0]+"?v="+encodeURIComponent(nv)+"&t="+Date.now()); },2500); // v3.159: na 2,5s automatisch herladen; &t= = uniek per herlaadbeurt (cache-mixer)
 }
 function verChk(){
   if(navigator.onLine===false||document.visibilityState==="hidden") return;
@@ -2074,7 +2077,7 @@ function verChk(){
     }).catch(function(){});
   });
 }
-setInterval(verChk, 30000); // v3.147: elke 30s
+setInterval(verChk, 10000); // v3.159: elke 10s checken, nieuwe versie voert zichzelf door
 // ===== v3.88: MELDING-GESCHIEDENIS =====
 var NT_KEY="mcNotif";
 function ntLoad(){ try{ var a=JSON.parse(localStorage.getItem(NT_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
@@ -2377,7 +2380,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.158";
+var VERSION="3.159";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4010,7 +4013,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.158-->
+<!--v:3.159-->
 
 
 
