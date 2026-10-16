@@ -285,7 +285,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.136</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.137</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1308,27 +1308,51 @@ function dsTarget(e){ // v3.59: bij bekende sites automatisch de zoekpagina van 
   if(/marktplaats\.nl/i.test(u)) return "https://www.marktplaats.nl/q/"+q+"/";
   return u;
 }
+function dsTargets(e){ // v3.137: onbekende site - meerdere zoek-URL patronen proberen
+  var u=e.url||""; var t=dsTarget(e);
+  if(t!==u) return [t]; // bekende site: meteen de goede zoekpagina
+  var q=encodeURIComponent(e.term||"");
+  var base=String(u).split(/[?#]/)[0].replace(/\/+$/,"");
+  var list=[u, base+"/?q="+q, base+"?q="+q, base+"/zoeken?q="+q, base+"/search?q="+q, base+"/search?query="+q, base+"?s="+q, base+"/zoekresultaten?q="+q, base+"?zoeken="+q, base+"/nl/zoeken?q="+q];
+  var seen={}, out=[]; list.forEach(function(x){ if(x && !seen[x]){ seen[x]=1; out.push(x); } });
+  return out;
+}
 function dsScan(id){
   var a=dsLoad(), e=null; a.items.forEach(function(x){ if(x.id===id) e=x; }); if(!e) return;
-  var target=dsTarget(e);
+  var tgs=dsTargets(e); // v3.137: alle kandidaat-URL's aflopen tot er producten gevonden zijn
   dsRes[id]="scan"; dsRender();
-  dsFetch(target).then(function(html){
-    var prods=dsParse(html, target);
-    var badP=prods.filter(function(p){ return String(p.n).indexOf("(gevonden prijs")===0; }).length;
-    if(prods.length && badP>prods.length/2){ // v3.78: HTML zonder product-namen -> tekst-lezer nog proberen
-      fetch("https://r.jina.ai/"+target, {cache:"no-store"}).then(function(r){ return r.text(); }).then(function(t2){
-        var p2=dsParse(t2, target), b2=p2.filter(function(p){ return String(p.n).indexOf("(gevonden prijs")===0; }).length;
-        dsScanFin(id, e, (p2.length && b2<badP) ? p2 : prods);
-      }).catch(function(){ dsScanFin(id, e, prods); });
+  var ti=0;
+  function fin(prods){ dsScanFin(id, e, prods); }
+  function tryNext(err){
+    ti++;
+    if(ti>=tgs.length){
+      dsRes[id]={err: (err&&err.message)||"geen resultaten gevonden - vul anders de URL van een zoek- of aanbiedingen-pagina van de site in"};
+      try{ dsResSave(); }catch(e4){} // v3.98
+      dsRender();
+      if(dsAutoRun){ try{ dsAutoTick(); }catch(e3){} } // v3.81: automatische start-scan telt door
       return;
     }
-    dsScanFin(id, e, prods);
-  }).catch(function(err){
-    dsRes[id]={err: (err&&err.message)||"geen verbinding"};
-    try{ dsResSave(); }catch(e4){} // v3.98
-    dsRender();
-    if(dsAutoRun){ try{ dsAutoTick(); }catch(e3){} } // v3.81: automatische start-scan telt door
-  });
+    go();
+  }
+  function go(){
+    var target=tgs[ti];
+    dsFetch(target).then(function(html){
+      var prods=dsParse(html, target);
+      var badP=prods.filter(function(p){ return String(p.n).indexOf("(gevonden prijs")===0; }).length;
+      if(prods.length && badP>prods.length/2){ // v3.78: HTML zonder product-namen -> tekst-lezer nog proberen
+        fetch("https://r.jina.ai/"+target, {cache:"no-store"}).then(function(r){ return r.text(); }).then(function(t2){
+          var p2=dsParse(t2, target), b2=p2.filter(function(p){ return String(p.n).indexOf("(gevonden prijs")===0; }).length;
+          var best=(p2.length && b2<badP) ? p2 : prods;
+          if(!best.length){ tryNext(); return; } // v3.137
+          fin(best);
+        }).catch(function(){ if(!prods.length){ tryNext(); return; } fin(prods); });
+        return;
+      }
+      if(!prods.length){ tryNext(); return; } // v3.137: lege pagina - volgende zoek-URL proberen
+      fin(prods);
+    }).catch(function(err){ tryNext(err); });
+  }
+  go();
 }
 function dsScanFin(id, e, prods){ // v3.79: filter + resultaat, losgemaakt van dsScan
   var hidArr=[];
@@ -1397,7 +1421,7 @@ function dsLinkNoMatch(ix){ // automatisch bij elkaar gezet maar toch niet hetze
   dsLinkSave(L);
   dsNote("➗ Uit elkaar gehaald. Zijn ze toch hetzelfde? Koppel ze dan met 🔗.");
 }
-function dsLinkCut(ix,j){ // v3.136: één product loskoppelen van de gekoppelde groep
+function dsLinkCut(ix,j){ // v3.137: één product loskoppelen van de gekoppelde groep
   var g=dsDupList[ix]; if(!g||!g.items[j]) return;
   var L=dsLinkLoad();
   g.items.forEach(function(o,i){ if(i!==j){ L.s=(L.s||[]).concat([[g.items[j].k,o.k]]); } });
@@ -1410,7 +1434,7 @@ function dsBlkLoad(){ // v3.131: uitgesloten winkels
 }
 function dsBlkSave(o){ try{ localStorage.setItem("mcDsBlk", JSON.stringify(o)); }catch(e2){} }
 function dsBlkAdd(sid){ var o=dsBlkLoad(); o[sid]=1; dsBlkSave(o); }
-function dsBlkToggle(ek){ // v3.136: winkel uitsluiten/terugzetten - knop naast de winkelnaam
+function dsBlkToggle(ek){ // v3.137: winkel uitsluiten/terugzetten - knop naast de winkelnaam
   var k=decodeURIComponent(ek), o=dsBlkLoad();
   if(o[k]) delete o[k]; else o[k]=1;
   dsBlkSave(o); dsRender();
@@ -1499,7 +1523,7 @@ function dsDupPick(ix){ // v3.92: alle prijzen naast elkaar + winkel kiezen
     bt.onclick=function(){ window.open(it.u,"_blank"); dsDupClose(); };
     var eb=document.createElement("button"); eb.className="btn dark";
     eb.style.cssText="display:block;margin:6px 0 0;padding:7px 14px;font-size:12px;width:auto";
-    eb.textContent="➗ Dit product loskoppelen"; /* v3.136: per product ontkoppelen i.p.v. winkel uitsluiten */
+    eb.textContent="➗ Dit product loskoppelen"; /* v3.137: per product ontkoppelen i.p.v. winkel uitsluiten */
     eb.onclick=function(){ dsLinkCut(ix,j); };
     row.appendChild(bt); row.appendChild(eb); box.appendChild(row);
   });
@@ -1529,7 +1553,7 @@ function dsRender(){
   h+='<div class="card"><div style="font-size:13px;font-weight:800">🔥 Aanbiedingsscanner</div></div>'; /* v3.127 + v3.131: kaart sluiten */
   var BK2=dsBlkLoad();
   if(Object.keys(BK2).length){ // v3.131: uitgesloten winkels beheren
-    var blks=a.items.filter(function(e){ return !!BK2[e.id]; }); /* v3.136: bij 1 winkel de knop op de kop-regel */
+    var blks=a.items.filter(function(e){ return !!BK2[e.id]; }); /* v3.137: bij 1 winkel de knop op de kop-regel */
     h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="font-size:13px;font-weight:800">🚫 Uitgesloten winkels</div>';
     if(blks.length===1){ var e0=blks[0]; h+='<button class="btn dark" style="width:auto;margin:0;padding:5px 10px;font-size:11px" onclick="dsBlkDel(\''+encodeURIComponent(e0.id)+'\')">↩️ Terugzetten</button></div><div class="n" style="margin:6px 0 0">'+colEsc(e0.name)+'</div>'; }
     else { h+='</div>'; blks.forEach(function(e){ h+='<div class="n" style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0"><span>'+colEsc(e.name)+'</span><button class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px" onclick="dsBlkDel(\''+encodeURIComponent(e.id)+'\')">↩️ Terugzetten</button></div>'; }); }
@@ -1624,7 +1648,7 @@ function dsSaveForm(){
   else a.items.push({id:Date.now(), name:nm, url:u, term:tm, max:mx});
   dsSave(a); delete dsRes[dsEditId];
   if(dsEditId){ goBackTo("dealView"); dsRender(); return; }
-  goBackTo("dealView"); dsRender(); // v3.136: na opslaan direct terug naar het productoverzicht
+  goBackTo("dealView"); dsRender(); // v3.137: na opslaan direct terug naar het productoverzicht
   dsNote("✅ "+nm+" toegevoegd.");
 }
 function dsDel(id){ var a=dsLoad(); a.items=a.items.filter(function(x){ return x.id!==id; }); dsSave(a); delete dsRes[id]; dsRender(); }
@@ -2022,7 +2046,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.136";
+var VERSION="3.137";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
