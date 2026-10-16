@@ -288,7 +288,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.148</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.149</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1216,12 +1216,17 @@ function dsParse(html, pageUrl){
     if(tp==="Product"&&o.offers){
       var of=Array.isArray(o.offers)?o.offers[0]:o.offers, p=0;
       while(of&&of["@type"]==="AggregateOffer"){ of=of.offers?(Array.isArray(of.offers)?of.offers[0]:of.offers):null; }
-      if(of&&of.price){ p=parseFloat(String(of.price).replace(",",".")); var nm=String(o.name||"Product"); var key=nm+"|"+p;
-        if(p>0&&!seen[key]){ seen[key]=1; out.push({n:nm, p:p, u:of.url||pageUrl, st:dsStockTxt(of.availability||"")}); } }
+      if(of&&of.price){ p=parseFloat(String(of.price).replace(",",".")); var nm=String(o.name||"Product"); var key=nm+"|"+p; var imLD=Array.isArray(o.image)?(o.image[0]||""):(o.image||""); // v3.149: schema.org Product.image
+        if(p>0&&!seen[key]){ seen[key]=1; out.push({n:nm, p:p, u:of.url||pageUrl, i:String(imLD||""), st:dsStockTxt(of.availability||"")}); } }
     }
     for(var k in o){ walk(o[k]); }
   }
   while((m=re.exec(html))){ try{ walk(JSON.parse(m[1])); }catch(e){} }
+  if(out.length){ // v3.149: JSON-LD-producten zonder foto - foto uit de HTML zoeken via de product-URL
+    var imF={}, imR=/<a\s[^>]*href\s*=\s*["']([^"']+)["'][^>]*>\s*<img[^>]*src\s*=\s*["']([^"']+)["']/gi, imM2;
+    while((imM2=imR.exec(html))){ var mk2=String(imM2[1]).split("#")[0]; if(!imF[mk2]) imF[mk2]=imM2[2]; }
+    out.forEach(function(o2){ if(!o2.i){ var ic=imF[String(o2.u).split("#")[0]]; if(ic){ if(/^\//.test(ic)) ic=(String(pageUrl).match(/^https?:\/\/[^\/]+/)||[""])[0]+ic; o2.i=ic; } } });
+  }
   if(out.length) return out;
   // v3.68: tekst-modus - als de lees-dienst platte tekst/markdown teruggeeft (r.jina.ai),
   // staan producten als [Naam](url "Meer informatie over Naam") vlak voor de prijs
@@ -2128,7 +2133,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.148";
+var VERSION="3.149";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3761,7 +3766,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.148-->
+<!--v:3.149-->
 
 
 
