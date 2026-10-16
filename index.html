@@ -302,7 +302,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.160</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.161</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -329,7 +329,7 @@
   <button class="btn dark" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="renderAgenda()"><div style="font-size:28px;line-height:1;margin-bottom:6px">📅</div>Gedeelde agenda<span id="agBadge" class="ibBadge"></span></button>
   </div>
   <button class="btn dark" style="margin:10px auto 0;max-width:340px;display:block;position:relative" onclick="ibOpen()"><span class="bt"><span class="bi">💡</span>Ideeënbus</span><span id="ibBadge" class="ibBadge"></span></button>
-  <button class="btn dark" style="margin:10px auto 0;max-width:340px;display:block" onclick="remOpen()"><span class="bt"><span class="bi">🔔</span>Herinneringen 🔒</span></button>
+  <button class="btn dark" style="margin:10px auto 0;max-width:340px;display:block" onclick="remOpen()"><span class="bt"><span class="bi">🔔</span>Herinneringen</span></button>
   </div>
   <button class="btn yellow" id="homeLogin" onclick="showView('loginView');fbRenderLogin()"><span class="bt"><span class="bi">🔐</span>Inloggen</span></button>
 </div>
@@ -2423,7 +2423,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.160";
+var VERSION="3.161";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4056,7 +4056,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.160-->
+<!--v:3.161-->
 
 
 
