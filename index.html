@@ -288,7 +288,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.146</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.147</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1809,6 +1809,28 @@ function dsHideSave(o){ try{ localStorage.setItem(DS_HD_KEY,JSON.stringify(o)); 
 function dsHideAdd(k,n){ k=decodeURIComponent(k||""); var o=dsHideLoad(); if(!o[k]){ o[k]={n:n||k}; dsHideSave(o); } dsNote("✅ Product verborgen (teugzetten via 🙈-kaart)"); dsRender(); }
 function dsHideDel(k){ k=decodeURIComponent(k||""); var o=dsHideLoad(); if(o[k]){ delete o[k]; dsHideSave(o); } dsRender(); }
 function dsXBtnHTML(nm){ return '<button class="dsXBtn" data-k="'+encodeURIComponent(dsNormN(nm))+'" data-n="'+encodeURIComponent(nm)+'" onclick="dsHideAdd(this.dataset.k,this.dataset.n);event.stopPropagation();" aria-label="Verbergen">✕</button>'; }
+// ===== v3.147: elke 30s op GitHub kijken of er een nieuwe versie is =====
+var VER_URL="https://raw.githubusercontent.com/Azeuqirz/mc-card-app/main/index.html";
+function verNewer(a,b){ var pa=String(a).split("."),pb=String(b).split("."); for(var i=0;i<Math.max(pa.length,pb.length);i++){ var x=parseInt(pa[i]||"0",10),y=parseInt(pb[i]||"0",10); if(x!==y) return x>y; } return false; }
+function verChkFin(nv){
+  if(!nv||!verNewer(nv,VERSION)||document.getElementById("verBanner")) return;
+  var vb=document.createElement("div"); vb.id="verBanner";
+  vb.innerHTML="🔄 Update v"+colEsc(nv)+" beschikbaar - tik om te herladen";
+  vb.style.cssText="position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:350;background:#1e293b;color:#facc15;font-weight:800;font-size:13px;border:1px solid #facc15;border-radius:14px;padding:12px 18px;box-shadow:0 6px 20px rgba(0,0,0,.5);cursor:pointer;max-width:92%;text-align:center";
+  vb.onclick=function(){ location.replace(location.pathname.split("?")[0]+"?v="+encodeURIComponent(nv)); }; // v3.147: ?v= forceert verse versie langs de CDN-cache
+  document.body.appendChild(vb);
+}
+function verChk(){
+  if(navigator.onLine===false||document.visibilityState==="hidden") return;
+  fetch(VER_URL,{cache:"no-store",headers:{"Range":"bytes=-600"}}).then(function(r){ return r.text(); }).then(function(t){
+    var m=t.match(/<!--v:([0-9]+(?:\.[0-9]+)*)-->/);
+    if(!m) throw new Error("geen marker");
+    verChkFin(m[1]);
+  }).catch(function(){ // Range niet ondersteund/geblokkeerd: hele bestand halen en var VERSION lezen
+    fetch(VER_URL,{cache:"no-store"}).then(function(r){ return r.text(); }).then(function(t){ verChkFin((t.match(/var VERSION="([0-9]+(?:\.[0-9]+)*)"/)||[])[1]); }).catch(function(){});
+  });
+}
+setInterval(verChk, 30000); // v3.147: elke 30s
 // ===== v3.88: MELDING-GESCHIEDENIS =====
 var NT_KEY="mcNotif";
 function ntLoad(){ try{ var a=JSON.parse(localStorage.getItem(NT_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
@@ -2102,7 +2124,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.146";
+var VERSION="3.147";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3735,6 +3757,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
+<!--v:3.147-->
 
 
 
