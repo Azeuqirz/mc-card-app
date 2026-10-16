@@ -251,6 +251,10 @@
   body.pink .remItem { background:#2a0f1e; }
   body.pink .remSub { color:#f472b6; }
   body.pink .remDel { background:#4a1030; color:#f472b6; }
+  /* v3.163: extra tekst-regels onder de titel (recepten/hydro) + badge leesbaar op gele/roze tegel */
+  .remBody { font-size:13px; font-weight:400; color:#cbd5e1; margin-top:2px; word-wrap:break-word; white-space:pre-wrap; }
+  body.pink .remBody { color:#f9a8d4; }
+  body.pink .btn.yellow .ibBadge { background:#fff; color:#ec4899; }
   /* v3.81: prijshistorie per product */
   .dsHistRow { background:#0f172a; border-radius:12px; padding:10px; margin-bottom:8px; }
   body.pink .dsChart polyline { stroke:#f472b6 !important; }
@@ -302,7 +306,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.162</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.163</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -326,10 +330,12 @@
   <div id="homeActions" style="display:none">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:340px;margin:0 auto">
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="showView('pokeView')"><div style="font-size:28px;line-height:1;margin-bottom:6px">⚡</div>Pokemon</button>
-  <button class="btn dark" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="renderAgenda()"><div style="font-size:28px;line-height:1;margin-bottom:6px">📅</div>Gedeelde agenda<span id="agBadge" class="ibBadge"></span></button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="renderAgenda()"><div style="font-size:28px;line-height:1;margin-bottom:6px">📅</div>Gedeelde agenda<span id="agBadge" class="ibBadge"></span></button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="ibOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">💡</div>Ideeënbus<span id="ibBadge" class="ibBadge"></span></button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="remOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🔔</div>Herinneringen</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="hydOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🌱</div>Hydrocultuur</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="recOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🍳</div>Recepten</button>
   </div>
-  <button class="btn dark" style="margin:10px auto 0;max-width:340px;display:block;position:relative" onclick="ibOpen()"><span class="bt"><span class="bi">💡</span>Ideeënbus</span><span id="ibBadge" class="ibBadge"></span></button>
-  <button class="btn dark" style="margin:10px auto 0;max-width:340px;display:block" onclick="remOpen()"><span class="bt"><span class="bi">🔔</span>Herinneringen</span></button>
   </div>
   <button class="btn yellow" id="homeLogin" onclick="showView('loginView');fbRenderLogin()"><span class="bt"><span class="bi">🔐</span>Inloggen</span></button>
 </div>
@@ -2112,6 +2118,74 @@ function remRender(){
   });
   document.getElementById("remScroll").innerHTML=h;
 }
+
+// ===== v3.163: GEDEELDE LIJSTEN - HYDROCULTUUR + RECEPTEN (zelfde merge/tombstone-sync-patroon als de ideeënbus) =====
+function slLoad(k){ try{ return JSON.parse(localStorage.getItem("mcSL:"+k)||"[]"); }catch(e){ return []; } }
+function slSave(k,a){ try{ localStorage.setItem("mcSL:"+k,JSON.stringify(a)); }catch(e){} }
+function slDelLoad(k){ try{ return JSON.parse(localStorage.getItem("mcSLDel:"+k)||"[]"); }catch(e){ return []; } }
+function slSaveDel(k,a){ try{ localStorage.setItem("mcSLDel:"+k,JSON.stringify(a.slice(-100))); }catch(e){} }
+function slPush(k){
+  if(!FB.ready||!FB.user) return;
+  try{
+    var dm={}; slDelLoad(k).forEach(function(d){ if(d&&d.id) dm[d.id]=1; });
+    var out=slLoad(k).filter(function(e){ return !dm[e.id]; }).map(function(e){ return {id:e.id,t:e.t,by:e.by,ts:e.ts,m:e.m}; });
+    if(out.length>500) out=out.slice(0,500);
+    var o={}; o[k]=out; o[k+"Del"]=slDelLoad(k); o[k+"T"]=Date.now();
+    FB.db.collection("shared").doc("mccard").set(o,{merge:true}).catch(function(){});
+  }catch(e){}
+}
+function slMergeDoc(k,doc){
+  try{
+    var rem=doc.exists?(doc.data()[k]||[]):[];
+    var remDel=doc.exists?(doc.data()[k+"Del"]||[]):[];
+    var dmap={};
+    slDelLoad(k).forEach(function(d){ if(d&&d.id) dmap[d.id]=d; });
+    remDel.forEach(function(d){ if(!d||!d.id) return; if(!dmap[d.id]||(d.ts||0)>(dmap[d.id].ts||0)) dmap[d.id]={id:d.id,ts:d.ts||0}; });
+    var loc=slLoad(k), map={};
+    loc.forEach(function(e){ if(!dmap[e.id]) map[e.id]=e; });
+    rem.forEach(function(e){
+      if(!e||!e.id) return;
+      var d=dmap[e.id]; if(d&&(d.ts||0)>=(e.m||e.ts||0)) return;
+      var cur=map[e.id];
+      if(!cur||((e.m||e.ts||0)>(cur.m||cur.ts||0))) map[e.id]=e;
+    });
+    var out=[]; for(var kk in map) out.push(map[kk]);
+    out.sort(function(x,y){ return y.id-x.id; });
+    var dl=[]; for(var k2 in dmap) dl.push(dmap[k2]);
+    slSave(k,out); slSaveDel(k,dl);
+  }catch(e2){}
+}
+function slPull(k,cb){
+  if(!FB.ready||!FB.user){ if(cb) cb(); return; }
+  FB.db.collection("shared").doc("mccard").get({source:"server"}).then(function(doc){ slMergeDoc(k,doc); if(cb) cb(); }).catch(function(){ if(cb) cb(); });
+}
+function slAdd(k,p){
+  if(!FB.user){ showView("loginView"); return false; }
+  var t=prompt(p);
+  if(t===null) return false;
+  t=String(t).trim(); if(!t) return false;
+  t=t.charAt(0).toUpperCase()+t.slice(1);
+  var a=slLoad(k); a.unshift({id:Date.now(),t:t,by:String(FB.user.email).toLowerCase(),ts:Date.now()});
+  a.sort(function(x,y){ return y.id-x.id; });
+  slSave(k,a); slPush(k); return true;
+}
+function slDel(k,id){ if(!confirm("Weggooien?")) return; var del=slDelLoad(k).filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()}); slSaveDel(k,del); slSave(k,slLoad(k).filter(function(e){ return e.id!==id; })); slPush(k); }
+function slFmt(ts){ var d=new Date(ts); return d.getDate()+"-"+(d.getMonth()+1)+"-"+d.getFullYear()+" "+d.getHours()+":"+(d.getMinutes()<10?"0":"")+d.getMinutes(); }
+function slRender(k,delFn,scId,emptyTxt){
+  var a=slLoad(k), h="";
+  if(!a.length) h+='<div class="tip">'+emptyTxt+'</div>';
+  a.forEach(function(e){
+    var ln=String(e.t||"").split("\n");
+    h+='<div class="remItem"><div class="remTxt">'+colEsc(ln[0])+'</div>'+(ln.length>1?'<div class="remBody">'+colEsc(ln.slice(1).join("\n"))+'</div>':'')+'<div class="remSub">'+ibName(e.by)+' - '+slFmt(e.ts)+'</div><button class="remDel" onclick="'+delFn+'('+e.id+')">🗑</button></div>';
+  });
+  document.getElementById(scId).innerHTML=h;
+}
+function hydOpen(){ showView("hydView"); slPull("hyd",function(){ slRender("hyd","hydDel","hydScroll","Nog niets bijgehouden. Tik hieronder, bijvoorbeeld: Basil - water + voeding gegeven."); }); }
+function hydAdd(){ if(slAdd("hyd","Wat wil je bijhouden over je planten? (bijv. Basil - water gegeven)")) slRender("hyd","hydDel","hydScroll","Nog niets bijgehouden. Tik hieronder, bijvoorbeeld: Basil - water + voeding gegeven."); }
+function hydDel(id){ slDel("hyd",id); slRender("hyd","hydDel","hydScroll","Nog niets bijgehouden. Tik hieronder, bijvoorbeeld: Basil - water + voeding gegeven."); }
+function recOpen(){ showView("recView"); slPull("rec",function(){ slRender("rec","recDel","recScroll","Nog geen recepten. Tik hieronder om er een te bewaren."); }); }
+function recAdd(){ if(slAdd("rec","Welk recept wil je bewaren? (naam + ingredienten + bereiding)")) slRender("rec","recDel","recScroll","Nog geen recepten. Tik hieronder om er een te bewaren."); }
+function recDel(id){ slDel("rec",id); slRender("rec","recDel","recScroll","Nog geen recepten. Tik hieronder om er een te bewaren."); }
 // ===== v3.88: MELDING-GESCHIEDENIS =====
 var NT_KEY="mcNotif";
 function ntLoad(){ try{ var a=JSON.parse(localStorage.getItem(NT_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
@@ -2345,6 +2419,22 @@ function fbSync(interactive){
   </div>
 </div>
 
+<!-- ===== HYDROCULTUUR (v3.163) ===== -->
+<div class="view" id="hydView">
+  <div id="hydScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <div class="bottomBar" data-scroll="hydScroll" style="display:flex;gap:8px">
+    <button class="btn yellow" onclick="hydAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">🌱</span>Aantekening toevoegen</span></button>
+  </div>
+</div>
+
+<!-- ===== RECEPTEN (v3.163) ===== -->
+<div class="view" id="recView">
+  <div id="recScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <div class="bottomBar" data-scroll="recScroll" style="display:flex;gap:8px">
+    <button class="btn yellow" onclick="recAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">🍳</span>Recept toevoegen</span></button>
+  </div>
+</div>
+
 <!-- ===== AANBIEDINGSSCAN (v3.56) ===== -->
 <div class="view" id="dealView">
   <div id="dealScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
@@ -2422,7 +2512,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.162";
+var VERSION="3.163";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4055,7 +4145,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.162-->
+<!--v:3.163-->
 
 
 
