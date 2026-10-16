@@ -226,13 +226,17 @@
   body.pink .smU { background:rgba(236,72,153,.16); color:#f9a8d4; border-color:rgba(244,114,182,.4); }
   /* v3.69: product-tegels in de aanbiedingsscanner */
   .dsGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:8px; overflow:hidden; } /* v3.126 */
-  .dsTile { background:#1e293b; border-radius:10px; padding:6px; min-width:0; max-width:100%; overflow:hidden; } /* v3.126 */
+  .dsTile { background:#1e293b; border-radius:10px; padding:6px; min-width:0; max-width:100%; position:relative; overflow:hidden; } /* v3.126 */
   .dsTile:active { background:#334155; }
   .dsTile a { display:flex; flex-direction:column; align-items:center; text-decoration:none; }
   .dsTile img { width:calc(100% - 10px); margin:5px auto 0; display:block; max-width:100%; aspect-ratio:225/200; object-fit:contain; border-radius:6px; background:#0f172a; } /* v3.126: foto kleiner, gecentreerd, nooit breder dan de tegel */
   .dsTile span { font-size:10px; color:#cbd5e1; text-align:center; line-height:1.2; margin-top:4px;
     overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; min-height:24px; }
   .dsTile b { font-size:12px; color:#4ade80; margin-top:3px; }
+  /* v3.144: ✕-knop rechtsboven op product-tegel */
+  .dsXBtn { position:absolute; top:3px; right:3px; width:22px; height:22px; border-radius:50%; border:1px solid rgba(248,113,113,.55); background:rgba(2,6,23,.75); color:#f87171; font-size:12px; line-height:1; padding:0; cursor:pointer; z-index:2; }
+  .dsXBtn:active { transform:scale(.9); }
+  body.pink .dsXBtn { border-color:rgba(244,114,182,.55); color:#f472b6; }
   /* v3.81: prijshistorie per product */
   .dsHistRow { background:#0f172a; border-radius:12px; padding:10px; margin-bottom:8px; }
   body.pink .dsChart polyline { stroke:#f472b6 !important; }
@@ -284,7 +288,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.143</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.144</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1460,6 +1464,7 @@ function dsBlkDel(ek){ var o=dsBlkLoad(); delete o[decodeURIComponent(ek)]; dsBl
 function dsDupes(a){ // v3.94: automatisch op naam + handmatige 🔗-koppelingen en loskoppelingen
   var L=dsLinkLoad();
   var BK=dsBlkLoad();
+  var HID=dsHideLoad(); // v3.144
   var map={}, grp=[];
   a.items.forEach(function(e){
     var r=dsRes[e.id]; if(!r||r==="scan"||r.err) return;
@@ -1468,6 +1473,7 @@ function dsDupes(a){ // v3.94: automatisch op naam + handmatige 🔗-koppelingen
     all.forEach(function(p){
       if(!p||!p.p||String(p.n).indexOf("(gevonden prijs")===0) return;
       var k=dsNormN(p.n); if(k.length<4) return;
+      if(HID[k]) return; // v3.144: verborgen product overslaan
       var g=map[k]; if(!g){ g=map[k]={n:p.n, i:p.i||"", items:[]}; grp.push(g); }
       if(!g.i&&p.i) g.i=p.i;
       g.items.push({sid:e.id, sn:e.name, p:p.p, u:p.u, st:p.st||"", n:p.n, i:p.i||"", k:String(e.id)+"|"+k}); // v3.119: foto meenemen per product voor het vergelijk-scherm
@@ -1576,6 +1582,13 @@ function dsRender(){
     else { h+='</div>'; blks.forEach(function(e){ h+='<div class="n" style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0"><span>'+colEsc(e.name)+'</span><button class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px" onclick="dsBlkDel(\''+encodeURIComponent(e.id)+'\')">↩️ Terugzetten</button></div>'; }); }
     h+='</div>';
   }
+  var HID2=dsHideLoad(), hk=Object.keys(HID2); // v3.144: verborgen producten beheren
+  if(hk.length){
+    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="font-size:13px;font-weight:800">🙈 Verborgen producten</div>';
+    if(hk.length===1){ h+='<button class="btn dark" style="width:auto;margin:0;padding:5px 10px;font-size:11px" data-k="'+encodeURIComponent(hk[0])+'" onclick="dsHideDel(this.dataset.k)">↩️ Terugzetten</button></div><div class="n" style="margin:6px 0 0">'+colEsc(decodeURIComponent(HID2[hk[0]].n||hk[0]))+'</div>'; }
+    else { h+='</div>'; hk.forEach(function(k){ h+='<div class="n" style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0"><span>'+colEsc(decodeURIComponent(HID2[k].n||k))+'</span><button class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px" data-k="'+encodeURIComponent(k)+'" onclick="dsHideDel(this.dataset.k)">↩️ Terugzetten</button></div>'; }); }
+    h+='</div>';
+  }
   var dups=dsDupes(a); dsDupList=dups; // v3.92
   if(dups.length){
     h+='<div class="card" style="border:2px solid rgba(74,222,128,.35)">';
@@ -1586,13 +1599,14 @@ function dsRender(){
       if(g.items.length>1){ // v3.117: vergelijk-tegel bij meer dan 1 product - ook als ze bij dezelfde winkel horen (anders "verdween" het 2e product van de tegel)
         var selT=dsLinkSel&&g.items.some(function(t){ return dsLinkSel.ks[t.k]; });
         h+='<div class="dsTile" onclick="dsDupPick('+ix+')" style="cursor:pointer'+(selT?';outline:2px solid #facc15':'')+'">';
+        h+=dsXBtnHTML(g.n);
         h+= g.i ? '<img src="'+colEsc(g.i)+'" loading="lazy">' : '';
         var pmin=it.p, pmax=it.p; g.items.forEach(function(t){ if(t.p<pmin)pmin=t.p; if(t.p>pmax)pmax=t.p; }); // v3.122: laagste - hoogste prijs van de gekoppelde producten
         h+='<b style="display:block;width:100%;text-align:center;font-size:9px;white-space:nowrap;margin-top:4px">'+(pmax>pmin?dsEuro(pmin)+' - '+dsEuro(pmax):dsEuro(pmin))+'</b><div style="font-size:9px;color:#94a3b8;text-align:center;margin-top:2px">'+g.items.length+' producten</div>'; /* v3.130: bereik volledig zichtbaar op 1 regel (ellipsis weg, 9px) */
         h+='<div style="display:flex;gap:4px;margin:3px 0 0"><button onclick="event.stopPropagation();dsLinkPick('+ix+')" style="flex:1;padding:4px;font-size:10px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#94a3b8;cursor:pointer">'+(selT?'🔗 (gekozen)':'🔗 Koppel')+'</button></div></div>';
       } else {
         var selS=dsLinkSel&&g.items.some(function(t){ return dsLinkSel.ks[t.k]; });
-        h+='<div class="dsTile" style="'+(selS?'outline:2px solid #facc15':'')+'"><a href="'+colEsc(it.u)+'" target="_blank" rel="noopener">';
+        h+='<div class="dsTile" style="'+(selS?'outline:2px solid #facc15':'')+'">'+dsXBtnHTML(g.n)+'<a href="'+colEsc(it.u)+'" target="_blank" rel="noopener">';
         h+= g.i ? '<img src="'+colEsc(g.i)+'" loading="lazy">' : '';
         h+='<span>'+colEsc(g.n)+'</span><b>'+dsEuro(it.p)+'</b></a>'+dsTileExtra(it.sid,{n:g.n,p:it.p,u:it.u,i:g.i})+'<div style="display:flex;gap:4px;margin:3px 0 0"><button onclick="dsLinkPick('+ix+')" style="flex:1;padding:4px;font-size:10px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#94a3b8;cursor:pointer">'+(selS?'🔗 (gekozen)':'🔗 Koppel')+'</button></div></div>';
       }
@@ -1787,6 +1801,13 @@ function dsHistWipe(){ // v3.141: hele historie van deze winkel in één keer wi
   keys.forEach(function(k2){ delete h.m[k2]; });
   dsHistSave(h); dsHistRender(); dsNote("✅ Historie gewist");
 }
+// ===== v3.144: product verbergen (✕-knop op tegel) =====
+var DS_HD_KEY="mcDsHide";
+function dsHideLoad(){ try{ return JSON.parse(localStorage.getItem(DS_HD_KEY))||{}; }catch(e){ return {}; } }
+function dsHideSave(o){ try{ localStorage.setItem(DS_HD_KEY,JSON.stringify(o)); }catch(e){} }
+function dsHideAdd(k,n){ var o=dsHideLoad(); if(!o[k]){ o[k]={n:n||k}; dsHideSave(o); } dsNote("✅ Product verborgen (teugzetten via 🙈-kaart)"); dsRender(); }
+function dsHideDel(k){ var o=dsHideLoad(); if(o[k]){ delete o[k]; dsHideSave(o); } dsRender(); }
+function dsXBtnHTML(nm){ return '<button class="dsXBtn" data-k="'+encodeURIComponent(dsNormN(nm))+'" data-n="'+encodeURIComponent(nm)+'" onclick="dsHideAdd(this.dataset.k,this.dataset.n);event.stopPropagation();" aria-label="Verbergen">✕</button>'; }
 // ===== v3.88: MELDING-GESCHIEDENIS =====
 var NT_KEY="mcNotif";
 function ntLoad(){ try{ var a=JSON.parse(localStorage.getItem(NT_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
@@ -2080,7 +2101,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.143";
+var VERSION="3.144";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
