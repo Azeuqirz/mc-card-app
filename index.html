@@ -294,7 +294,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.155</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.156</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1833,7 +1833,7 @@ function ibLoad(){ try{ return JSON.parse(localStorage.getItem(IB_KEY))||[]; }ca
 function ibSave(a){ try{ localStorage.setItem(IB_KEY, JSON.stringify(a)); }catch(e){} }
 function ibName(by){ return by==="chantalbelshofts@gmail.com" ? "Chantal 💗" : "Maurits 💙"; }
 function ibClr(by){ return by==="chantalbelshofts@gmail.com" ? "#ec4899" : "#facc15"; }
-function ibPush(){ if(!FB.ready||!FB.user) return; try{ var a=ibLoad(); var dm={}; ibLoadDel().forEach(function(d){ if(d&&d.id) dm[d.id]=1; }); a=a.filter(function(e){ return !dm[e.id]; }); if(a.length>500) a=a.slice(-500); FB.db.collection("shared").doc("mccard").set({ ideas:a, ideasDel:ibLoadDel(), ibT:Date.now() }, { merge:true }).catch(function(){}); }catch(e){} }
+function ibPush(){ if(!FB.ready||!FB.user) return; try{ var a=ibLoad(); var dm={}; ibLoadDel().forEach(function(d){ if(d&&d.id) dm[d.id]=1; }); a=a.filter(function(e){ return !dm[e.id]; }); var out=a.map(function(e){ return {id:e.id,t:e.t,by:e.by,ts:e.ts,m:e.m,ed:e.ed,c:e.c,i:e.i}; }); var s=JSON.stringify(out); while(s.length>700000){ var done=false; for(var j=out.length-1;j>=0;j--){ var it=out[j]; if(it.i){ delete it.i; done=true; } else if(it.c){ for(var k=0;k<it.c.length;k++){ if(it.c[k].i){ delete it.c[k].i; done=true; } } } if(done) break; } if(!done) break; s=JSON.stringify(out); } if(out.length>500) out=out.slice(0,500); FB.db.collection("shared").doc("mccard").set({ ideas:out, ideasDel:ibLoadDel(), ibT:Date.now() }, { merge:true }).catch(function(){}); }catch(e){} }
 function ibPull(cb){
   if(!FB.ready||!FB.user){ if(cb) cb(); return; }
   FB.db.collection("shared").doc("mccard").get({source:"server"}).then(function(doc){
@@ -1954,10 +1954,11 @@ function ibRender(){
       h+='<div class="card" style="border:2px solid '+ibClr(e.by)+';margin-bottom:6px;padding:10px">';
       h+='<div style="font-size:11px;font-weight:800;color:'+ibClr(e.by)+'">'+ibName(e.by)+' · '+ibFmt(e.ts)+(e.ed?' · ✏️ bewerkt '+ibFmt(e.ed):'')+'</div>';
       h+='<div style="font-size:14px;margin-top:3px">'+colEsc(e.t)+'</div>';
+      if(e.i){ h+='<img src="'+e.i+'" alt="" style="width:100%;border-radius:8px;margin-top:6px;display:block">'; }
       var me=FB.user?String(FB.user.email).toLowerCase():"";
-      if(e.c&&e.c.length){ e.c.forEach(function(c){ h+='<div class="ibCmt" style="border:1px solid '+ibClr(c.by)+'33"><div style="font-size:10px;font-weight:800;color:'+ibClr(c.by)+'">'+ibName(c.by)+' · '+ibFmt(c.ts)+(c.by===me?' <b style="color:#f87171;cursor:pointer" onclick="ibCmtDel('+e.id+','+c.id+')">✕</b>':'')+'</div><div style="font-size:13px;margin-top:1px">'+colEsc(c.t)+'</div></div>'; }); }
+      if(e.c&&e.c.length){ e.c.forEach(function(c){ h+='<div class="ibCmt" style="border:1px solid '+ibClr(c.by)+'33"><div style="font-size:10px;font-weight:800;color:'+ibClr(c.by)+'">'+ibName(c.by)+' · '+ibFmt(c.ts)+(c.by===me?' <b style="color:#f87171;cursor:pointer" onclick="ibCmtDel('+e.id+','+c.id+')">✕</b>':'')+'</div><div style="font-size:13px;margin-top:1px">'+colEsc(c.t)+'</div>'+(c.i?'<img src="'+c.i+'" alt="" style="width:100%;border-radius:8px;margin-top:4px;display:block">':'')+'</div>'; }); }
       h+='<div style="display:flex;gap:6px;margin-top:6px">';
-      if(e.by===me){ h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibEdit('+e.id+')"><span class="bt"><span class="bi">✏️</span>Bewerk</span></button>'; }
+      if(e.by===me){ h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibEdit('+e.id+')"><span class="bt"><span class="bi">✏️</span>Bewerk</span></button>'; h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibPick('+e.id+',0)"><span class="bt"><span class="bi">📷</span>Foto</span></button>'; }
       h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibCmt('+e.id+')"><span class="bt"><span class="bi">💬</span>Reactie</span></button>';
       h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px;color:#f87171" onclick="ibDel('+e.id+')"><span class="bt"><span class="bi">🗑</span>Weg</span></button></div>';
       h+='</div>';
@@ -1973,14 +1974,50 @@ function ibAdd(){
   if(t===null) return;
   t=String(t).trim(); if(!t) return;
   var a=ibLoad();
-  a.push({ id:Date.now(), t:t, by:String(FB.user.email).toLowerCase(), ts:Date.now() });
+  var nid=Date.now();
+  a.push({ id:nid, t:t, by:String(FB.user.email).toLowerCase(), ts:nid });
   a.sort(function(x,y){ return y.id-x.id; });
   ibSave(a); ibPush(); ibRender();
+  if(confirm("Foto toevoegen? (galerij of live)")) ibPick(nid,0);
 }
 function ibDel(id){ if(!confirm("Idee weggooien?")) return; var a=ibLoad().filter(function(e){ return e.id!==id; }); var del=ibLoadDel().filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()}); ibSaveDel(del); ibSave(a); ibPush(); ibRender(); }
 function ibEdit(id){ if(!FB.user){ showView("loginView"); return; } var a=ibLoad(), e=null; a.forEach(function(x){ if(x.id===id) e=x; }); if(!e) return; if(String(FB.user.email).toLowerCase()!==e.by){ alert("Alleen je eigen idee kun je bewerken."); return; } var t=prompt("Idee aanpassen:",e.t); if(t===null) return; t=String(t).trim(); if(!t||t===e.t) return; e.t=t; e.ed=Date.now(); e.m=Date.now(); a.sort(function(x,y){ return y.id-x.id; }); ibSave(a); ibPush(); ibRender(); }
-function ibCmt(id){ if(!FB.user){ showView("loginView"); return; } var t=prompt("Jouw reactie?"); if(t===null) return; t=String(t).trim(); if(!t) return; var a=ibLoad(), e=null; a.forEach(function(x){ if(x.id===id) e=x; }); if(!e) return; if(!e.c) e.c=[]; e.c.push({ id:Date.now(), by:String(FB.user.email).toLowerCase(), t:t, ts:Date.now() }); e.m=Date.now(); ibSave(a); ibPush(); ibRender(); }
+function ibCmt(id){ if(!FB.user){ showView("loginView"); return; } var t=prompt("Jouw reactie?"); if(t===null) return; t=String(t).trim(); if(!t) return; var a=ibLoad(), e=null; a.forEach(function(x){ if(x.id===id) e=x; }); if(!e) return; if(!e.c) e.c=[]; var cid=Date.now(); e.c.push({ id:cid, by:String(FB.user.email).toLowerCase(), t:t, ts:cid }); e.m=Date.now(); ibSave(a); ibPush(); ibRender(); if(confirm("Foto toevoegen bij de reactie?")) ibPick(id,cid); }
 function ibCmtDel(id,cid){ if(!confirm("Reactie weggooien?")) return; var a=ibLoad(), e=null; a.forEach(function(x){ if(x.id===id) e=x; }); if(!e||!e.c) return; e.c=e.c.filter(function(c){ return c.id!==cid; }); e.m=Date.now(); ibSave(a); ibPush(); ibRender(); }
+var _ibPick=null;
+function ibPick(id,cid){ _ibPick={id:id,cid:cid}; var el=document.getElementById("ibFile"); if(!el) return; try{ el.value=""; }catch(e){} el.click(); }
+function ibFilePicked(el){
+  try{
+    var f=el&&el.files&&el.files[0]; if(!f||!_ibPick) return;
+    var rd=new FileReader();
+    rd.onload=function(){ ibImgProc(rd.result, ibImgSet); };
+    rd.readAsDataURL(f);
+  }catch(e){}
+}
+function ibImgProc(src,cb){
+  var img=new Image();
+  img.onload=function(){
+    var W=img.width, H=img.height, mx=640;
+    var sc=Math.min(1, mx/Math.max(W,H,1));
+    var cv=document.createElement("canvas");
+    cv.width=Math.max(1,Math.round(W*sc)); cv.height=Math.max(1,Math.round(H*sc));
+    cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+    cb(cv.toDataURL("image/jpeg",0.55));
+  };
+  img.onerror=function(){ cb(src); };
+  img.src=src;
+}
+function ibImgSet(d){
+  try{
+    var a=ibLoad(), e=null, tp=_ibPick; _ibPick=null;
+    if(!tp||!d) return;
+    a.forEach(function(x){ if(x.id===tp.id) e=x; });
+    if(!e) return;
+    if(tp.cid){ var c=null; if(e.c) e.c.forEach(function(y){ if(y.id===tp.cid) c=y; }); if(!c) return; c.i=d; }
+    else e.i=d;
+    e.m=Date.now(); ibSave(a); ibPush(); ibRender();
+  }catch(e2){}
+}
 // ===== v3.148: junk-productnamen (footer/service) globaal filteren =====
 var DS_JUNK=/^(werken bij|gratis verzending|gratis bezorg|klantenservice|contact|algemene voorwaarden|privacy|verzending|bezorg|veelgestelde vragen|hoe kunnen we|beoordeeld|vandaag besteld|morgen in huis)/i; // v3.148: deze tekst is nooit een product
 // ===== v3.147: elke 30s op GitHub kijken of er een nieuwe versie is =====
@@ -2230,6 +2267,7 @@ function fbSync(interactive){
   <div id="ideaScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="ideaScroll" style="display:flex;gap:8px">
     <button class="btn yellow" onclick="ibAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">💡</span>Idee toevoegen</span></button>
+    <input type="file" id="ibFile" accept="image/*" onchange="ibFilePicked(this)">
   </div>
 </div>
 
@@ -2310,7 +2348,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.155";
+var VERSION="3.156";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3943,7 +3981,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.155-->
+<!--v:3.156-->
 
 
 
