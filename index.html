@@ -66,6 +66,9 @@
     padding:8px; margin-bottom:8px; cursor:pointer; }
   /* v3.181: sleep-handvat om crypto-munten te herschikken */
   .cryDrag { align-self:center; padding:12px 8px 12px 2px; color:#64748b; font-size:16px; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+  .cryNewsIt { display:block; padding:8px 0; border-top:1px solid #1e293b; font-size:13px; font-weight:700; color:#e2e8f0; text-decoration:none; } /* v3.195: nieuws-item */
+  .cryNewsIt:active { color:#facc15; }
+  .cryNewsIt span { display:block; font-size:11px; font-weight:400; color:#64748b; margin-top:2px; }
   #cryChartBox { touch-action:none; } /* v3.193: grafiek volledig vast - elke beweging leest de prijs, het scherm schuift niet meer */
   #cryScroll { touch-action:pan-y; } /* v3.193: munt-scherm kan alleen verticaal scrollen, nooit horizontaal schuiven */
   .lookupItem:active { background:#1e293b; }
@@ -203,6 +206,8 @@
   body.pink .score b { color:#f472b6; }
   body.pink .aiV { color:#f472b6 !important; } /* v3.190 */
   body.pink #cryAiBox p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.192: AI-update koppen in roze */
+  body.pink #cryNewsBox p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.195: nieuws-kop in roze */
+  body.pink .cryNewsIt { color:#f9a8d4 !important; } /* v3.195: nieuws-artikelen in roze */
   body.pink .n span[style*='facc15'] { color:#f472b6 !important; }
   body.pink h1 { color:#f9a8d4; }
   /* v3.40: confetti bij verjaardag in de agenda */
@@ -312,7 +317,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.194</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.195</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2616,7 +2621,7 @@ function cryDetRender(){
   var modeRow=(CRY_KIND==="candle")?ivRow:rgRow; // v3.183: bij candles kies je de kaars-grootte, bij de lijn het tijdvak
   sc.innerHTML='<div class="card"><div class="score"><span>'+colEsc(e.t)+' ('+colEsc(s)+')</span><span id="cryPrice" style="font-size:20px;font-weight:800;color:#e2e8f0">...</span></div>'
     +'<div id="cryCh" style="font-size:12px;color:#64748b;margin:2px 0 10px">24u: ...</div>'
-    +'<button id="cryAiBtn" class="btn dark" style="display:inline-block;width:auto;margin:0 0 8px;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryAiUpd()">🤖 AI update</button><div id="cryAiBox"></div>' // v3.192: korte marktupdate van de AI
+    +'<div style="display:flex;gap:6px;margin:0 0 8px"><button id="cryAiBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryAiUpd()">🤖 AI update</button><button id="cryNewsBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryNewsUpd()">📰 Nieuws</button></div><div id="cryAiBox"></div><div id="cryNewsBox"></div>' // v3.192: korte marktupdate van de AI + v3.195: nieuws-knop ernaast
     +modeRow // v3.183: tijdvak-knoppen (lijn) of kaars-grootte-knoppen (candles)
     +'<div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn '+(CRY_KIND==="line"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(0)">📈 Lijn</button><button class="btn '+(CRY_KIND==="candle"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(1)">🕯 Candles</button></div>' // v3.180: kiezen tussen lijn en candlesticks
     +'<div id="cryChartBox" style="margin:0 -24px"><div class="tip">Grafiek laden...</div></div>' // v3.183: grafiek over de volle breedte van het scherm
@@ -2689,6 +2694,44 @@ function cryAiUpd(){ // v3.192: korte markt-update van de AI - berekend uit de g
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Korte termijn</p><p class="n" style="margin:0 0 10px">'+kort+'</p>'
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Lange termijn</p><p class="n" style="margin:0 0 8px">'+lang+'</p>'
     +'<p class="n" style="margin:0;color:#64748b">Steun ≈ '+cryFmt(mn)+' · weerstand ≈ '+cryFmt(mx)+' · AI-schatting uit de grafiek, geen financieel advies.</p></div>'; // v3.192
+}
+var CRY_NEWS={}; // v3.195: cache met Nederlands nieuws per munt
+function cryNewsUpd(){ // v3.195: actueel Nieuws-knop - recente Nederlandse artikelen over de munt
+  var cx=window._CRY_CTX, box=document.getElementById("cryNewsBox");
+  if(!box) return;
+  if(!cx||!cx.g){ box.innerHTML='<div class="note">Kies eerst een munt.</div>'; return; }
+  var coin=cx.g.replace(/-/g," "), cached=CRY_NEWS[cx.g];
+  if(cached&&Date.now()-cached.t<300000){ cryNewsShow(box,cached.items,coin); return; } // v3.195: 5 minuten cache
+  box.innerHTML='<div class="note">⏳ Nieuws over '+colEsc(coin)+' zoeken…</div>';
+  var feed='https://news.google.com/rss/search?q='+encodeURIComponent(coin+' when:14d')+'&hl=nl&gl=NL&ceid=NL:nl';
+  fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(feed)) // v3.195: poging 1 - rss2json geeft JSON
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(j){ if(!j||j.status!=="ok"||!j.items||!j.items.length) throw 0; return j.items.map(function(it){ return {t:it.title||"",u:it.link||"",d:it.pubDate||""}; }); })
+    .catch(function(){ return fetch('https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(feed)) // v3.195: poging 2 - codetabs geeft de RSS als tekst
+      .then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(cryNewsParseXml); })
+    .catch(function(){ return fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(feed)) // v3.195: poging 3 - allorigins als reserve
+      .then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(cryNewsParseXml); })
+    .then(function(its){ if(!its||!its.length) throw 0; CRY_NEWS[cx.g]={t:Date.now(),items:its.slice(0,6)}; cryNewsShow(box,CRY_NEWS[cx.g].items,coin); })
+    .catch(function(){ box.innerHTML='<div class="note">❌ Geen nieuws gevonden — geen verbinding of de nieuwsdienst is tijdelijk onbereikbaar. Probeer het zo meteen opnieuw.</div>'; });
+}
+function cryNewsParseXml(txt){ // v3.195: Google Nieuws-RSS omzetten naar artikelen
+  try{
+    var doc=new DOMParser().parseFromString(txt,"text/xml"), raw=doc.querySelectorAll("item"), its=[];
+    for(var i=0;i<raw.length&&i<20;i++){ its.push({ t:(raw[i].querySelector("title")||{}).textContent||"", u:(raw[i].querySelector("link")||{}).textContent||"", d:(raw[i].querySelector("pubDate")||{}).textContent||"" }); }
+    return its;
+  }catch(e){ return []; }
+}
+function cryNewsShow(box,items,coin){ // v3.195: de nieuws-lijst tonen
+  var html='<div class="card" style="padding:12px;margin:0 0 10px"><p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">📰 Nieuws over '+colEsc(coin)+'</p>';
+  items.forEach(function(it){
+    var ttl=String(it.t||""), src="", ix=ttl.lastIndexOf(" - ");
+    if(ix>25){ src=ttl.slice(ix+3); ttl=ttl.slice(0,ix); } // v3.195: Google Nieuws plakt de bron achter de titel
+    var dd="", ago=new Date(it.d||0);
+    if(!isNaN(ago.getTime())){ var ds=Math.floor((Date.now()-ago.getTime())/86400000); dd=ds<1?"vandaag":(ds===1?"gisteren":ds+" dagen geleden"); }
+    html+='<a href="'+it.u+'" target="_blank" rel="noopener" class="cryNewsIt">'+colEsc(ttl)+'<span>'+(src?colEsc(src)+" · ":"")+dd+'</span></a>';
+  });
+  html+='<p class="n" style="margin:6px 0 0;color:#64748b">Recente artikelen van Google Nieuws (Nederlands) · tik erop om ze te openen.</p></div>';
+  box.innerHTML=html;
 }
 function cryTrim(a){ // v3.189: alleen het laatste deel van de geschiedenis tonen
   if(!a||a.length<3) return a||[];
@@ -3171,7 +3214,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.194";
+var VERSION="3.195";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4964,7 +5007,8 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.194-->
+<!--v:3.195-->
+
 
 
 
