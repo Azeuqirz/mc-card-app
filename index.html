@@ -306,7 +306,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.172</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.173</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1886,7 +1886,7 @@ function ibLoad(){ try{ return JSON.parse(localStorage.getItem(IB_KEY))||[]; }ca
 function ibSave(a){ try{ localStorage.setItem(IB_KEY, JSON.stringify(a)); }catch(e){} }
 function ibName(by){ return by==="chantalbelshofts@gmail.com" ? "Chantal 💗" : "Maurits 💙"; }
 function ibClr(by){ return by==="chantalbelshofts@gmail.com" ? "#ec4899" : "#facc15"; }
-function ibPush(){ if(!FB.ready||!FB.user) return; try{ var a=ibLoad(); var dm={}; ibLoadDel().forEach(function(d){ if(d&&d.id) dm[d.id]=1; }); a=a.filter(function(e){ return !dm[e.id]; }); var out=a.map(function(e){ return {id:e.id,t:e.t,by:e.by,ts:e.ts,m:e.m,ed:e.ed,c:e.c,i:e.i}; }); var s=JSON.stringify(out); while(s.length>700000){ var done=false; for(var j=out.length-1;j>=0;j--){ var it=out[j]; if(it.i){ delete it.i; done=true; } else if(it.c){ for(var k=0;k<it.c.length;k++){ if(it.c[k].i){ delete it.c[k].i; done=true; } } } if(done) break; } if(!done) break; s=JSON.stringify(out); } if(out.length>500) out=out.slice(0,500); FB.db.collection("shared").doc("mccard").set({ ideas:out, ideasDel:ibLoadDel(), ibT:Date.now() }, { merge:true }).catch(function(){}); }catch(e){} }
+function ibPush(){ if(!FB.ready||!FB.user) return; try{ var a=ibLoad(); var dm={}; ibLoadDel().forEach(function(d){ if(d&&d.id) dm[d.id]=1; }); a=a.filter(function(e){ return !dm[e.id]; }); var out=a.map(function(e){ return {id:e.id,t:e.t,by:e.by,ts:e.ts,m:e.m,ed:e.ed,c:e.c,i:e.i,ok:e.ok,okT:e.okT}; }); var s=JSON.stringify(out); while(s.length>700000){ var done=false; for(var j=out.length-1;j>=0;j--){ var it=out[j]; if(it.i){ delete it.i; done=true; } else if(it.c){ for(var k=0;k<it.c.length;k++){ if(it.c[k].i){ delete it.c[k].i; done=true; } } } if(done) break; } if(!done) break; s=JSON.stringify(out); } if(out.length>500) out=out.slice(0,500); FB.db.collection("shared").doc("mccard").set({ ideas:out, ideasDel:ibLoadDel(), ibT:Date.now() }, { merge:true }).catch(function(){}); }catch(e){} }
 function ibPull(cb){
   if(!FB.ready||!FB.user){ if(cb) cb(); return; }
   FB.db.collection("shared").doc("mccard").get({source:"server"}).then(function(doc){
@@ -2004,8 +2004,8 @@ function ibRender(){
   if(!a.length){ h+='<div class="note">Nog geen ideeën. Tik op "💡 Idee toevoegen"!</div>'; }
   else{
     a.forEach(function(e){
-      h+='<div class="card" style="border:2px solid '+ibClr(e.by)+';margin-bottom:6px;padding:10px">';
-      h+='<div style="font-size:11px;font-weight:800;color:'+ibClr(e.by)+'">'+ibName(e.by)+' · '+ibFmt(e.ts)+(e.ed?' · ✏️ bewerkt '+ibFmt(e.ed):'')+'</div>';
+      h+='<div class="card" style="border:2px solid '+(e.ok?'#4ade80':ibClr(e.by))+';margin-bottom:6px;padding:10px">';
+      h+='<div style="font-size:11px;font-weight:800;color:'+ibClr(e.by)+'">'+ibName(e.by)+' · '+ibFmt(e.ts)+(e.ed?' · ✏️ bewerkt '+ibFmt(e.ed):'')+(e.ok?' · <span style="color:#4ade80">✅ Verwerkt</span>':'')+'</div>';
       if(e.i){ h+='<div style="display:flex;gap:8px;margin-top:3px;align-items:flex-start"><img src="'+e.i+'" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px;cursor:pointer;flex:none" onclick="ibFull(this.src)"><div style="font-size:14px;flex:1;min-width:0">'+colEsc(e.t)+'</div></div>'; }
       else h+='<div style="font-size:14px;margin-top:3px">'+colEsc(e.t)+'</div>';
       var me=FB.user?String(FB.user.email).toLowerCase():"";
@@ -2013,6 +2013,7 @@ function ibRender(){
       h+='<div style="display:flex;gap:6px;margin-top:6px">';
       if(e.by===me){ h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibEdit('+e.id+')"><span class="bt"><span class="bi">✏️</span>Bewerk</span></button>'; }
       h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibCmt('+e.id+')"><span class="bt"><span class="bi">💬</span>Reactie</span></button>';
+      h+='<button class="btn dark" style="flex:.5;margin:0;font-size:15px;padding:8px;'+(e.ok?'background:#4ade80;color:#0f172a;':'color:#4ade80;')+'" onclick="ibOk('+e.id+')">✅</button>';
       h+='<button class="btn dark" style="flex:.5;margin:0;font-size:15px;padding:8px" onclick="ibPick('+e.id+',0)">📷</button>';
       h+='<button class="btn dark" style="flex:.5;margin:0;font-size:15px;padding:8px;color:#f87171" onclick="ibDel('+e.id+')">🗑</button></div>';
       h+='</div>';
@@ -2034,6 +2035,7 @@ function ibAdd(){
   ibSave(a); ibPush(); ibRender();
 }
 function ibDel(id){ if(!confirm("Idee weggooien?")) return; var a=ibLoad().filter(function(e){ return e.id!==id; }); var del=ibLoadDel().filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()}); ibSaveDel(del); ibSave(a); ibPush(); ibRender(); }
+function ibOk(id){ if(!FB.user){ showView("loginView"); return; } var a=ibLoad(), e=null; a.forEach(function(x){ if(x.id===id) e=x; }); if(!e) return; if(e.ok){ e.ok=0; e.okT=0; } else { e.ok=1; e.okT=Date.now(); } e.m=Date.now(); ibSave(a); ibPush(); ibRender(); } // v3.173: vinkje Verwerkt, synct via m
 function ibEdit(id){ if(!FB.user){ showView("loginView"); return; } var a=ibLoad(), e=null; a.forEach(function(x){ if(x.id===id) e=x; }); if(!e) return; if(String(FB.user.email).toLowerCase()!==e.by){ alert("Alleen je eigen idee kun je bewerken."); return; } var t=prompt("Idee aanpassen:",e.t); if(t===null) return; t=String(t).trim(); if(!t||t===e.t) return; e.t=t; e.ed=Date.now(); e.m=Date.now(); a.sort(function(x,y){ return y.id-x.id; }); ibSave(a); ibPush(); ibRender(); }
 function ibCmt(id){ if(!FB.user){ showView("loginView"); return; } var t=prompt("Jouw reactie?"); if(t===null) return; t=String(t).trim(); if(!t) return; var a=ibLoad(), e=null; a.forEach(function(x){ if(x.id===id) e=x; }); if(!e) return; if(!e.c) e.c=[]; var cid=Date.now(); e.c.push({ id:cid, by:String(FB.user.email).toLowerCase(), t:t, ts:cid }); e.m=Date.now(); ibSave(a); ibPush(); ibRender(); if(confirm("Foto toevoegen bij de reactie?")) ibPick(id,cid); }
 function ibCmtDel(id,cid){ if(!confirm("Reactie weggooien?")) return; var a=ibLoad(), e=null; a.forEach(function(x){ if(x.id===id) e=x; }); if(!e||!e.c) return; e.c=e.c.filter(function(c){ return c.id!==cid; }); e.m=Date.now(); ibSave(a); ibPush(); ibRender(); }
@@ -2710,7 +2712,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.172";
+var VERSION="3.173";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4343,7 +4345,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.172-->
+<!--v:3.173-->
 
 
 
