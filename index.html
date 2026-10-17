@@ -306,7 +306,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.175</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.176</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2326,12 +2326,18 @@ function hydImgSet(d){
 function hydDel(){ if(!confirm("Plant weggooien?")) return; var id=HYD_DET; var del=slDelLoad("hyd").filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()}); slSaveDel("hyd",del); slSave("hyd",slLoad("hyd").filter(function(e){ return e.id!==id; })); slPush("hyd"); showView("hydView",true); hydRender(); }
 // ===== v3.164: recepten als tegels + detail met ingredienten en beschrijving =====
 function recOpen(){ REC_DELMODE=false; recDelBtnUpd(); showView("recView"); slPull("rec",function(){ recRender(); }); }
+function recEmoji(t){
+  var s=String(t||'').toLowerCase();
+  var M=[['soep','🍲'],['stoof','🍲'],['hachee','🍲'],['goulash','🍲'],['chili','🌶️'],['pizza','🍕'],['taco','🌮'],['burrito','🌯'],['quesadilla','🫓'],['naan','🫓'],['pita','🫓'],['wrap','🌯'],['shoarma','🌯'],['loempia','🌯'],['pasta','🍝'],['spaghetti','🍝'],['macaroni','🍝'],['lasagne','🍝'],['lasagna','🍝'],['ravioli','🍝'],['tortellini','🍝'],['penne','🍝'],['fusilli','🍝'],['burger','🍔'],['friet','🍟'],['patat','🍟'],['hotdog','🌭'],['frikandel','🌭'],['kroket','🌭'],['bitterbal','🌭'],['worst','🌭'],['spek','🥓'],['biefstuk','🥩'],['steak','🥩'],['haas','🥩'],['gehakt','🍖'],['vlees','🍖'],['lams','🍖'],['kip','🍗'],['garnalen','🦐'],['garnaal','🦐'],['scampi','🦐'],['kreeft','🦞'],['krab','🦀'],['zalm','🐟'],['forel','🐟'],['tonijn','🐟'],['vis','🐟'],['sushi','🍣'],['noedel','🍜'],['mihoen','🍜'],['bami','🍜'],['ramen','🍜'],['nasi','🍛'],['curry','🍛'],['masala','🍛'],['rijst','🍚'],['risotto','🍚'],['paella','🥘'],['roerbak','🥘'],['stamppot','🥔'],['hutspot','🥕'],['aardappel','🥔'],['puree','🥔'],['brood','🍞'],['toast','🍞'],['croissant','🥐'],['bagel','🥯'],['tosti','🥪'],['sandwich','🥪'],['quiche','🥧'],['taart','🥧'],['cake','🍰'],['muffin','🧁'],['cupcake','🧁'],['donut','🍩'],['wafel','🧇'],['pannenkoek','🥞'],['flens','🥞'],['poffertje','🥞'],['pudding','🍮'],['brownie','🍫'],['chocolade','🍫'],['koek','🍪'],['speculaas','🍪'],['cookie','🍪'],['ijs','🍦'],['salade','🥗'],['guacamole','🥑'],['avocado','🥑'],['tomaat','🍅'],['paprika','🫑'],['komkommer','🥒'],['courgette','🥒'],['wortel','🥕'],['broccoli','🥦'],['spinazie','🥬'],['zuurkool','🥬'],['boerenkool','🥬'],['champignon','🍄'],['paddenstoel','🍄'],['aubergine','🍆'],['maïs','🌽'],['mais','🌽'],['kaas','🧀'],['citroen','🍋'],['sinaasappel','🍊'],['appel','🍎'],['banaan','🍌'],['aardbei','🍓'],['framboos','🍓'],['druif','🍇'],['meloen','🍉'],['ananas','🍍'],['mango','🥭'],['perzik','🍑'],['kers','🍒'],['bosbes','🫐']];
+  for(var i=0;i<M.length;i++){ if(s.indexOf(M[i][0])>-1) return M[i][1]; }
+  return '🍳';
+} // v3.176: passende emoji per recept op basis van de naam
 function recRender(){
   var a=slLoad("rec"), h="";
   if(!a.length) h+='<div class="tip">Nog geen recepten. Tik hieronder op "Nieuw recept".</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
   a.forEach(function(e){
-    h+='<button class="btn yellow" style="margin:0;padding:16px 8px;font-size:13px;position:relative" onclick="recDet('+e.id+')"><div style="font-size:26px;line-height:1;margin-bottom:6px">🍳</div>'+colEsc(e.t)+(REC_DELMODE?'<span style="position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:#ef4444;color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1" onclick="event.stopPropagation();recDelAsk('+e.id+')">✕</span>':'')+'</button>';
+    h+='<button class="btn yellow" style="margin:0;padding:16px 8px;font-size:13px;position:relative" onclick="recDet('+e.id+')"><div style="font-size:26px;line-height:1;margin-bottom:6px">'+recEmoji(e.t)+'</div>'+colEsc(e.t)+(REC_DELMODE?'<span style="position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:#ef4444;color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1" onclick="event.stopPropagation();recDelAsk('+e.id+')">✕</span>':'')+'</button>';
   });
   h+='</div>';
   document.getElementById("recScroll").innerHTML=h;
@@ -2353,7 +2359,7 @@ function recDetRender(){
   var e=recFind(REC_DET), el=document.getElementById("recDetScroll"), bar=document.getElementById("recDetBar"); if(!el) return;
   if(!e){ showView("recView",true); recRender(); return; }
   var r=e.r||{}; var ing=r.ing||[]; var dsc=r.dsc||"";
-  var h='<div class="remItem" style="padding-right:12px"><div style="font-size:19px;font-weight:800">🍳 '+colEsc(e.t)+'</div><div class="remSub">'+ibName(e.by)+' - '+slFmt(e.ts)+'</div></div>';
+  var h='<div class="remItem" style="padding-right:12px"><div style="font-size:19px;font-weight:800">'+recEmoji(e.t)+' '+colEsc(e.t)+'</div><div class="remSub">'+ibName(e.by)+' - '+slFmt(e.ts)+'</div></div>';
   if(!REC_EDIT){ // v3.166: lees-modus - ingredienten onder elkaar, bewerken via 1 knop onderaan
     h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🧂 Ingredienten</div>';
     if(!ing.length) h+='<div class="remSub">Nog geen ingredienten.</div>';
@@ -2719,7 +2725,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.175";
+var VERSION="3.176";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4352,7 +4358,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.175-->
+<!--v:3.176-->
 
 
 
