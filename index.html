@@ -306,7 +306,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.177</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.178</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -335,6 +335,7 @@
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="remOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🔔</div>Herinneringen</button>
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="hydOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🌱</div>Hydrocultuur</button>
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="recOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🍳</div>Recepten</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="cryOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🪙</div>Crypto</button>
   </div>
   </div>
   <button class="btn yellow" id="homeLogin" onclick="showView('loginView');fbRenderLogin()"><span class="bt"><span class="bi">🔐</span>Inloggen</span></button>
@@ -2149,7 +2150,7 @@ function slPush(k){
   if(!FB.ready||!FB.user) return;
   try{
     var dm={}; slDelLoad(k).forEach(function(d){ if(d&&d.id) dm[d.id]=1; });
-    var out=slLoad(k).filter(function(e){ return !dm[e.id]; }).map(function(e){ var it={id:e.id,t:e.t,by:e.by,ts:e.ts,m:e.m}; if(e.r) it.r=e.r; if(e.p) it.p=e.p; if(e.u) it.u=e.u; return it; }); // v3.164: r = recept-details; v3.165: p/u = plant-info + updates
+    var out=slLoad(k).filter(function(e){ return !dm[e.id]; }).map(function(e){ var it={id:e.id,t:e.t,by:e.by,ts:e.ts,m:e.m}; if(e.r) it.r=e.r; if(e.p) it.p=e.p; if(e.u) it.u=e.u; if(e.c) it.c=e.c; return it; }); // v3.164: r = recept-details; v3.165: p/u = plant-info + updates; v3.178: c = crypto-munt (gecko-id + symbool)
     var s=JSON.stringify(out);
     while(s.length>700000){ // v3.165: foto's van de oudste plant/updates eerst strippen uit de push-copy
       var done=false;
@@ -2327,6 +2328,138 @@ function hydImgSet(d){
 function hydDel(){ if(!confirm("Plant weggooien?")) return; var id=HYD_DET; var del=slDelLoad("hyd").filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()}); slSaveDel("hyd",del); slSave("hyd",slLoad("hyd").filter(function(e){ return e.id!==id; })); slPush("hyd"); showView("hydView",true); hydRender(); }
 // ===== v3.164: recepten als tegels + detail met ingredienten en beschrijving =====
 function recOpen(){ REC_DELMODE=false; recDelBtnUpd(); showView("recView"); slPull("rec",function(){ recRender(); }); }
+// ===== v3.178: crypto-munten met prijsgrafiek =====
+var CRY_DET=null, CRY_RANGE=7, CRY_CH={}, CRY_TOK=0;
+function cryOpen(){ CRY_DET=null; cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ cryRender(); }); }
+function cryBarUpd(){
+  var b=document.getElementById("cryBar"); if(!b) return;
+  b.innerHTML = CRY_DET!==null
+    ? '<button class="btn dark" onclick="cryBack()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">⬅</span>Terug naar munten</span></button>'
+    : '<button class="btn yellow" onclick="cryAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Munt toevoegen</span></button>';
+}
+function cryAdd(){
+  var q=prompt("Welke munt wil je toevoegen? (bijvoorbeeld Bitcoin of BTC)");
+  if(q===null) return;
+  q=String(q).trim(); if(!q) return;
+  var sc=document.getElementById("cryScroll"); if(!sc) return;
+  sc.innerHTML='<div class="tip">Zoeken naar '+colEsc(q)+'...</div>';
+  fetch("https://api.coingecko.com/api/v3/search?query="+encodeURIComponent(q))
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(function(j){
+      var list=(j.coins||[]).slice(0,8); window._cryS=list;
+      if(!list.length){ sc.innerHTML='<div class="note">Geen munten gevonden voor '+colEsc(q)+'.</div>'; return; }
+      var h='<div class="tip">Gevonden munten - tik op een munt om hem toe te voegen:</div>';
+      list.forEach(function(c,i){
+        h+='<div class="lookupItem" onclick="cryPick('+i+')"><div class="si"><div class="sd">'+colEsc(String(c.symbol).toUpperCase())+'</div><div style="font-size:14px;font-weight:700">'+colEsc(String(c.name))+'</div></div><div style="font-size:20px">➕</div></div>';
+      });
+      sc.innerHTML=h;
+    })
+    .catch(function(){ sc.innerHTML='<div class="note">Zoeken mislukt - geen verbinding of tijdelijke API-limiet.</div>'; });
+}
+function cryPick(i){
+  var c=(window._cryS||[])[i]; if(!c) return;
+  if(!FB.user){ showView("loginView"); return; }
+  var a=slLoad("cry");
+  for(var k=0;k<a.length;k++){ if(a[k].c&&a[k].c.g===c.id){ alert("Deze munt staat al in je lijst."); return; } }
+  a.unshift({id:Date.now(),t:String(c.name),c:{g:String(c.id),s:String(c.symbol).toUpperCase()},by:String(FB.user.email).toLowerCase(),ts:Date.now(),m:Date.now()});
+  a.sort(function(x,y){ return y.id-x.id; });
+  slSave("cry",a); slPush("cry");
+  cryRender();
+}
+function cryDel(id){
+  if(!confirm("Deze munt verwijderen?")) return;
+  var del=slDelLoad("cry").filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()});
+  slSaveDel("cry",del); slSave("cry",slLoad("cry").filter(function(e){ return e.id!==id; })); slPush("cry");
+  if(CRY_DET===id) CRY_DET=null;
+  cryRender();
+}
+function cryRender(){
+  var sc=document.getElementById("cryScroll"); if(!sc) return;
+  if(CRY_DET!==null){ cryDetRender(); return; }
+  cryBarUpd();
+  var a=slLoad("cry");
+  if(!a.length){ sc.innerHTML='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Nog geen munten. Tik hieronder op "Munt toevoegen" en zoek bijvoorbeeld op Bitcoin.</div>'; return; }
+  sc.innerHTML='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Tik op een munt voor de grafiek.</div>';
+  var ids=a.map(function(e){ return e.c?e.c.g:""; }).filter(Boolean).join(",");
+  if(!ids) return;
+  fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(ids)+"&vs_currencies=usd&include_24hr_change=true")
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(function(pr){ if(CRY_DET===null) cryDrawList(a,pr); })
+    .catch(function(){ if(CRY_DET===null) cryDrawList(a,null); });
+}
+function cryDrawList(a,pr){
+  var sc=document.getElementById("cryScroll"); if(!sc||CRY_DET!==null) return;
+  var h='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Tik op een munt voor de grafiek.</div>';
+  a.forEach(function(e){
+    var g=e.c?e.c.g:"", s=e.c?e.c.s:"";
+    var o=(pr&&pr[g])||null, p=o?o.usd:null, ch=(o&&o.usd_24h_change!==undefined)?o.usd_24h_change:null;
+    h+='<div class="lookupItem" onclick="cryDet('+e.id+')"><div class="si"><div class="sd">'+colEsc(s)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(e.t)+'</div><div style="font-size:11px;color:#64748b">'+ibName(e.by)+'</div></div><div style="text-align:right"><div style="font-size:15px;font-weight:800">'+(p===null?"...":cryFmt(p))+'</div><div style="font-size:11px;font-weight:700;color:'+(ch===null?"#64748b":(ch>=0?"#4ade80":"#f87171"))+'">'+(ch===null?"24u: ...":("24u: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"))+'</div></div><button style="background:#1e293b;border:0;color:#f87171;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700" onclick="event.stopPropagation();cryDel('+e.id+')">✕</button></div>';
+  });
+  sc.innerHTML=h;
+}
+function cryDet(id){ CRY_DET=id; CRY_RANGE=7; cryDetRender(); }
+function cryBack(){ CRY_DET=null; cryRender(); }
+function cryRange(d){ CRY_RANGE=d; cryDetRender(); }
+function cryDetRender(){
+  var sc=document.getElementById("cryScroll"); if(!sc) return;
+  if(CRY_DET===null){ cryRender(); return; }
+  cryBarUpd();
+  var e=null, a=slLoad("cry"); a.forEach(function(x){ if(x.id===CRY_DET) e=x; });
+  if(!e){ CRY_DET=null; cryRender(); return; }
+  var g=e.c?e.c.g:"", s=e.c?e.c.s:"";
+  var bt=function(d,txt){ return '<button class="btn '+(CRY_RANGE===d?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryRange('+d+')">'+txt+'</button>'; };
+  sc.innerHTML='<div class="card"><div class="score"><span>'+colEsc(e.t)+' ('+colEsc(s)+')</span><span id="cryPrice" style="font-size:20px;font-weight:800;color:#e2e8f0">...</span></div>'
+    +'<div id="cryCh" style="font-size:12px;color:#64748b;margin:2px 0 10px">24u: ...</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px">'+bt(1,"Dag")+bt(7,"Week")+bt(30,"Maand")+'</div>'
+    +'<div id="cryChartBox"><div class="tip">Grafiek laden...</div></div>'
+    +'<div class="tip">Toegevoegd door '+ibName(e.by)+'</div></div>';
+  var tok=++CRY_TOK;
+  if(!g) return;
+  fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(g)+"&vs_currencies=usd&include_24hr_change=true")
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(pr){ if(tok!==CRY_TOK) return; var o=pr&&pr[g]; var pe=document.getElementById("cryPrice"), ce=document.getElementById("cryCh");
+      if(o&&o.usd&&pe) pe.textContent=cryFmt(o.usd);
+      if(ce){ var ch=(o&&o.usd_24h_change!==undefined)?o.usd_24h_change:0; ce.textContent="24u: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"; ce.style.color=ch>=0?"#4ade80":"#f87171"; } })
+    .catch(function(){});
+  var key=g+"|"+CRY_RANGE, cached=CRY_CH[key];
+  if(cached&&Date.now()-cached.t<60000){ var b2=document.getElementById("cryChartBox"); if(b2) b2.innerHTML=cryChartSvg(cached.p); return; }
+  fetch("https://api.coingecko.com/api/v3/coins/"+encodeURIComponent(g)+"/market_chart?vs_currency=usd&days="+CRY_RANGE)
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(function(j){
+      if(tok!==CRY_TOK) return;
+      var pts=(j.prices||[]).map(function(p){ return p[1]; });
+      if(pts.length>140){ var st=pts.length/140, ds=[]; for(var i=0;i<140;i++){ ds.push(pts[Math.floor(i*st)]); } ds.push(pts[pts.length-1]); pts=ds; }
+      CRY_CH[key]={t:Date.now(),p:pts};
+      var b3=document.getElementById("cryChartBox"); if(b3) b3.innerHTML=cryChartSvg(pts);
+    })
+    .catch(function(){ if(tok!==CRY_TOK) return; var b4=document.getElementById("cryChartBox"); if(b4) b4.innerHTML='<div class="note">Grafiek kon niet worden geladen - geen verbinding of tijdelijke API-limiet.</div>'; });
+}
+function cryChartSvg(pts){
+  if(!pts||pts.length<2) return '<div class="tip">Te weinig gegevens.</div>';
+  var mn=Infinity, mx=-Infinity;
+  for(var i=0;i<pts.length;i++){ if(pts[i]<mn) mn=pts[i]; if(pts[i]>mx) mx=pts[i]; }
+  if(mx<=mn) mx=mn+1;
+  var W=340, H=150, pad=10, d="";
+  for(var i2=0;i2<pts.length;i2++){
+    var x=pad+(W-2*pad)*i2/(pts.length-1), y=pad+(H-2*pad)*(1-(pts[i2]-mn)/(mx-mn));
+    d+=(i2?"L":"M")+x.toFixed(1)+" "+y.toFixed(1);
+  }
+  var up=pts[pts.length-1]>=pts[0];
+  var col=up?"#4ade80":"#f87171", fl=up?"rgba(74,222,128,.12)":"rgba(248,113,113,.12)";
+  var fill=d+"L"+(W-pad).toFixed(1)+" "+(H-pad).toFixed(1)+"L"+pad+" "+(H-pad).toFixed(1)+"Z";
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">'
+    +'<path d="'+fill+'" fill="'+fl+'" stroke="none"/>'
+    +'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+    +'<text x="'+pad+'" y="'+(pad+9)+'" font-size="10" fill="#64748b">'+cryFmt(mx)+'</text>'
+    +'<text x="'+pad+'" y="'+(H-2)+'" font-size="10" fill="#64748b">'+cryFmt(mn)+'</text>'
+    +'</svg>';
+}
+function cryFmt(v){
+  if(!isFinite(v)) return "-";
+  if(v>=1000) return "$"+Math.round(v).toLocaleString("en-US");
+  if(v>=1) return "$"+v.toFixed(2);
+  return "$"+v.toFixed(4);
+}
 function recEmoji(t){
   var s=String(t||'').toLowerCase();
   var M=[['soep','🍲'],['stoof','🍲'],['hachee','🍲'],['goulash','🍲'],['chili','🌶️'],['pizza','🍕'],['taco','🌮'],['burrito','🌯'],['quesadilla','🫓'],['naan','🫓'],['pita','🫓'],['wrap','🌯'],['shoarma','🌯'],['loempia','🌯'],['pasta','🍝'],['spaghetti','🍝'],['macaroni','🍝'],['lasagne','🍝'],['lasagna','🍝'],['ravioli','🍝'],['tortellini','🍝'],['penne','🍝'],['fusilli','🍝'],['burger','🍔'],['friet','🍟'],['patat','🍟'],['hotdog','🌭'],['frikandel','🌭'],['kroket','🌭'],['bitterbal','🌭'],['worst','🌭'],['spek','🥓'],['biefstuk','🥩'],['steak','🥩'],['haas','🥩'],['gehakt','🍖'],['vlees','🍖'],['lams','🍖'],['kip','🍗'],['garnalen','🦐'],['garnaal','🦐'],['scampi','🦐'],['kreeft','🦞'],['krab','🦀'],['zalm','🐟'],['forel','🐟'],['tonijn','🐟'],['vis','🐟'],['sushi','🍣'],['noedel','🍜'],['mihoen','🍜'],['bami','🍜'],['ramen','🍜'],['nasi','🍛'],['curry','🍛'],['masala','🍛'],['rijst','🍚'],['risotto','🍚'],['paella','🥘'],['roerbak','🥘'],['stamppot','🥔'],['hutspot','🥕'],['aardappel','🥔'],['puree','🥔'],['brood','🍞'],['toast','🍞'],['croissant','🥐'],['bagel','🥯'],['tosti','🥪'],['sandwich','🥪'],['quiche','🥧'],['taart','🥧'],['cake','🍰'],['muffin','🧁'],['cupcake','🧁'],['donut','🍩'],['wafel','🧇'],['pannenkoek','🥞'],['flens','🥞'],['poffertje','🥞'],['pudding','🍮'],['brownie','🍫'],['chocolade','🍫'],['koek','🍪'],['speculaas','🍪'],['cookie','🍪'],['ijs','🍦'],['salade','🥗'],['guacamole','🥑'],['avocado','🥑'],['tomaat','🍅'],['paprika','🫑'],['komkommer','🥒'],['courgette','🥒'],['wortel','🥕'],['broccoli','🥦'],['spinazie','🥬'],['zuurkool','🥬'],['boerenkool','🥬'],['champignon','🍄'],['paddenstoel','🍄'],['aubergine','🍆'],['maïs','🌽'],['mais','🌽'],['kaas','🧀'],['citroen','🍋'],['sinaasappel','🍊'],['appel','🍎'],['banaan','🍌'],['aardbei','🍓'],['framboos','🍓'],['druif','🍇'],['meloen','🍉'],['ananas','🍍'],['mango','🥭'],['perzik','🍑'],['kers','🍒'],['bosbes','🫐']];
@@ -2649,6 +2782,14 @@ function fbSync(interactive){
   <div class="bottomBar" data-scroll="recDetScroll" style="display:flex;gap:8px" id="recDetBar"></div>
 </div>
 
+<!-- ===== CRYPTO (v3.178) ===== -->
+<div class="view" id="cryptoView">
+  <div id="cryScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <div class="bottomBar" data-scroll="cryScroll" style="display:flex;gap:8px" id="cryBar">
+    <button class="btn yellow" onclick="cryAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Munt toevoegen</span></button>
+  </div>
+</div>
+
 <!-- ===== AANBIEDINGSSCAN (v3.56) ===== -->
 <div class="view" id="dealView">
   <div id="dealScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
@@ -2726,7 +2867,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.177";
+var VERSION="3.178";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4359,7 +4500,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.177-->
+<!--v:3.178-->
 
 
 
