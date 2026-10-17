@@ -64,6 +64,8 @@
   .zoomInner { transform-origin:0 0; width:100%; }
   .lookupItem { display:flex; gap:10px; align-items:center; background:#0f172a; border-radius:10px;
     padding:8px; margin-bottom:8px; cursor:pointer; }
+  /* v3.181: sleep-handvat om crypto-munten te herschikken */
+  .cryDrag { align-self:center; padding:12px 8px 12px 2px; color:#64748b; font-size:16px; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
   .lookupItem:active { background:#1e293b; }
   .lookupItem img { width:44px; height:61px; object-fit:cover; border-radius:5px; background:#1e293b; }
   .lookupItem .si { flex:1; min-width:0; }
@@ -306,7 +308,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.180</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.181</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2150,7 +2152,7 @@ function slPush(k){
   if(!FB.ready||!FB.user) return;
   try{
     var dm={}; slDelLoad(k).forEach(function(d){ if(d&&d.id) dm[d.id]=1; });
-    var out=slLoad(k).filter(function(e){ return !dm[e.id]; }).map(function(e){ var it={id:e.id,t:e.t,by:e.by,ts:e.ts,m:e.m}; if(e.r) it.r=e.r; if(e.p) it.p=e.p; if(e.u) it.u=e.u; if(e.c) it.c=e.c; return it; }); // v3.164: r = recept-details; v3.165: p/u = plant-info + updates; v3.178: c = crypto-munt (gecko-id + symbool)
+    var out=slLoad(k).filter(function(e){ return !dm[e.id]; }).map(function(e){ var it={id:e.id,t:e.t,by:e.by,ts:e.ts,m:e.m}; if(e.r) it.r=e.r; if(e.p) it.p=e.p; if(e.u) it.u=e.u; if(e.c) it.c=e.c; if(e.o) it.o=e.o; return it; }); // v3.164: r = recept-details; v3.165: p/u = plant-info + updates; v3.178: c = crypto-munt (gecko-id + symbool)
     var s=JSON.stringify(out);
     while(s.length>700000){ // v3.165: foto's van de oudste plant/updates eerst strippen uit de push-copy
       var done=false;
@@ -2329,9 +2331,9 @@ function hydDel(){ if(!confirm("Plant weggooien?")) return; var id=HYD_DET; var 
 // ===== v3.164: recepten als tegels + detail met ingredienten en beschrijving =====
 function recOpen(){ REC_DELMODE=false; recDelBtnUpd(); showView("recView"); slPull("rec",function(){ recRender(); }); }
 // ===== v3.178: crypto-munten met prijsgrafiek =====
-var CRY_DET=null, CRY_RANGE=7, CRY_CH={}, CRY_TOK=0, CRY_TICK=null, CRY_KIND="line"; // v3.179: CRY_TICK = 10s live-verversing; v3.180: CRY_KIND = lijn of candles
+var CRY_DET=null, CRY_RANGE=7, CRY_CH={}, CRY_TOK=0, CRY_TICK=null, CRY_KIND="line"; // v3.179: CRY_TICK = 30s live-verversing; v3.180: CRY_KIND = lijn of candles
 try{ if(localStorage.getItem("mcCryKind")==="candle") CRY_KIND="candle"; }catch(e){}
-function cryOpen(){ CRY_DET=null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,10000); } cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ cryRender(); }); } // v3.179: elke 10s live prijzen zolang het crypto-scherm open is
+function cryOpen(){ CRY_DET=null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,30000); } cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ cryRender(); }); } // v3.181: elke 30s live prijzen zolang het crypto-scherm open is
 function cryBarUpd(){
   var b=document.getElementById("cryBar"); if(!b) return;
   b.innerHTML = CRY_DET!==null
@@ -2362,7 +2364,8 @@ function cryPick(i){
   if(!FB.user){ showView("loginView"); return; }
   var a=slLoad("cry");
   for(var k=0;k<a.length;k++){ if(a[k].c&&a[k].c.g===c.id){ alert("Deze munt staat al in je lijst."); return; } }
-  a.unshift({id:Date.now(),t:String(c.name),c:{g:String(c.id),s:String(c.symbol).toUpperCase()},by:String(FB.user.email).toLowerCase(),ts:Date.now(),m:Date.now()});
+  var mnO=0; for(var k2=0;k2<a.length;k2++){ if(typeof a[k2].o==="number"&&a[k2].o<mnO) mnO=a[k2].o; } // v3.181: nieuwe munt bovenaan in de handmatige volgorde
+  a.unshift({id:Date.now(),t:String(c.name),c:{g:String(c.id),s:String(c.symbol).toUpperCase()},o:mnO-1,by:String(FB.user.email).toLowerCase(),ts:Date.now(),m:Date.now()});
   a.sort(function(x,y){ return y.id-x.id; });
   slSave("cry",a); slPush("cry");
   cryRender();
@@ -2380,7 +2383,7 @@ function cryRender(){
   cryBarUpd();
   var a=slLoad("cry");
   if(!a.length){ sc.innerHTML='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Nog geen munten. Tik hieronder op "Munt toevoegen" en zoek bijvoorbeeld op Bitcoin.</div>'; return; }
-  sc.innerHTML='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Tik op een munt voor de grafiek.</div>';
+  sc.innerHTML='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Tik op een munt voor de grafiek - sleep aan ☰ om de volgorde te veranderen.</div>';
   var ids=a.map(function(e){ return e.c?e.c.g:""; }).filter(Boolean).join(",");
   if(!ids) return;
   fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(ids)+"&vs_currencies=usd&include_24hr_change=true")
@@ -2390,15 +2393,54 @@ function cryRender(){
 }
 function cryDrawList(a,pr){
   var sc=document.getElementById("cryScroll"); if(!sc||CRY_DET!==null) return;
-  var h='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Tik op een munt voor de grafiek.</div>';
+  a=crySorted(a); // v3.181: handmatige volgorde (sleep-handvat)
+  var h='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Tik op een munt voor de grafiek - sleep aan ☰ om de volgorde te veranderen.</div>';
   a.forEach(function(e){
     var g=e.c?e.c.g:"", s=e.c?e.c.s:"";
     var o=(pr&&pr[g])||null, p=o?o.usd:null, ch=(o&&o.usd_24h_change!==undefined)?o.usd_24h_change:null;
-    h+='<div class="lookupItem" onclick="cryDet('+e.id+')"><div class="si"><div class="sd">'+colEsc(s)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(e.t)+'</div><div style="font-size:11px;color:#64748b">'+ibName(e.by)+'</div></div><div style="text-align:right"><div id="cryP'+e.id+'" style="font-size:15px;font-weight:800">'+(p===null?"...":cryFmt(p))+'</div><div id="cryC'+e.id+'" style="font-size:11px;font-weight:700;color:'+(ch===null?"#64748b":(ch>=0?"#4ade80":"#f87171"))+'">'+(ch===null?"24u: ...":("24u: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"))+'</div></div><button style="background:#1e293b;border:0;color:#f87171;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700" onclick="event.stopPropagation();cryDel('+e.id+')">✕</button></div>';
+    h+='<div class="lookupItem" data-cid="'+e.id+'" onclick="cryDet('+e.id+')"><span class="cryDrag" onpointerdown="cryDragStart('+e.id+',event)">☰</span><div class="si"><div class="sd">'+colEsc(s)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(e.t)+'</div><div style="font-size:11px;color:#64748b">'+ibName(e.by)+'</div></div><div style="text-align:right"><div id="cryP'+e.id+'" style="font-size:15px;font-weight:800">'+(p===null?"...":cryFmt(p))+'</div><div id="cryC'+e.id+'" style="font-size:11px;font-weight:700;color:'+(ch===null?"#64748b":(ch>=0?"#4ade80":"#f87171"))+'">'+(ch===null?"24u: ...":("24u: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"))+'</div></div><button style="background:#1e293b;border:0;color:#f87171;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700" onclick="event.stopPropagation();cryDel('+e.id+')">✕</button></div>';
   });
   sc.innerHTML=h;
 }
-function cryTick(){ // v3.179: elke 10s live verversen zolang het crypto-scherm open is
+// ===== v3.181: volgorde van crypto-munten slepen (per munt een sleep-handvat) =====
+function crySorted(a){ a=(a||[]).slice(); a.sort(function(x,y){ var xo=(typeof x.o==="number")?x.o:Infinity, yo=(typeof y.o==="number")?y.o:Infinity; if(xo!==yo) return xo-yo; return y.id-x.id; }); return a; }
+var CRY_DRAG=null;
+function cryDragStart(id,e){
+  if(!e||CRY_DET!==null) return;
+  e.preventDefault(); e.stopPropagation();
+  var sc=document.getElementById("cryScroll"); if(!sc) return;
+  var rows=[].slice.call(sc.querySelectorAll(".lookupItem")), drag=null;
+  for(var i=0;i<rows.length;i++){ if(rows[i].getAttribute("data-cid")===String(id)) drag=rows[i]; }
+  if(!drag) return;
+  CRY_DRAG={drag:drag};
+  drag.style.opacity=".45";
+  try{ e.target.setPointerCapture(e.pointerId); }catch(err){}
+  function mv(ev){
+    var y=ev.clientY, rc=sc.getBoundingClientRect();
+    if(y>rc.bottom-48) sc.scrollTop+=14; else if(y<rc.top+48) sc.scrollTop-=14;
+    var placed=false;
+    for(var i2=0;i2<rows.length;i2++){
+      var o=rows[i2]; if(o===drag) continue;
+      var r2=o.getBoundingClientRect();
+      if(y<r2.top+r2.height/2){ sc.insertBefore(drag,o); placed=true; break; }
+    }
+    if(!placed) sc.appendChild(drag);
+  }
+  function up(){
+    drag.style.opacity="";
+    sc.removeEventListener("pointermove",mv); sc.removeEventListener("pointerup",up); sc.removeEventListener("pointercancel",up);
+    CRY_DRAG=null;
+    var ord=[].slice.call(sc.querySelectorAll(".lookupItem")), posMap={};
+    for(var j=0;j<ord.length;j++){ var cid=ord[j].getAttribute("data-cid"); if(cid) posMap[Number(cid)]=j; }
+    var a=slLoad("cry"), ch=false;
+    a.forEach(function(x){ var p=posMap[x.id]; if(p!==undefined&&x.o!==p){ x.o=p; x.m=Date.now(); ch=true; } });
+    if(ch){ slSave("cry",a); slPush("cry"); }
+  }
+  sc.addEventListener("pointermove",mv);
+  sc.addEventListener("pointerup",up);
+  sc.addEventListener("pointercancel",up);
+}
+function cryTick(){ // v3.181: elke 30s live verversen zolang het crypto-scherm open is
   if(curView!=="cryptoView") return;
   if(CRY_DET!==null){ cryDetLive(); return; }
   var a=slLoad("cry");
@@ -2430,7 +2472,7 @@ function cryDetLive(){
       if(ce){ var ch=(o.usd_24h_change!==undefined)?o.usd_24h_change:0; ce.textContent="24u: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"; ce.style.color=ch>=0?"#4ade80":"#f87171"; }
     })
     .catch(function(){});
-  cryChartLoad(g, CRY_TOK); // v3.179: Dag-grafiek haalt elke 10s nieuwe punten op (cache 10s), Week/Maand via 60s-cache
+  cryChartLoad(g, CRY_TOK); // v3.179: Dag-grafiek haalt elke 30s nieuwe punten op (cache 10s), Week/Maand via 60s-cache
 }
 function cryKindSet(n){ CRY_KIND=n===1?"candle":"line"; try{ localStorage.setItem("mcCryKind",CRY_KIND); }catch(e){} cryDetRender(); } // v3.180: weergave-soort grafiek, voorkeur blijft bewaard
 function cryDet(id){ CRY_DET=id; CRY_RANGE=7; cryDetRender(); }
@@ -2937,7 +2979,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.180";
+var VERSION="3.181";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4570,7 +4612,8 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.180-->
+<!--v:3.181-->
+
 
 
 
