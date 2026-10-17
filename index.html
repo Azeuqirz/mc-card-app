@@ -306,7 +306,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.165</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.166</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2295,7 +2295,7 @@ function recRender(){
   h+='</div>';
   document.getElementById("recScroll").innerHTML=h;
 }
-var REC_DET=0;
+var REC_DET=0, REC_EDIT=false; // v3.166: REC_EDIT = bewerk-modus (alles in 1x bewerken)
 function recNew(){
   if(!FB.user){ showView("loginView"); return; }
   var t=prompt("Hoe heet het recept?");
@@ -2307,21 +2307,29 @@ function recNew(){
   slSave("rec",a); slPush("rec"); recRender(); recDet(a[0].id);
 }
 function recFind(id){ var e=null; slLoad("rec").forEach(function(x){ if(x.id===id) e=x; }); return e; }
-function recDet(id){ REC_DET=id; showView("recDetView"); recDetRender(); }
+function recDet(id){ REC_DET=id; REC_EDIT=false; showView("recDetView"); recDetRender(); }
 function recDetRender(){
-  var e=recFind(REC_DET), el=document.getElementById("recDetScroll"); if(!el) return;
+  var e=recFind(REC_DET), el=document.getElementById("recDetScroll"), bar=document.getElementById("recDetBar"); if(!el) return;
   if(!e){ showView("recView",true); recRender(); return; }
   var r=e.r||{}; var ing=r.ing||[]; var dsc=r.dsc||"";
   var h='<div class="remItem" style="padding-right:12px"><div style="font-size:19px;font-weight:800">🍳 '+colEsc(e.t)+'</div><div class="remSub">'+ibName(e.by)+' - '+slFmt(e.ts)+'</div></div>';
-  h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🧂 Ingredienten</div>';
-  if(!ing.length) h+='<div class="remSub">Nog geen ingredienten.</div>';
-  ing.forEach(function(g,i2){
-    h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #1e293b"><span style="flex:1;font-size:14px">'+colEsc(g)+'</span><button style="background:none;border:0;color:#f87171;font-size:14px;cursor:pointer;padding:4px 8px" onclick="recIngDel('+e.id+','+i2+')">✕</button></div>';
-  });
-  h+='<button class="btn dark" style="margin-top:8px" onclick="recIngAdd('+e.id+')"><span class="bt"><span class="bi">➕</span>Ingredient toevoegen</span></button></div>';
-  h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📝 Beschrijving</div>';
-  h+= dsc ? '<div class="remBody">'+colEsc(dsc)+'</div>' : '<div class="remSub">Nog geen beschrijving.</div>';
-  h+='<button class="btn dark" style="margin-top:8px" onclick="recDscEdit('+e.id+')"><span class="bt"><span class="bi">✏️</span>Beschrijving bewerken</span></button></div>';
+  if(!REC_EDIT){ // v3.166: lees-modus - ingredienten onder elkaar, bewerken via 1 knop onderaan
+    h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🧂 Ingredienten</div>';
+    if(!ing.length) h+='<div class="remSub">Nog geen ingredienten.</div>';
+    ing.forEach(function(g){ h+='<div style="padding:7px 0;border-bottom:1px solid #1e293b;font-size:14px">• '+colEsc(g)+'</div>'; });
+    h+='</div>';
+    h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📝 Beschrijving</div>';
+    h+= dsc ? '<div class="remBody">'+colEsc(dsc)+'</div>' : '<div class="remSub">Nog geen beschrijving.</div>';
+    h+='</div>';
+    if(bar) bar.innerHTML='<button class="btn yellow" style="flex:1;margin-top:0" onclick="recEditStart()"><span class="bt"><span class="bi">✏️</span>Bewerken</span></button><button class="btn dark" style="flex:none;width:110px;margin-top:0;color:#f87171" onclick="recDel(REC_DET)"><span class="bt">🗑 Recept</span></button>';
+  } else { // v3.166: bewerk-modus - alles in 1x
+    h+='<div class="tip" style="text-align:left">Zet elk ingredient op een eigen regel.</div>';
+    h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🧂 Ingredienten</div>';
+    h+='<textarea id="recIngTa" placeholder="Bijv. 200 gr boter" style="width:100%;min-height:140px;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:10px;color:#f1f5f9;font-family:inherit;font-size:14px">'+colEsc(ing.join("\n"))+'</textarea></div>';
+    h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📝 Beschrijving</div>';
+    h+='<textarea id="recDscTa" placeholder="Bereiding / beschrijving" style="width:100%;min-height:140px;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:10px;color:#f1f5f9;font-family:inherit;font-size:14px">'+colEsc(dsc)+'</textarea></div>';
+    if(bar) bar.innerHTML='<button class="btn yellow" style="flex:1;margin-top:0" onclick="recEditSave()"><span class="bt"><span class="bi">💾</span>Opslaan</span></button><button class="btn dark" style="flex:none;width:110px;margin-top:0" onclick="recEditCancel()"><span class="bt">✕ Annuleer</span></button>';
+  }
   el.innerHTML=h;
 }
 function recMut(id,fn){
@@ -2329,9 +2337,15 @@ function recMut(id,fn){
   a.forEach(function(x){ if(x.id===id){ fn(x); x.m=Date.now(); } });
   slSave("rec",a); slPush("rec"); recDetRender();
 }
-function recIngAdd(id){ if(!FB.user){ showView("loginView"); return; } var g=prompt("Welk ingredient? (bijv. 200 gr boter)"); if(g===null) return; g=String(g).trim(); if(!g) return; g=g.charAt(0).toUpperCase()+g.slice(1); recMut(id,function(x){ x.r=x.r||{ing:[],dsc:""}; x.r.ing=x.r.ing||[]; x.r.ing.push(g); }); }
-function recIngDel(id,ix){ recMut(id,function(x){ if(x.r&&x.r.ing) x.r.ing.splice(ix,1); }); }
-function recDscEdit(id){ if(!FB.user){ showView("loginView"); return; } var e=recFind(id); var cur=(e&&e.r&&e.r.dsc)?e.r.dsc:""; var d=prompt("Beschrijving / bereiding:",cur); if(d===null) return; recMut(id,function(x){ x.r=x.r||{ing:[],dsc:""}; x.r.dsc=String(d).trim(); }); }
+function recEditStart(){ if(!FB.user){ showView("loginView"); return; } REC_EDIT=true; recDetRender(); } // v3.166: alles in 1x bewerken
+function recEditCancel(){ REC_EDIT=false; recDetRender(); }
+function recEditSave(){
+  var ta1=document.getElementById("recIngTa"), ta2=document.getElementById("recDscTa");
+  var ing=(ta1?String(ta1.value):"").split("\n").map(function(x){ return x.trim(); }).filter(function(x){ return x; });
+  var dsc=(ta2?String(ta2.value):"").trim();
+  REC_EDIT=false;
+  recMut(REC_DET,function(x){ x.r={ing:ing,dsc:dsc}; });
+}
 function recDel(id){ if(!confirm("Recept weggooien?")) return; var del=slDelLoad("rec").filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()}); slSaveDel("rec",del); slSave("rec",slLoad("rec").filter(function(e){ return e.id!==id; })); slPush("rec"); showView("recView",true); recRender(); }
 // ===== v3.88: MELDING-GESCHIEDENIS =====
 var NT_KEY="mcNotif";
@@ -2595,9 +2609,7 @@ function fbSync(interactive){
 <!-- ===== RECEPT-DETAIL (v3.164) ===== -->
 <div class="view" id="recDetView">
   <div id="recDetScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
-  <div class="bottomBar" data-scroll="recDetScroll" style="display:flex;gap:8px">
-    <button class="btn dark" onclick="recDel(REC_DET)" style="flex:1;margin-top:0;color:#f87171"><span class="bt"><span class="bi">🗑</span>Recept verwijderen</span></button>
-  </div>
+  <div class="bottomBar" data-scroll="recDetScroll" style="display:flex;gap:8px" id="recDetBar"></div>
 </div>
 
 <!-- ===== AANBIEDINGSSCAN (v3.56) ===== -->
@@ -2677,7 +2689,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.165";
+var VERSION="3.166";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4310,7 +4322,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.165-->
+<!--v:3.166-->
 
 
 
