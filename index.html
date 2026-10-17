@@ -66,7 +66,8 @@
     padding:8px; margin-bottom:8px; cursor:pointer; }
   /* v3.181: sleep-handvat om crypto-munten te herschikken */
   .cryDrag { align-self:center; padding:12px 8px 12px 2px; color:#64748b; font-size:16px; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
-  #cryChartBox { touch-action:pan-y; } /* v3.192: grafiek vast - horizontaal slepen leest de prijs, verticaal scrollt de pagina */
+  #cryChartBox { touch-action:none; } /* v3.193: grafiek volledig vast - elke beweging leest de prijs, het scherm schuift niet meer */
+  #cryScroll { touch-action:pan-y; } /* v3.193: munt-scherm kan alleen verticaal scrollen, nooit horizontaal schuiven */
   .lookupItem:active { background:#1e293b; }
   .lookupItem img { width:44px; height:61px; object-fit:cover; border-radius:5px; background:#1e293b; }
   .lookupItem .si { flex:1; min-width:0; }
@@ -311,7 +312,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.192</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.193</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2433,7 +2434,7 @@ function recOpen(){ REC_DELMODE=false; recDelBtnUpd(); showView("recView"); slPu
 // ===== v3.178: crypto-munten met prijsgrafiek =====
 var CRY_DET=null, CRY_RANGE=7, CRY_CH={}, CRY_TOK=0, CRY_TICK=null, CRY_KIND="line", CRY_IV="15m"; // v3.179: CRY_TICK = 30s live-verversing; v3.180: CRY_KIND = lijn of candles; v3.183: CRY_IV = kaars-grootte
 try{ if(localStorage.getItem("mcCryKind")==="candle") CRY_KIND="candle"; }catch(e){}
-try{ var _cr=parseInt(localStorage.getItem("mcCryRange")||"",10); if(_cr===1||_cr===7||_cr===30) CRY_RANGE=_cr; var _iv=localStorage.getItem("mcCryIv"); if(["1m","5m","15m","1h","1d"].indexOf(_iv)>=0) CRY_IV=_iv; }catch(e2){} // v3.183: bewaarde grafiek-instellingen terugladen
+try{ var _cr=parseInt(localStorage.getItem("mcCryRange")||"",10); if([1,7,30,90,180,365].indexOf(_cr)>=0) CRY_RANGE=_cr; var _iv=localStorage.getItem("mcCryIv"); if(["1m","5m","15m","1h","1d"].indexOf(_iv)>=0) CRY_IV=_iv; }catch(e2){} // v3.183: bewaarde grafiek-instellingen terugladen
 var CRY_HIST=100; try{ var _hp=parseInt(localStorage.getItem("mcCryHist")||"",10); if(_hp>=10&&_hp<=100) CRY_HIST=_hp; }catch(e3){} // v3.189: hoeveel geschiedenis de grafiek toont
 function cryOpen(){ CRY_DET=null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,30000); } cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ cryRender(); }); } // v3.181: elke 30s live prijzen zolang het crypto-scherm open is
 function cryBarUpd(){
@@ -2608,9 +2609,9 @@ function cryDetRender(){
   var e=null, a=slLoad("cry"); a.forEach(function(x){ if(x.id===CRY_DET) e=x; });
   if(!e){ CRY_DET=null; cryRender(); return; }
   var g=e.c?e.c.g:"", s=e.c?e.c.s:"";
-  var bt=function(d,txt){ return '<button class="btn '+(CRY_RANGE===d?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryRange('+d+')">'+txt+'</button>'; };
+  var bt=function(d,txt){ return '<button class="btn '+(CRY_RANGE===d?"yellow":"dark")+'" style="flex:1;margin:0;padding:12px 2px;font-size:12px" onclick="cryRange('+d+')">'+txt+'</button>'; }; // v3.193: compacter voor 6 periodes
   var bi=function(v,txt){ return '<button class="btn '+(CRY_IV===v?"yellow":"dark")+'" style="flex:1;margin:0;padding:12px 2px;font-size:12px" onclick="cryIv(\''+v+'\')">'+txt+'</button>'; }; // v3.183: knoppen kaars-grootte
-  var rgRow='<div style="display:flex;gap:8px;margin-bottom:10px">'+bt(1,"Dag")+bt(7,"Week")+bt(30,"Maand")+'</div>';
+  var rgRow='<div style="display:flex;gap:6px;margin-bottom:10px">'+bt(1,"Dag")+bt(7,"Week")+bt(30,"Maand")+bt(90,"3 Mnd")+bt(180,"6 Mnd")+bt(365,"1 Jaar")+'</div>'; // v3.193: geschiedenis instelbaar van 1 dag tot 1 jaar
   var ivRow='<div class="tip" style="text-align:left;margin:0 0 6px">Kaars-grootte</div><div style="display:flex;gap:6px;margin-bottom:10px">'+bi("1m","1m")+bi("5m","5m")+bi("15m","15m")+bi("1h","1u")+bi("1d","24u")+'</div>'; // v3.183: 1 min t/m 24 uur per kaars
   var modeRow=(CRY_KIND==="candle")?ivRow:rgRow; // v3.183: bij candles kies je de kaars-grootte, bij de lijn het tijdvak
   sc.innerHTML='<div class="card"><div class="score"><span>'+colEsc(e.t)+' ('+colEsc(s)+')</span><span id="cryPrice" style="font-size:20px;font-weight:800;color:#e2e8f0">...</span></div>'
@@ -3170,7 +3171,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.192";
+var VERSION="3.193";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4961,7 +4962,8 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.192-->
+<!--v:3.193-->
+
 
 
 
