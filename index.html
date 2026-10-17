@@ -199,6 +199,7 @@
   /* v3.35: roze accenten - het logo blijft overal gewoon geel */
   body.pink #refreshBtn { border-color:rgba(236,72,153,.6); color:#f472b6; }
   body.pink .score b { color:#f472b6; }
+  body.pink .aiV { color:#f472b6 !important; } /* v3.190 */
   body.pink .n span[style*='facc15'] { color:#f472b6 !important; }
   body.pink h1 { color:#f9a8d4; }
   /* v3.40: confetti bij verjaardag in de agenda */
@@ -308,7 +309,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.189</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.190</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2986,7 +2987,8 @@ function fbSync(interactive){
       have[sc.id]=1;
       batch.set(udoc.collection("scans").doc(String(sc.id)), { id:sc.id, d:sc.d, g:sc.g,
         lr:sc.lr, tb:sc.tb, tT:sc.tT, tB:sc.tB, tL:sc.tL, tR:sc.tR, t:sc.t||null,
-        cn:sc.cn||null, cs:sc.cs||null, cno:sc.cno||null, cp:sc.cp||null, ci:sc.ci||null });
+        cn:sc.cn||null, cs:sc.cs||null, cno:sc.cno||null, cp:sc.cp||null, ci:sc.ci||null,
+        ai:sc.ai||null }); // v3.190: AI sub-scores syncen
     });
     rs[1].forEach(function(doc){ if(!have[doc.id]) batch.delete(doc.ref); });
     return batch.commit().then(function(){
@@ -3103,7 +3105,7 @@ function fbSync(interactive){
   <div id="scanNote"></div>
   <!-- v2.67: alleen de analyse-knop; terug/verversen zitten in de bovenbalk -->
   <div id="scanActions" class="bottomBar" data-scroll="scan">
-    <button class="btn yellow" onclick="runAnalysis()"><span class="bt"><span class="bi">🎯</span>Centering analyseren</span></button>
+    <button class="btn yellow" onclick="runAnalysis()"><span class="bt"><span class="bi">🤖</span>AI-keuring kaart</span></button>
   </div>
 </div>
 
@@ -3142,7 +3144,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.189";
+var VERSION="3.190";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3674,14 +3676,14 @@ function autoDetect(){
   if(q){
     rect={ tl:{x:q.quad[0][0],y:q.quad[0][1]}, tr:{x:q.quad[1][0],y:q.quad[1][1]}, br:{x:q.quad[2][0],y:q.quad[2][1]}, bl:{x:q.quad[3][0],y:q.quad[3][1]} };
     rect.edge=q.edge; rect.nPts=q.nPts;
-    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd. Kloppen de lijnen niet? Knijp om te zoomen en schuif de gele en blauwe handvatten op hun plek, daarna 🎯 analyseren.</div>';
+    document.getElementById("scanNote").innerHTML='<div class="note">✅ Kaartrand gedetecteerd. Kloppen de lijnen niet? Knijp om te zoomen en schuif de gele en blauwe handvatten op hun plek, daarna 🤖 AI-keuring.</div>';
   } else {
     // v2.37: detectie mislukt -> standaard-hoekjes die de gebruiker zelf op de kaart legt
     var m=0.14;
     rect={ tl:{x:dims.w*m,y:dims.h*m}, tr:{x:dims.w*(1-m),y:dims.h*m},
            br:{x:dims.w*(1-m),y:dims.h*(1-m)}, bl:{x:dims.w*m,y:dims.h*(1-m)} };
     rect.edge=null;
-    document.getElementById("scanNote").innerHTML='<div class="note">⚠️ Automatische detectie mislukt. Sleep de gele lijnhandvatten naar de kaartranden — boven/onder verticaal, links/rechts horizontaal — en tik op 🎯 analyseren.</div>';
+    document.getElementById("scanNote").innerHTML='<div class="note">⚠️ Automatische detectie mislukt. Sleep de gele lijnhandvatten naar de kaartranden — boven/onder verticaal, links/rechts horizontaal — en tik op 🤖 AI-keuring.</div>';
   }
   inner=null; window._numHitBox=null;
   try{ // v2.57: kaders altijd zichtbaar, direct bij het laden van de foto
@@ -3840,10 +3842,10 @@ function setupCornerDrag(){
       try{ svg.setPointerCapture(e.pointerId); }catch(err){}
       if(best.charAt(0)==="i"){
         freezeInner();
-        document.getElementById("scanNote").innerHTML='<div class="note">✋ Blauwe binnenrand verschuiven — leg hem precies op de kaderlijn rond het artwork. Tik daarna op 🎯 analyseren.</div>';
+        document.getElementById("scanNote").innerHTML='<div class="note">✋ Blauwe binnenrand verschuiven — leg hem precies op de kaderlijn rond het artwork. Tik daarna op 🤖 AI-keuring.</div>';
       } else {
         if(inner&&inner.user) freezeInner(); // v2.42: blauw blijft op zijn plek wanneer je daarna geel verschuift
-        document.getElementById("scanNote").innerHTML='<div class="note">✋ Lijn verschuiven — boven/onder gaan verticaal, links/rechts horizontaal. Tik daarna op 🎯 analyseren.</div>';
+        document.getElementById("scanNote").innerHTML='<div class="note">✋ Lijn verschuiven — boven/onder gaan verticaal, links/rechts horizontaal. Tik daarna op 🤖 AI-keuring.</div>';
       }
     } else {
       pts[e.pointerId]=[e.clientX,e.clientY];
@@ -4116,10 +4118,69 @@ function analyzeCentering(){
   var pc=document.createElement("canvas"); pc.width=300; pc.height=Math.round(300*(h/w));
   pc.getContext("2d").drawImage(vc,0,0,pc.width,pc.height);
   var big=pc.toDataURL("image/jpeg",0.75);
-  return { grade:grade, notes:notes, vis:vis, thumb:thumb, big:big, devLR:devLR, devTB:devTB,
-           tTop:tTop, tBot:tBot, tLeft:tLeft, tRight:tRight };
+  var ai=aiCardAssess(data,w,h,tTop,tBot,tLeft,tRight,devLR,devTB); // v3.190: AI-keuring - totaalbeoordeling i.p.v. alleen centering
+  return { grade:ai.tot, notes:notes, vis:vis, thumb:thumb, big:big, devLR:devLR, devTB:devTB,
+           tTop:tTop, tBot:tBot, tLeft:tLeft, tRight:tRight, ai:{cen:ai.cen,cor:ai.cor,edg:ai.edg,sur:ai.sur,tip:ai.tip,v:ai.v} };
 }
 
+function aiCardAssess(data,w,h,tTop,tBot,tLeft,tRight,devLR,devTB){ // v3.190: AI totaal-beoordeling - centering, hoeken, randen en oppervlak uit de foto
+  function lum(x,y){ var i=(y*w+x)*4; return data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114; }
+  var tip=[], maxDev=Math.max(devLR,devTB);
+  var cen=10;
+  if(maxDev>6) cen=6; else if(maxDev>4) cen=7; else if(maxDev>2.5) cen=8; else if(maxDev>1.2) cen=9; else if(maxDev>0.4) cen=9.5;
+  var cw=Math.max(12,Math.round(w*0.07)), chh=Math.max(12,Math.round(h*0.045)), corMin=10;
+  [[0,0],[w-cw,0],[0,h-chh],[w-cw,h-chh]].forEach(function(c){ // hoeken: slijtage = witte vegen of donkere deukjes t.o.v. de omgeving
+    var vals=[];
+    for(var y=c[1];y<c[1]+chh;y++){ for(var x=c[0];x<c[0]+cw;x++){ vals.push(lum(x,y)); } }
+    if(!vals.length) return;
+    vals.sort(function(a,b){ return a-b; });
+    var med=vals[Math.floor(vals.length/2)], bad=0;
+    vals.forEach(function(v){ if(v>med+50||v<med-50) bad++; });
+    var sc=Math.max(0,10-Math.round(bad/vals.length*45));
+    if(sc<corMin) corMin=sc;
+  });
+  function stripScore(x0,y0,x1,y1){ // randstrook tussen kaartrand en binnenrand per zijde
+    var vals=[];
+    for(var y=y0;y<y1;y+=2){ for(var x=x0;x<x1;x+=2){ vals.push(lum(x,y)); } }
+    if(!vals.length) return null;
+    vals.sort(function(a,b){ return a-b; });
+    var med=vals[Math.floor(vals.length/2)], bad=0;
+    vals.forEach(function(v){ if(v>med+52||v<med-52) bad++; });
+    return Math.max(0,10-Math.round(bad/vals.length*55));
+  }
+  var eT=stripScore(6,0,w-6,Math.max(6,Math.min(tTop,h*0.2)));
+  var eB=stripScore(6,h-Math.max(6,Math.min(tBot,h*0.2)),w-6,h);
+  var eL=stripScore(0,6,Math.max(6,Math.min(tLeft,w*0.2)),h-6);
+  var eR=stripScore(w-Math.max(6,Math.min(tRight,w*0.2)),6,w,h-6);
+  var edg=Math.min(eT===null?10:eT, eB===null?10:eB, eL===null?10:eL, eR===null?10:eR);
+  var x0=Math.round(tLeft)+4, x1=w-Math.round(tRight)-4, y0=Math.round(tTop)+4, y1=h-Math.round(tBot)-4, sur=10, glare=0, dark=0;
+  if(x1-x0>20&&y1-y0>20){ // oppervlak: glans (uitgebeten plekken) en donkere vlekjes
+    var vv=[];
+    for(var y2=y0;y2<y1;y2+=2){ for(var x2=x0;x2<x1;x2+=2){ var v2=lum(x2,y2); vv.push(v2); if(v2>=252) glare++; } }
+    vv.sort(function(a,b){ return a-b; });
+    var med2=vv[Math.floor(vv.length/2)];
+    vv.forEach(function(v){ if(v<med2*0.3) dark++; });
+    var frG=glare/vv.length, frD=Math.max(0,dark/vv.length-0.02);
+    sur=Math.max(0,Math.min(10,10-Math.round(frG*60)-Math.round(frD*200)));
+  }
+  var lap=0, ln=0; // scherpte van de foto (Laplacian) - alleen als tip, niet als kaart-score
+  for(var y3=2;y3<h-2;y3+=2){ for(var x3=2;x3<w-2;x3+=2){ var cc=lum(x3,y3); lap+=Math.abs(4*cc-lum(x3-1,y3)-lum(x3+1,y3)-lum(x3,y3-1)-lum(x3,y3+1)); ln++; } }
+  var sharp=ln?lap/ln:0;
+  if(sharp<7) tip.push("De foto is wat wazig - maak eventueel een scherpere foto voor een nauwkeuriger beoordeling.");
+  if(corMin<=7) tip.push("Hoeken vertonen tekenen van slijtage of schaduw - check ze zelf even bij fel licht.");
+  if(edg<=7) tip.push("Randen lijken vlekkig of beschadigd - kan ook schaduw of licht op de foto zijn.");
+  if(sur<=7) tip.push("Oppervlak vertoont glans of vlekken op de foto - fotografeer zonder directe lichtbron voor een betere meting.");
+  if(maxDev>2.5) tip.push("De kaart is zichtbaar off-center - dat drukt de totaalscore flink.");
+  if(!tip.length) tip.push("Kaart ziet er netjes uit op deze foto.");
+  if(tip.length>3) tip=tip.slice(0,3);
+  var tot=Math.max(0,Math.min(10,Math.round((cen*0.4+corMin*0.2+edg*0.2+sur*0.2)*10)/10));
+  var verd=tot>=9?"Uitstekende kaart - zo te zien klaar voor grading.":tot>=8?"Goede kaart - kleine puntjes, nette score.":tot>=7?"Netjes, maar met duidelijke minpunten.":tot>=6?"Redelijke kaart - meerdere punten om naar te kijken.":"Veel slijtage of beschadiging zichtbaar op deze foto.";
+  return { cen:cen, cor:corMin, edg:edg, sur:sur, tot:tot, v:verd, tip:tip };
+}
+function aiSubRow(nm,sc,sub2){ // v3.190: sub-score regel van de AI-keuring
+  sc=Math.max(0,Math.min(10,sc||0));
+  return '<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><div class="n" style="margin:0;width:80px">'+nm+'</div><div class="bar" style="flex:1;height:6px;margin:0"><div style="width:'+(sc*10)+'%;background:'+gradeColor(sc)+'"></div></div><b class="aiV" style="margin:0;width:30px;text-align:right;font-size:13px;color:'+gradeColor(sc)+'">'+(Math.round(sc*10)/10)+'</b></div>'+(sub2?'<p class="n" style="margin:1px 0 4px 88px;color:#64748b">'+sub2+'</p>':'');
+}
 function gradeColor(g){ return g>=9.5?"#22c55e":g>=9?"#84cc16":g>=8?"#eab308":"#f97316"; }
 
 // ---------- v2.25: kaart opzoeken via de officiële Pokémon TCG API ----------
@@ -4580,10 +4641,15 @@ function runAnalysis(){
   } else { vis=res.vis; }
   res.vs=vis;
   // v2.75: cijfer en balk op één regel
-  el.innerHTML='<div class="card"><div class="score"><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b>'
-    +'<div class="bar" style="flex:1;margin:0 0 0 10px"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div></div>'
+  el.innerHTML='<div class="card"><div class="score"><span>🤖 AI-keuring</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
+    +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
+    +'<p class="n" style="font-weight:700;color:#e2e8f0;margin:2px 0 8px">'+res.ai.v+'</p>'
+    +aiSubRow('Centering',res.ai.cen,'afw LR '+(Math.round(res.devLR*100)/100)+'% · TB '+(Math.round(res.devTB*100)/100)+'%')
+    +aiSubRow('Hoeken',res.ai.cor,'')
+    +aiSubRow('Randen',res.ai.edg,'')
+    +aiSubRow('Oppervlak',res.ai.sur,'')
+    +(res.ai.tip.length?'<div style="margin-top:6px">'+res.ai.tip.map(function(t){ return '<p class="n" style="margin:3px 0">• '+t+'</p>'; }).join("")+'</div>':'')
     +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>'
-    +res.notes.map(function(n){ return '<p class="n">'+n+'</p>'; }).join("")
     // v2.68: Goed/Fout direct onder de analyse-tekst
     +'<div style="display:flex;gap:8px;margin-top:12px">'
     +'<button class="btn dark" style="flex:1;margin:0" onclick="rejectScan()"><span class="bt"><span class="bi">❌</span>Fout — opnieuw</span></button>'
@@ -4683,12 +4749,13 @@ function saveScan(res){
       tT:Math.round(res.tTop*10)/10, tB:Math.round(res.tBot*10)/10,
       tL:Math.round(res.tLeft*10)/10, tR:Math.round(res.tRight*10)/10,
       t:res.thumb, b:res.big||null, vs:res.vs||null,
-      cn:res.cn||null, cs:res.cs||null, cno:res.cno||null, cp:res.cp||null, ci:res.ci||null });
+      cn:res.cn||null, cs:res.cs||null, cno:res.cno||null, cp:res.cp||null, ci:res.ci||null,
+      ai:(res.ai?{c:res.ai.cen,co:res.ai.cor,e:res.ai.edg,s:res.ai.sur,tp:res.ai.tip,v:res.ai.v}:null) }); // v3.190: AI sub-scores meebewaren
     if(scans.length>200) scans=scans.slice(0,200);
     try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }
     catch(e2){
       // opslag vol: opnieuw zonder de grote visuals
-      scans=scans.map(function(s){ return { id:s.id, d:s.d, g:s.g, lr:s.lr, tb:s.tb, tT:s.tT, tB:s.tB, tL:s.tL, tR:s.tR, t:s.t }; });
+      scans=scans.map(function(s){ return { id:s.id, d:s.d, g:s.g, lr:s.lr, tb:s.tb, tT:s.tT, tB:s.tB, tL:s.tL, tR:s.tR, ai:s.ai||null, t:s.t }; });
       try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e3){}
     }
     currentScanId=id;
@@ -4719,7 +4786,7 @@ function renderHistory(){
     function gColor(g){ return gradeColor(g); }
     html+='<div class="card"><div class="score"><span>Rapport — '+scans.length+' kaart'+(scans.length===1?"":"en")+'</span></div>'
       +'<div class="bar"><div style="width:'+(avg*10)+'%;background:'+gColor(avg)+'"></div></div>'
-      +'<p class="n">📊 Gemiddelde centering score: <b style="color:'+gColor(avg)+'">'+avg+'</b></p>'
+      +'<p class="n">📊 Gemiddelde AI-score: <b style="color:'+gColor(avg)+'">'+avg+'</b></p>'
       +'<p class="n">🏆 Beste: '+best.g+' ('+best.d+')</p>'
       +'<p class="n">⚠️ Slechtste: '+worst.g+' ('+worst.d+')</p>'+(nP>0?'<p class="n">💰 Bekende marktprijs samen: &#36;'+(Math.round(val*100)/100)+' — '+nP+' kaart'+(nP===1?'':'en')+' met prijs</p>':'')+'</div>';
     scans.forEach(function(s,i){
@@ -4751,6 +4818,14 @@ function showScanDetail(i){
   } else {
     html+='<div class="note">Weergave niet opgeslagen bij deze scan (gemaakt vóór v2.22) — scan opnieuw voor de visualisatie.</div>';
   }
+  if(s.ai){ // v3.190: AI totaalbeoordeling met sub-scores
+    html+='<p class="n" style="font-weight:700;color:#e2e8f0;margin:2px 0 6px">'+(s.ai.v||'')+'</p>'
+      +aiSubRow('Centering',s.ai.c,'afw LR '+(+s.lr||0).toFixed(2)+'% · TB '+(+s.tb||0).toFixed(2)+'%')
+      +aiSubRow('Hoeken',s.ai.co,'')
+      +aiSubRow('Randen',s.ai.e,'')
+      +aiSubRow('Oppervlak',s.ai.s,'');
+    (s.ai.tp||[]).forEach(function(t){ html+='<p class="n" style="margin:2px 0">• '+t+'</p>'; });
+  } else {
   html+='<p class="n">Randdikte boven: '+s.tT+'px &nbsp;·&nbsp; onder: '+s.tB+'px</p>'
     +'<p class="n">Randdikte links: '+s.tL+'px &nbsp;·&nbsp; rechts: '+s.tR+'px</p>'
     +'<p class="n">Middenafwijking links-rechts: '+s.lr+'%</p>'
@@ -4759,6 +4834,7 @@ function showScanDetail(i){
   else if(s.g>=9) html+='<p class="n">Goed gecenterd — scoort doorgaans 9-10 bij grading.</p>';
   else if(s.g>=8) html+='<p class="n">Acceptabel gecenterd, kans op 8-9.</p>';
   else html+='<p class="n">Zichtbaar off-center — beïnvloedt de grade flink.</p>';
+  }
   html+='</div>';
   el.innerHTML=html;
   showView("detailView");
@@ -4776,7 +4852,8 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.189-->
+<!--v:3.190-->
+
 
 
 
