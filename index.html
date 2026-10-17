@@ -306,7 +306,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.179</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.180</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2329,7 +2329,8 @@ function hydDel(){ if(!confirm("Plant weggooien?")) return; var id=HYD_DET; var 
 // ===== v3.164: recepten als tegels + detail met ingredienten en beschrijving =====
 function recOpen(){ REC_DELMODE=false; recDelBtnUpd(); showView("recView"); slPull("rec",function(){ recRender(); }); }
 // ===== v3.178: crypto-munten met prijsgrafiek =====
-var CRY_DET=null, CRY_RANGE=7, CRY_CH={}, CRY_TOK=0, CRY_TICK=null; // v3.179: CRY_TICK = 10s live-verversing
+var CRY_DET=null, CRY_RANGE=7, CRY_CH={}, CRY_TOK=0, CRY_TICK=null, CRY_KIND="line"; // v3.179: CRY_TICK = 10s live-verversing; v3.180: CRY_KIND = lijn of candles
+try{ if(localStorage.getItem("mcCryKind")==="candle") CRY_KIND="candle"; }catch(e){}
 function cryOpen(){ CRY_DET=null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,10000); } cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ cryRender(); }); } // v3.179: elke 10s live prijzen zolang het crypto-scherm open is
 function cryBarUpd(){
   var b=document.getElementById("cryBar"); if(!b) return;
@@ -2431,6 +2432,7 @@ function cryDetLive(){
     .catch(function(){});
   cryChartLoad(g, CRY_TOK); // v3.179: Dag-grafiek haalt elke 10s nieuwe punten op (cache 10s), Week/Maand via 60s-cache
 }
+function cryKindSet(n){ CRY_KIND=n===1?"candle":"line"; try{ localStorage.setItem("mcCryKind",CRY_KIND); }catch(e){} cryDetRender(); } // v3.180: weergave-soort grafiek, voorkeur blijft bewaard
 function cryDet(id){ CRY_DET=id; CRY_RANGE=7; cryDetRender(); }
 function cryBack(){ CRY_DET=null; cryRender(); }
 function cryRange(d){ CRY_RANGE=d; cryDetRender(); }
@@ -2445,6 +2447,7 @@ function cryDetRender(){
   sc.innerHTML='<div class="card"><div class="score"><span>'+colEsc(e.t)+' ('+colEsc(s)+')</span><span id="cryPrice" style="font-size:20px;font-weight:800;color:#e2e8f0">...</span></div>'
     +'<div id="cryCh" style="font-size:12px;color:#64748b;margin:2px 0 10px">24u: ...</div>'
     +'<div style="display:flex;gap:8px;margin-bottom:10px">'+bt(1,"Dag")+bt(7,"Week")+bt(30,"Maand")+'</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn '+(CRY_KIND==="line"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(0)">📈 Lijn</button><button class="btn '+(CRY_KIND==="candle"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(1)">🕯 Candles</button></div>' // v3.180: kiezen tussen lijn en candlesticks
     +'<div id="cryChartBox"><div class="tip">Grafiek laden...</div></div>'
     +'<div class="tip">Toegevoegd door '+ibName(e.by)+'</div></div>';
   var tok=++CRY_TOK;
@@ -2458,8 +2461,21 @@ function cryDetRender(){
   cryChartLoad(g, tok);
 }
 function cryChartLoad(g, tok){ // v3.179: losgemaakt van cryDetRender zodat de ticker de grafiek ook kan verversen
-  var key=g+"|"+CRY_RANGE, cached=CRY_CH[key], ttl=(CRY_RANGE===1?10000:60000); // v3.179: Dag elke 10s, Week/Maand via 60s-cache
-  if(cached&&Date.now()-cached.t<ttl){ var b2=document.getElementById("cryChartBox"); if(b2) b2.innerHTML=cryChartSvg(cached.p); return; }
+  var key=g+"|"+CRY_RANGE+"|"+CRY_KIND, cached=CRY_CH[key], ttl=(CRY_RANGE===1?10000:60000); // v3.179: Dag elke 10s, Week/Maand via 60s-cache; v3.180: cache-key ook per weergave-soort
+  if(cached&&Date.now()-cached.t<ttl){ var b2=document.getElementById("cryChartBox"); if(b2) b2.innerHTML=(CRY_KIND==="candle"?cryChartCandle(cached.p):cryChartSvg(cached.p)); return; }
+  if(CRY_KIND==="candle"){ // v3.180: candlesticks via de ohlc-endpoint (open/hoog/laag/dicht per kaars)
+    fetch("https://api.coingecko.com/api/v3/coins/"+encodeURIComponent(g)+"/ohlc?vs_currency=usd&days="+CRY_RANGE)
+      .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+      .then(function(rows){
+        if(tok!==CRY_TOK) return;
+        rows=rows||[];
+        if(rows.length>140){ var st2=rows.length/140, ds2=[]; for(var k2=0;k2<140;k2++){ ds2.push(rows[Math.floor(k2*st2)]); } ds2.push(rows[rows.length-1]); rows=ds2; }
+        CRY_CH[key]={t:Date.now(),p:rows};
+        var b5=document.getElementById("cryChartBox"); if(b5) b5.innerHTML=cryChartCandle(rows);
+      })
+      .catch(function(){ if(tok!==CRY_TOK) return; var b6=document.getElementById("cryChartBox"); if(b6) b6.innerHTML='<div class="note">Grafiek kon niet worden geladen - geen verbinding of tijdelijke API-limiet.</div>'; });
+    return;
+  }
   fetch("https://api.coingecko.com/api/v3/coins/"+encodeURIComponent(g)+"/market_chart?vs_currency=usd&days="+CRY_RANGE)
     .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
     .then(function(j){
@@ -2490,6 +2506,23 @@ function cryChartSvg(pts){
     +'<text x="'+pad+'" y="'+(pad+9)+'" font-size="10" fill="#64748b">'+cryFmt(mx)+'</text>'
     +'<text x="'+pad+'" y="'+(H-2)+'" font-size="10" fill="#64748b">'+cryFmt(mn)+'</text>'
     +'</svg>';
+}
+function cryChartCandle(rows){ // v3.180: candlestick-weergave - groene kaars = dicht hoger dan open, rode = lager
+  if(!rows||rows.length<2) return '<div class="tip">Te weinig gegevens.</div>';
+  var W=340, H=150, pad=10, mn=Infinity, mx=-Infinity;
+  for(var i=0;i<rows.length;i++){ if(rows[i][2]>mx) mx=rows[i][2]; if(rows[i][3]<mn) mn=rows[i][3]; }
+  if(mx<=mn) mx=mn+1;
+  var bw=(W-2*pad)/rows.length, yv=function(v){ return pad+(H-2*pad)*(1-(v-mn)/(mx-mn)); };
+  var h='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">';
+  for(var i2=0;i2<rows.length;i2++){
+    var r=rows[i2], x=pad+bw*(i2+0.5), up=r[4]>=r[1], col=up?"#4ade80":"#f87171", cw=Math.max(1.2, bw*0.62);
+    h+='<line x1="'+x.toFixed(1)+'" x2="'+x.toFixed(1)+'" y1="'+yv(r[2]).toFixed(1)+'" y2="'+yv(r[3]).toFixed(1)+'" stroke="'+col+'" stroke-width="1"/>'
+      +'<rect x="'+(x-cw/2).toFixed(1)+'" y="'+yv(Math.max(r[1],r[4])).toFixed(1)+'" width="'+cw.toFixed(1)+'" height="'+Math.max(1,Math.abs(yv(r[1])-yv(r[4]))).toFixed(1)+'" fill="'+col+'"/>';
+  }
+  h+='<text x="'+pad+'" y="'+(pad+9)+'" font-size="10" fill="#64748b">'+cryFmt(mx)+'</text>'
+    +'<text x="'+pad+'" y="'+(H-2)+'" font-size="10" fill="#64748b">'+cryFmt(mn)+'</text>'
+    +'</svg>';
+  return h;
 }
 function cryFmt(v){
   if(!isFinite(v)) return "-";
@@ -2904,7 +2937,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.179";
+var VERSION="3.180";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4537,7 +4570,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.179-->
+<!--v:3.180-->
 
 
 
