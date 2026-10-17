@@ -308,7 +308,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.186</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.187</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -426,7 +426,7 @@
 <div class="view" id="colDetailView">
   <div id="colDetailScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="colDetailScroll">
-    <button class="btn dark" onclick="goBackTo('collectionView');colRender()"><span class="bt"><span class="bi">⬅</span>Terug naar collectie</span></button>
+    <button class="btn dark" onclick="goBackTo('collectionView');colRender()"><span class="bt">Terug naar collectie</span></button>
   </div>
 </div>
 <script>
@@ -660,13 +660,13 @@ function colDetail(id){
   h+='<div class="n">(per stuk: '+fmtE(c.price||0)+' - TCGPlayer marktprijs)</div>';
   if(c.pd) h+='<div class="n">Prijs bijgewerkt op: '+colEsc(String(c.pd).split("/").reverse().join("-"))+'</div>'; // v3.185
   if(!(c.price>0)) h+='<div class="n" style="color:#fbbf24">Geen marktprijs in de database - voer zelf een waarde in.</div>';
-  h+='<button class="btn dark" style="margin-top:8px;font-size:13px" onclick="colSetPrice(\''+c.id+'\')"><span class="bt"><span class="bi">💶</span>Waarde zelf invoeren / aanpassen</span></button>';
-  h+='<button class="btn dark" style="margin-top:8px;font-size:13px" onclick="colTcgLink(\''+c.id+'\')"><span class="bt"><span class="bi">🌐</span>Actuele prijs op TCGPlayer</span></button>'; // v3.185
+  h+='<button class="btn dark" style="margin-top:8px;font-size:13px" onclick="colSetPrice(\''+c.id+'\')"><span class="bt">Waarde zelf invoeren / aanpassen</span></button>';
+  h+='<button class="btn dark" style="margin-top:8px;font-size:13px" onclick="colTcgLink(\''+c.id+'\')"><span class="bt">Actuele prijs op TCGPlayer</span></button>'; // v3.185
   h+='<div style="display:flex;gap:8px;margin-top:10px">';
   h+='<button class="btn dark" style="flex:1;margin:0" onclick="colQty(\''+c.id+'\',1)">+1</button>';
   h+='<button class="btn dark" style="flex:1;margin:0" onclick="colQty(\''+c.id+'\',-1)">-1</button>';
   h+='</div>';
-  h+='<button class="btn dark" style="margin-top:8px;color:#f87171" onclick="colDel(\''+c.id+'\')"><span class="bt"><span class="bi">🗑</span>Uit collectie</span></button>';
+  h+='<button class="btn dark" style="margin-top:8px;color:#f87171" onclick="colDel(\''+c.id+'\')"><span class="bt">Uit collectie</span></button>';
   h+='</div></div>';
   sc.innerHTML=h;
   // verse prijs voor deze kaart ophalen
@@ -3009,7 +3009,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.186";
+var VERSION="3.187";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4643,7 +4643,8 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.186-->
+<!--v:3.187-->
+
 
 
 
