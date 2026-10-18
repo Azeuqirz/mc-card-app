@@ -319,7 +319,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.208</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.209</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -465,9 +465,11 @@ function colLineChart(hist){
   var W=320,H=110,P=8, i, min=1e12, max=-1e12;
   for(i=0;i<hist.length;i++){ if(hist[i].v<min)min=hist[i].v; if(hist[i].v>max)max=hist[i].v; }
   if(max-min<0.01){ max=min+1; }
-  var pts="", dn=hist.length-1;
+  var t0=hist.length?hist[0].t:0, t1=hist.length?hist[hist.length-1].t:0, dn=Math.max(1,t1-t0); // v3.209: x-as op TIJD - 1 dag aan metingen neemt ook maar 1 dag van de breedte in
+  var pd=function(z){ var d=new Date(z); return d.getDate()+"-"+(d.getMonth()+1); };
+  var pts="";
   for(i=0;i<hist.length;i++){
-    var x=P+(dn>0?(W-2*P)*i/dn:0), y=H-P-(H-2*P)*(hist[i].v-min)/(max-min);
+    var x=P+(W-2*P)*(hist[i].t-t0)/dn, y=H-P-(H-2*P)*(hist[i].v-min)/(max-min);
     pts+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);
   }
   var svg='<svg id="colHistSvg" viewBox="0 0 '+W+' '+H+'" style="width:100%;touch-action:none">';
@@ -478,11 +480,12 @@ function colLineChart(hist){
   if(hist.length){
     var d0=new Date(hist[0].t), d1=new Date(hist[hist.length-1].t);
     svg+='<text x="'+(W-P)+'" y="12" text-anchor="end" font-size="10" fill="#64748b">'+(d1.getDate())+'-'+(d1.getMonth()+1)+'</text>';
+    svg+='<text x="'+P+'" y="24" font-size="10" fill="#64748b">vanaf '+(d0.getDate())+'-'+(d0.getMonth()+1)+'</text>'; // v3.209: begindatum in de grafiek
   }
   svg+='<g id="colHistMark" style="display:none"><line x1="0" y1="0" x2="0" y2="'+H+'" stroke="#f472b6" stroke-width="1" stroke-dasharray="3,3"/><circle cx="0" cy="0" r="4" fill="none" stroke="#f472b6" stroke-width="2"/></g>';
   svg+='</svg>';
-  window._COLH={hist:hist,min:min,max:max,W:W,H:H,P:P}; // v3.198: data voor colHistRead
-  return '<div class="n">Totale waarde - afgelopen maand ('+hist.length+' metingen)</div><div id="colHistWrap" onpointerdown="colHistDown(event)" onpointermove="colHistMove(event)">'+svg+'</div><div class="n" id="colHistRead" style="display:none"></div>';
+  window._COLH={hist:hist,min:min,max:max,W:W,H:H,P:P,t0:t0,dn:dn}; // v3.198: data voor colHistRead; v3.209: t0+dn voor de tijd-as
+  return '<div class="n">Totale waarde - afgelopen maand ('+hist.length+' metingen'+(hist.length>1?' van '+pd(t0)+' t/m '+pd(t1):'')+')</div><div id="colHistWrap" onpointerdown="colHistDown(event)" onpointermove="colHistMove(event)">'+svg+'</div><div class="n" id="colHistRead" style="display:none"></div>';
 }
 function colHistDown(e){ // v3.207: ingedrukt houden + verschuiven leest doorlopend de waarde - de grafiek volgt je vinger
   e.preventDefault(); try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(err){}
@@ -495,8 +498,10 @@ function colHistRead(e){ // v3.198: tik op de grafiek laat zien wat de collectie
   var svg=document.getElementById("colHistSvg"); if(!svg){ return; }
   var r=svg.getBoundingClientRect(), f=(e.clientX-r.left)/r.width*c.W;
   f=(f-c.P)/(c.W-2*c.P); f=Math.max(0,Math.min(1,f));
-  var idx=Math.round(f*(c.hist.length-1)), p=c.hist[idx];
-  var x=c.P+(c.W-2*c.P)*(c.hist.length>1?idx/(c.hist.length-1):0);
+  var tt=c.t0+f*c.dn, idx=0, bd=1e15; // v3.209: dichtstbijzijnde meting in TIJD bij je vinger
+  for(var i2=0;i2<c.hist.length;i2++){ var dd=Math.abs(c.hist[i2].t-tt); if(dd<bd){ bd=dd; idx=i2; } }
+  var p=c.hist[idx];
+  var x=c.P+(c.W-2*c.P)*(p.t-c.t0)/c.dn;
   var y=c.H-c.P-(c.H-2*c.P)*(p.v-c.min)/(c.max-c.min);
   var mk=document.getElementById("colHistMark");
   if(mk){ mk.style.display=""; var ln=mk.getElementsByTagName("line")[0], cl=mk.getElementsByTagName("circle")[0];
@@ -3286,7 +3291,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.208";
+var VERSION="3.209";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5087,7 +5092,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.208-->
+<!--v:3.209-->
 
 
 
