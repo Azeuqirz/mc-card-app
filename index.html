@@ -211,6 +211,7 @@
   body.pink .cryNewsIt { color:#f9a8d4 !important; } /* v3.195: nieuws-artikelen in roze */
   body.pink #colHistRead b { color:#f472b6 !important; } /* v3.198: grafiek-tik waarde in roze */
   body.pink #prodScroll [style*="facc15"] { color:#f472b6 !important; } /* v3.210: productzoeker-kop en productnaam in roze */
+  body.pink #cardDiffBox [style*="e2e8f0"] { color:#f472b6 !important; } /* v3.211: koppen van de kaart-vergelijking in roze */
   body.pink .n span[style*='facc15'] { color:#f472b6 !important; }
   body.pink h1 { color:#f9a8d4; }
   /* v3.40: confetti bij verjaardag in de agenda */
@@ -320,7 +321,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.210</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.211</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -691,6 +692,7 @@ function colAdd(i){
 }
 
 function colDetail(id){
+  window._colDetId=id; // v3.211: zodat de ververs-knop de open kaart opnieuw kan laden
   var a=colLoad(), c=null; a.forEach(function(x){ if(x.id===id) c=x; });
   if(!c){ renderCollection(); return; }
   showView("colDetailView");
@@ -2707,7 +2709,7 @@ function cryDetRender(){
 function cryChartLoad(g, s, tok){ // v3.183: s = symbool voor Binance-candles; v3.179: losgemaakt van cryDetRender zodat de ticker de grafiek ook kan verversen
   window._CRY_CTX={g:g,s:s}; // v3.189: context voor de geschiedenis-schuifbalk
   var key=g+"|"+(CRY_KIND==="candle"?CRY_IV:CRY_RANGE)+"|"+CRY_KIND, cached=CRY_CH[key], ttl=(CRY_KIND==="candle"||CRY_RANGE===1?10000:60000); // v3.183: cache ook per kaars-grootte; Dag/candles elke 10s, Week/Maand via 60s
-  if(cached&&Date.now()-cached.t<ttl){ var dp=cryTrim(cached.p), b2=document.getElementById("cryChartBox"); if(b2){ b2.innerHTML=(CRY_KIND==="candle"?cryChartCandle(dp):cryChartSvg(dp)); cryHovAttach(dp); } return; } // v3.189
+  if(cached&&Date.now()-cached.t<ttl){ var dp=cryTrim(cached.p), b2=document.getElementById("cryChartBox"); if(b2){ b2.innerHTML=(CRY_KIND==="candle"?cryChartCandle(dp):cryChartSvg(dp,cached.ts?cryTrim(cached.ts):null)); cryHovAttach(dp); } return; } // v3.189 + v3.211: tijdbalk ook uit de cache
   if(CRY_KIND==="candle"){ // v3.183: candles via Binance klines - kaars-grootte 1m t/m 24u (CoinGecko kent geen intraday-candles)
     fetch("https://api.binance.com/api/v3/klines?symbol="+encodeURIComponent(s+"USDT")+"&interval="+CRY_IV+"&limit=120")
       .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
@@ -2724,10 +2726,10 @@ function cryChartLoad(g, s, tok){ // v3.183: s = symbool voor Binance-candles; v
     .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
     .then(function(j){
       if(tok!==CRY_TOK) return;
-      var pts=(j.prices||[]).map(function(p){ return p[1]; });
-      if(pts.length>140){ var st=pts.length/140, ds=[]; for(var i=0;i<140;i++){ ds.push(pts[Math.floor(i*st)]); } ds.push(pts[pts.length-1]); pts=ds; }
-      CRY_CH[key]={t:Date.now(),p:pts};
-      var dp3=cryTrim(pts), b3=document.getElementById("cryChartBox"); if(b3){ b3.innerHTML=cryChartSvg(dp3); cryHovAttach(dp3); } // v3.189
+      var raw=(j.prices||[]), pts=raw.map(function(p){ return p[1]; }), ts=raw.map(function(p){ return p[0]; }); // v3.211: ook de tijden bijhouden voor de tijdbalk
+      if(pts.length>140){ var st=pts.length/140, ds=[], dts=[]; for(var i=0;i<140;i++){ var ix=Math.floor(i*st); ds.push(pts[ix]); dts.push(ts[ix]); } ds.push(pts[pts.length-1]); dts.push(ts[ts.length-1]); pts=ds; ts=dts; }
+      CRY_CH[key]={t:Date.now(),p:pts,ts:ts}; // v3.211: ook de tijden in de cache
+      var dp3=cryTrim(pts), dts3=cryTrim(ts), b3=document.getElementById("cryChartBox"); if(b3){ b3.innerHTML=cryChartSvg(dp3,dts3); cryHovAttach(dp3); } // v3.189 + v3.211
     })
     .catch(function(){ if(tok!==CRY_TOK) return; var b4=document.getElementById("cryChartBox"); if(b4) b4.innerHTML='<div class="note">Grafiek kon niet worden geladen - geen verbinding of tijdelijke API-limiet.</div>'; });
 }
@@ -2837,7 +2839,29 @@ function cryHovAttach(data){ // v3.189: prijs bij hover met de muis of tik op he
   };
   box.onpointermove=ev; box.onpointerdown=function(e2){ e2.preventDefault(); ev(e2); }; box.onpointerleave=hid; // v3.207: preventDefault tegen het Apple-vergrootglas
 }
-function cryChartSvg(pts){
+function cryDT(ts,withTime){ // v3.211: korte NL datum (+tijd) voor onder de grafiek
+  var d=new Date(ts), wd=["zo","ma","di","wo","do","vr","za"], mo=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+  var s=wd[d.getDay()]+" "+d.getDate()+" "+mo[d.getMonth()];
+  if(withTime) s+=" "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+  return s;
+}
+function crySpan(span){ // v3.211: hoe lang de getoonde periode is
+  var hh=span/36e5;
+  if(hh<48) return "≈ "+(Math.round(hh*10)/10).toString().replace(".",",")+" uur";
+  var dd=span/864e5;
+  if(dd<70) return "≈ "+Math.round(dd)+" dagen";
+  return "≈ "+Math.round(dd/7)+" weken";
+}
+function cryAxis(ts){ // v3.211: begintijd + eindtijd + lengte onder de grafiek - nooit meer raden over welke periode hij gaat
+  if(!ts||ts.length<2) return "";
+  var t0=ts[0], t1=ts[ts.length-1], span=t1-t0, wt=span<=48*36e5;
+  return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11px;color:#64748b;padding:4px 2px 0">'
+    +'<span>'+cryDT(t0,wt)+'</span>'
+    +'<span style="font-size:10px">'+crySpan(span)+'</span>'
+    +'<span>'+cryDT(t1,wt)+'</span>'
+    +'</div>';
+}
+function cryChartSvg(pts,ts){ // v3.211: ts = tijden per punt voor de tijdbalk onder de grafiek
   if(!pts||pts.length<2) return '<div class="tip">Te weinig gegevens.</div>';
   var mn=Infinity, mx=-Infinity;
   for(var i=0;i<pts.length;i++){ if(pts[i]<mn) mn=pts[i]; if(pts[i]>mx) mx=pts[i]; }
@@ -2855,7 +2879,7 @@ function cryChartSvg(pts){
     +'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
     +'<text x="'+pad+'" y="'+(pad+9)+'" font-size="10" fill="#64748b">'+cryFmt(mx)+'</text>'
     +'<text x="'+pad+'" y="'+(H-2)+'" font-size="10" fill="#64748b">'+cryFmt(mn)+'</text>'
-    +'</svg>';
+    +'</svg>'+cryAxis(ts);
 }
 function cryChartCandle(rows){ // v3.180: candlestick-weergave - groene kaars = dicht hoger dan open, rode = lager
   if(!rows||rows.length<2) return '<div class="tip">Te weinig gegevens.</div>';
@@ -2871,7 +2895,7 @@ function cryChartCandle(rows){ // v3.180: candlestick-weergave - groene kaars = 
   }
   h+='<text x="'+pad+'" y="'+(pad+9)+'" font-size="10" fill="#64748b">'+cryFmt(mx)+'</text>'
     +'<text x="'+pad+'" y="'+(H-2)+'" font-size="10" fill="#64748b">'+cryFmt(mn)+'</text>'
-    +'</svg>';
+    +'</svg>'+cryAxis(rows.map(function(r){ return r[0]; })); // v3.211: tijdbalk onder de candles
   return h;
 }
 function cryFmt(v){
@@ -3351,7 +3375,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.210";
+var VERSION="3.211";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3368,7 +3392,7 @@ function showView(id, noPush){
   curView=id;
   document.getElementById(id).classList.add("active");
   document.getElementById("backBtn").style.visibility=(id==="home")?"hidden":"visible"; // v2.62
-  var _rb=document.getElementById("refreshBtn"); if(_rb) _rb.style.display=(id==="home"||id==="agendaView"||id==="dealView")?"":"none"; // v3.102: ook op de aanbiedingsscanner
+  var _rb=document.getElementById("refreshBtn"); if(_rb) _rb.style.display=(id==="camView"||id==="resultView"||id==="loginView"||id==="colAddView"||id==="dealAddView"||id==="pokeView"||id==="prodView"||id==="ntView")?"none":""; // v3.211: ververs-knop op elke pagina met data - camera/resultaat/login/invoer uitgezonderd
   if(id==="home") cryHomeTick(); // v3.182: bitcoin-prijs op de crypto-tegel bijwerken
 }
 // v3.197: vaste hiërarchie voor de terug-knop - terug = altijd precies één niveau omhoog richting home
@@ -3393,11 +3417,24 @@ function goBackTo(id){ // v3.197: "terug naar X" gaat nu ALTIJD direct naar dat 
 }
 // v3.33: beginscherm verversen (herlaadt de app + haalt alles opnieuw op)
 function refreshHome(){ try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){} location.replace(location.pathname+'?v='+VERSION+'&r='+Date.now()); }
-function refreshBtnTap(){ // v3.47: bovenbalk-verversknop: agenda of beginscherm
-  var dv=document.getElementById("dealView"); // v3.102: op de scanner-pagina alle winkels opnieuw scannen
-  if(dv && dv.classList.contains("active")){ dsScanAll(false); dsNote("🔄 Alle winkels worden opnieuw gescanned..."); return; }
-  if(document.getElementById("agendaView") && document.getElementById("agendaView").classList.contains("active")) agRefresh();
-  else refreshHome();
+function refreshBtnTap(){ // v3.211: verversen op élke pagina met data - je blijft op de pagina zelf
+  var act=document.querySelector(".view.active"), id=(act&&act.id)||"";
+  var done=function(){ try{ if(navigator.vibrate) navigator.vibrate(20); }catch(e){} };
+  if(id==="dealView"){ dsScanAll(false); dsNote("🔄 Alle winkels worden opnieuw gescanned..."); return; } // v3.102: scanner opnieuw
+  if(id==="agendaView"){ agRefresh(); return; } // v3.47: agenda uit de cloud
+  if(id==="collectionView"){ colRefresh(1); return; } // prijzen opnieuw ophalen, blijft op de pagina
+  if(id==="colDetailView"){ colDetail(window._colDetId); return; } // v3.211: open kaart opnieuw
+  if(id==="cryptoView"){ slPull("cry",function(){ if(CRY_DET===null) cryRender(); else cryDetRender(); done(); }); return; }
+  if(id==="hydView"){ slPull("hyd",function(){ hydRender(); done(); }); return; }
+  if(id==="hydDetView"){ slPull("hyd",function(){ hydDetRender(); done(); }); return; }
+  if(id==="recView"){ slPull("rec",function(){ recRender(); done(); }); return; }
+  if(id==="recDetView"){ slPull("rec",function(){ recDetRender(); done(); }); return; }
+  if(id==="ideaView"){ ibPull(function(){ ibRender(); ibBadge(); done(); }); return; }
+  if(id==="historyView"){ renderHistory(); return; }
+  if(id==="detailView"){ showScanDetail(window._detailIdx); return; }
+  if(id==="remView"){ remRender(); return; }
+  if(id==="dsHistView"){ dsHistRender(); return; }
+  refreshHome(); // home: de app zelf vers opnieuw laden
 }
 // v2.84: refreshPage verwijderd samen met de ververs-knop
 // v2.49: knoppenbalk schuift grotendeels weg bij scrollen, tik op zichtbare deel = terug
@@ -4456,6 +4493,93 @@ function aiFindSpots(data,w,h,tTop,tBot,tLeft,tRight,ai){ // v3.191: plekken op 
 function gradeColor(g){ return g>=9.5?"#22c55e":g>=9?"#84cc16":g>=8?"#eab308":"#f97316"; }
 
 // ---------- v2.25: kaart opzoeken via de officiële Pokémon TCG API ----------
+// ===== v3.211: kaart altijd handmatig kunnen zoeken + jouw foto vergelijken met het origineel =====
+function manualSearchShow(){ // v3.211: handmatig zoeken kan nu altijd, ook als de AI de kaart al herkende
+  var mb=document.getElementById("manualBox"); if(!mb) return;
+  var ex=document.getElementById("lookupName");
+  if(ex){ try{ ex.focus(); }catch(e){} return; } // stond al op het scherm (herkennen mislukt) - gewoon erheen
+  mb.innerHTML='<p class="n" style="margin:8px 0 4px;color:#94a3b8">Zoek de kaart handmatig - daarna vergelijkt de app jouw foto met het origineel:</p>'
+    +'<div style="display:flex;gap:8px;margin-bottom:6px">'
+    +'<input id="lookupName" placeholder="kaartnaam, bijv. Fomantis" value="'+String(window._ocrName||"").replace(/"/g,"&quot;")+'" style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:14px">'
+    +'<button class="btn dark" style="margin:0;padding:8px 12px" onclick="lookupCard()">Zoek</button>'
+    +'</div>';
+}
+function cardDiffShow(c){ // v3.211: jouw kaartfoto naast het origineel uit de database, verschillen rood omkaderd
+  var el=document.getElementById("cardDiffBox"); if(!el) return;
+  var off=(c&&c.images&&c.images.large)||"";
+  if(!off){ el.innerHTML=""; return; }
+  el.innerHTML='<div class="note" style="margin-top:10px">⏳ Jouw foto wordt vergeleken met het origineel...</div>';
+  var CW=300, CH=Math.round(300*88/63), mine=document.createElement("canvas"), ok=false;
+  mine.width=CW; mine.height=CH;
+  try{
+    if(img&&rect){
+      var q=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
+      var wp=warpToQuad(q,CW,CH); // v3.211: jouw foto recht op de kaart-rand gezet, precies zoals het origineel staat
+      if(wp&&wp.data&&!wp.canvasFail){
+        var mctx=mine.getContext("2d"), mid=mctx.createImageData(CW,CH);
+        for(var i=0;i<wp.data.length;i++) mid.data[i]=wp.data[i];
+        mctx.putImageData(mid,0,0); ok=true;
+      }
+    }
+  }catch(e){ ok=false; }
+  function head(){ return '<div style="margin-top:12px"><div class="n" style="font-weight:800;color:#e2e8f0;margin:2px 0 4px">🔍 Vergelijking met het origineel</div>'; }
+  function start(oim){
+    var mURL=ok?mine.toDataURL("image/jpeg",0.85):((img&&img.src)||off);
+    if(!ok||!oim){ // geen rechte kaart uit de foto of origineel niet leesbaar: alleen naast elkaar
+      el.innerHTML=head()+'<div style="display:flex;gap:6px">'
+        +'<div style="flex:1"><img src="'+mURL+'" style="width:100%;border-radius:8px;display:block"><div class="tip" style="margin:2px 0 0">Jouw kaart</div></div>'
+        +'<div style="flex:1"><img src="'+off+'" style="width:100%;border-radius:8px;display:block"><div class="tip" style="margin:2px 0 0">Origineel</div></div>'
+        +'</div>'
+        +(!ok?'<div class="tip" style="margin:6px 0 0">De app kon jouw kaart niet recht uit de foto halen - maak eventueel een nieuwe foto met de hele kaart in beeld.</div>':'<div class="tip" style="margin:6px 0 0">Het origineel kon niet worden gelezen voor de pixel-vergelijking - ze staan nu alleen naast elkaar.</div>')
+        +'</div>';
+      return;
+    }
+    try{ diff(oim); }catch(e){ start(null); }
+  }
+  function diff(oim){
+    var oc=document.createElement("canvas"); oc.width=CW; oc.height=CH;
+    var octx=oc.getContext("2d"); octx.drawImage(oim,0,0,CW,CH);
+    var md=mine.getContext("2d").getImageData(0,0,CW,CH).data, od=octx.getImageData(0,0,CW,CH).data;
+    var CS=20, gw=Math.floor(CW/CS), gh=Math.floor(CH/CS), cells=[], all=[];
+    for(var gy=0;gy<gh;gy++){ for(var gx=0;gx<gw;gx++){
+      var s=0;
+      for(var y=0;y<CS;y++){ var base=((gy*CS+y)*CW+(gx*CS))*4;
+        s+=Math.abs((md[base]*0.299+md[base+1]*0.587+md[base+2]*0.114)-(od[base]*0.299+od[base+1]*0.587+od[base+2]*0.114));
+      }
+      var mv=s/(CS*CS); cells.push({gx:gx,gy:gy,v:mv}); all.push(mv);
+    } }
+    all.sort(function(a,b){ return a-b; });
+    var med=all[Math.floor(all.length/2)]||0, thr=Math.max(16,med*2.6), hot=cells.filter(function(cl){ return cl.v>=thr; });
+    var ov=document.createElement("canvas"); ov.width=CW; ov.height=CH;
+    var ovc=ov.getContext("2d"); ovc.drawImage(mine,0,0);
+    ovc.fillStyle="rgba(248,113,113,.2)"; ovc.strokeStyle="#f87171"; ovc.lineWidth=2;
+    hot.forEach(function(cl){ ovc.fillRect(cl.gx*CS,cl.gy*CS,CS,CS); ovc.strokeRect(cl.gx*CS,cl.gy*CS,CS,CS); });
+    var pct=Math.round(hot.length/cells.length*100);
+    var verd=(hot.length===0)?"✅ Geen opvallende verschillen - jouw kaart lijkt sprekend op het origineel."
+      :(pct<15)?"⚠️ "+hot.length+" gebieden wijken af (rood omkaderd) - meestal licht of foto-kwaliteit, check ze even zelf."
+      :"⚠️ Veel verschillen met het origineel ("+pct+"% van de kaart) - kijk even na of dit echt dezelfde kaart en versie is.";
+    el.innerHTML=head()
+      +'<div style="display:flex;gap:6px">'
+      +'<div style="flex:1"><img src="'+mine.toDataURL("image/jpeg",0.85)+'" style="width:100%;border-radius:8px;display:block"><div class="tip" style="margin:2px 0 0">Jouw kaart</div></div>'
+      +'<div style="flex:1"><img src="'+oc.toDataURL("image/jpeg",0.85)+'" style="width:100%;border-radius:8px;display:block"><div class="tip" style="margin:2px 0 0">Origineel</div></div>'
+      +'</div>'
+      +'<div class="n" style="margin:6px 0 2px;font-weight:700;color:#e2e8f0">Verschillen</div>'
+      +'<img src="'+ov.toDataURL("image/jpeg",0.85)+'" style="width:100%;border-radius:8px;display:block">'
+      +'<p class="n" style="margin:6px 0 0">'+verd+'</p>'
+      +'<p class="n" style="margin:2px 0 0;color:#64748b">Rood omkaderd = afwijkende gebieden. Een foto is nooit identiek aan de database-scan: licht, schaduw en glans geven kleine afwijkingen.</p>'
+      +'</div>';
+  }
+  var im=new Image(); im.crossOrigin="anonymous";
+  im.onload=function(){ start(im); };
+  im.onerror=function(){ // v3.211: sommige servers weigeren directe pixel-toegang - dan nog 1x via de proxy
+    var im2=new Image(); im2.crossOrigin="anonymous";
+    im2.onload=function(){ start(im2); };
+    im2.onerror=function(){ start(null); };
+    im2.src="https://api.allorigins.win/raw?url="+encodeURIComponent(off);
+  };
+  im.src=off;
+}
+
 function lookupCard(){
   var el=document.getElementById("lookupResult");
   var inp=document.getElementById("lookupName");
@@ -4531,6 +4655,7 @@ function pickCard(i){
       }
     }
   }catch(e){}
+  cardDiffShow(c); // v3.211: jouw kaartfoto meteen vergelijken met het origineel uit de database
 }
 
 // ---------- v2.28: automatische kaartherkenning via OCR (Tesseract.js) ----------
@@ -4956,6 +5081,9 @@ function runAnalysis(){
     +'<button class="btn yellow" style="flex:1;margin:0" onclick="acceptScan()"><span class="bt"><span class="bi">✅</span>Goed — toevoegen</span></button>'
     +'</div>'
     +'<div id="lookupResult"></div>'
+    +'<button class="btn dark" style="margin-top:10px" onclick="manualSearchShow()"><span class="bt"><span class="bi">🔍</span>Kaart handmatig zoeken</span></button>'
+    +'<div id="manualBox"></div>'
+    +'<div id="cardDiffBox"></div>'
     +'</div>';
   attachZoom();
   window._lastRes=res; // v2.64: niet automatisch opslaan - pas na "Goed"
@@ -5152,7 +5280,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.210-->
+<!--v:3.211-->
 
 
 
