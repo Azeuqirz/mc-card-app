@@ -185,21 +185,28 @@
   body.pink .note { color:#f472b6; border-color:rgba(244,114,182,.3); }
   body.pink #zoomInd { color:#f472b6; }
   body.pink #cryPanBtn { color:#f472b6 !important; } /* v3.228: roze variant van de terug-naar-nu-knop */
-#cryChartBox.cryFS { position:fixed; left:0; right:0; top:0; bottom:0; margin:0 !important; z-index:9999; background:#0f172a; display:flex; flex-direction:column; justify-content:center; padding:calc(12px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left)); } /* v3.231: de chart op het hele scherm - telefoon op z'n kant en hij wordt vanzelf breed */
-#cryChartBox.cryFS svg { width:100%; height:auto; max-height:calc(100% - 56px); flex:none; } /* v3.231: chart vult de hele breedte, verhouding blijft netjes */
-#cryFsX { display:none; } /* v3.231: de wegknop staat altijd in de grafiek maar is alleen zichtbaar op het volledige scherm */
-#cryChartBox.cryFS #cryFsX { display:block; } /* v3.231 */
+#cryFsArea.cryFS { position:fixed; left:0; right:0; top:0; bottom:0; z-index:9999; background:#0f172a; display:grid; grid-template-columns:1fr 150px; grid-template-rows:auto auto auto 1fr; gap:8px; align-items:center; padding:calc(12px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left)); } /* v3.231+v3.234: de chart EN de instel-knoppen samen op het hele scherm - de knoppen als kolom naast de chart */
+#cryFsArea.cryFS #cryChartBox { grid-column:1; grid-row:1 / -1; margin:0 !important; min-width:0; min-height:0; display:flex; flex-direction:column; justify-content:center; } /* v3.234: de grafiek vult de ruimte naast de knoppenkolom */
+#cryFsArea.cryFS svg { width:100%; height:auto; max-height:calc(100% - 44px); flex:none; } /* v3.231: chart vult de kolom, verhouding blijft netjes */
+#cryFsArea.cryFS #crySetRow { grid-column:2; grid-row:1; display:block !important; width:150px; margin:0 !important; } /* v3.234: de instel-knoppen als compacte kolom naast de chart */
+#cryFsArea.cryFS #cryKindRow { grid-column:2; grid-row:2; display:block !important; width:150px; margin:0 !important; } /* v3.234 */
+#cryFsArea.cryFS #cryHistRow { grid-column:2; grid-row:3; display:block !important; width:150px; margin:0 !important; } /* v3.234 */
+#cryFsArea.cryFS #crySetRow .btn, #cryFsArea.cryFS #cryKindRow .btn { display:block; width:100%; margin:3px 0 0 !important; padding:7px 4px !important; } /* v3.234: knoppen netjes onder elkaar in de kolom */
+#cryFsArea.cryFS .tip { display:none; } /* v3.234: het kaars-grootte-label is op het volledige scherm overbodig */
+#cryFsArea.cryFS #cryHistR { width:100%; } /* v3.234: schuifbalk over de volle knoppenkolom */
+#cryFsArea.cryFS #cryFsBtn { display:none; } /* v3.234: binnen het volledige scherm is de kruis de wegknop */
+#cryFsX, #cryFsRotBtn { display:none; } /* v3.231+v3.234: de weg- en draai-knop staan altijd in de grafiek maar zijn alleen zichtbaar op het volledige scherm */
+#cryFsArea.cryFS #cryFsX, #cryFsArea.cryFS #cryFsRotBtn { display:block; } /* v3.231+v3.234 */
 #cryHovT { transform:translateX(-50%); } /* v3.232: stond eerst inline in de tooltip - nu in CSS zodat hij op z'n kant tegendraaid kan worden */
-@media (orientation:portrait){ /* v3.232: op het volledige scherm in staand draait de chart automatisch een kwartslag - de grafiek ligt breed over de lange kant van de telefoon */
-#cryChartBox.cryFS { left:50%; right:auto; top:50%; bottom:auto; width:100vh; height:100vw; width:100dvh; height:100dvw; padding:12px 14px; transform:translate(-50%,-50%) rotate(90deg); } /* v3.232: breedte en hoogte wisselen met de draai van plek */
-#cryChartBox.cryFS svg text { transform-box:fill-box; transform-origin:center; transform:rotate(-90deg); } /* v3.232: prijs-labels in de chart blijven rechtop leesbaar */
-#cryChartBox.cryFS #cryAxis { position:absolute; left:calc(100% - 12px); top:50%; transform:translate(-50%,-50%) rotate(-90deg); } /* v3.232: tijdbalk netjes leesbaar onderaan het scherm */
-#cryChartBox.cryFS #cryFsX { transform:rotate(-90deg); } /* v3.232: knoppen blijven rechtop leesbaar */
-#cryChartBox.cryFS #cryPanBtn { transform:rotate(-90deg); } /* v3.232 */
-#cryChartBox.cryFS #cryHovT { transform:translate(-50%,-50%) rotate(-90deg); top:12px !important; } /* v3.232: prijs-tooltip rechtop langs de zijkant */
-}
+#cryFsArea.cryFS.cryFSR { left:50%; right:auto; top:50%; bottom:auto; width:100vh; height:100vw; width:100dvh; height:100dvw; padding:12px 14px; transform:translate(-50%,-50%) rotate(90deg); } /* v3.232+v3.234: de chart draait een kwartslag - breed over de lange kant van de telefoon, breedte en hoogte wisselen mee */
+#cryFsArea.cryFS.cryFSR svg text { transform-box:fill-box; transform-origin:center; transform:rotate(-90deg); } /* v3.232: prijs-labels in de chart blijven rechtop leesbaar */
+#cryFsArea.cryFS.cryFSR #cryAxis { position:absolute; left:calc(100% - 12px); top:50%; transform:translate(-50%,-50%) rotate(-90deg); } /* v3.232: tijdbalk netjes leesbaar onderaan het scherm */
+#cryFsArea.cryFS.cryFSR #cryFsX, #cryFsArea.cryFS.cryFSR #cryFsRotBtn { transform:rotate(-90deg); } /* v3.232+v3.234: knoppen blijven rechtop leesbaar */
+#cryFsArea.cryFS.cryFSR #cryPanBtn { transform:rotate(-90deg); } /* v3.232 */
+#cryFsArea.cryFS.cryFSR #cryHovT { transform:translate(-50%,-50%) rotate(-90deg); top:12px !important; } /* v3.232: prijs-tooltip rechtop langs de zijkant */
 body.pink #cryFsBtn { color:#f472b6 !important; } /* v3.231: roze variant van de volledig-scherm-knop */
 body.pink #cryFsX { color:#f472b6 !important; } /* v3.231: roze variant van de wegknop */
+body.pink #cryFsRotBtn { color:#f472b6 !important; } /* v3.234: roze variant van de draai-knop */
   /* v3.27: push-stijl melding bij eigen login */
   #pushBanner { position:fixed; top:calc(10px + env(safe-area-inset-top)); left:50%;
     transform:translateX(-50%) translateY(-90px); z-index:300; background:#1e293b;
@@ -356,7 +363,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.233</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.234</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2765,16 +2772,16 @@ function cryDetRender(){
   var g=e.c?e.c.g:"", s=e.c?e.c.s:"";
   var bt=function(d,txt){ return '<button class="btn '+(CRY_RANGE===d?"yellow":"dark")+'" style="flex:1;margin:0;padding:12px 2px;font-size:12px" onclick="cryRange('+d+')">'+txt+'</button>'; }; // v3.193: compacter voor 6 periodes
   var bi=function(v,txt){ return '<button class="btn '+(CRY_IV===v?"yellow":"dark")+'" style="flex:1;margin:0;padding:12px 2px;font-size:12px" onclick="cryIv(\''+v+'\')">'+txt+'</button>'; }; // v3.183: knoppen kaars-grootte
-  var rgRow='<div style="display:flex;gap:6px;margin-bottom:10px">'+bt(1,"Dag")+bt(7,"Week")+bt(30,"Maand")+bt(90,"3 Mnd")+bt(180,"6 Mnd")+bt(365,"1 Jaar")+'</div>'; // v3.193: geschiedenis instelbaar van 1 dag tot 1 jaar
-  var ivRow='<div class="tip" style="text-align:left;margin:0 0 6px">Kaars-grootte</div><div style="display:flex;gap:6px;margin-bottom:10px">'+bi("1m","1m")+bi("5m","5m")+bi("15m","15m")+bi("1h","1u")+bi("1d","24u")+'</div>'; // v3.183: 1 min t/m 24 uur per kaars
+  var rgRow='<div id="crySetRow" style="display:flex;gap:6px;margin-bottom:10px">'+bt(1,"Dag")+bt(7,"Week")+bt(30,"Maand")+bt(90,"3 Mnd")+bt(180,"6 Mnd")+bt(365,"1 Jaar")+'</div>'; // v3.193: geschiedenis instelbaar van 1 dag tot 1 jaar + v3.234: id voor de instel-knopen op het volledige scherm
+  var ivRow='<div class="tip" style="text-align:left;margin:0 0 6px">Kaars-grootte</div><div id="crySetRow" style="display:flex;gap:6px;margin-bottom:10px">'+bi("1m","1m")+bi("5m","5m")+bi("15m","15m")+bi("1h","1u")+bi("1d","24u")+'</div>'; // v3.183: 1 min t/m 24 uur per kaars + v3.234: id voor de instel-knopen op het volledige scherm
   var modeRow=(CRY_KIND==="candle")?ivRow:rgRow; // v3.183: bij candles kies je de kaars-grootte, bij de lijn het tijdvak
   sc.innerHTML='<div class="card"><div class="score"><span>'+colEsc(e.t)+' ('+colEsc(s)+')</span><span id="cryPrice" style="font-size:20px;font-weight:800;color:#e2e8f0">...</span></div>'
     +'<div id="cryCh" style="font-size:12px;color:#64748b;margin:2px 0 10px">24u: ...</div>'
     +'<div style="display:flex;gap:6px;margin:0 0 8px"><button id="cryAiBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryAiUpd()">🤖 AI update</button><button id="cryNewsBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryNewsUpd()">📰 Nieuws</button></div><div id="cryAiBox"></div><div id="cryNewsBox"></div>' // v3.192: korte marktupdate van de AI + v3.195: nieuws-knop ernaast
-    +modeRow // v3.183: tijdvak-knoppen (lijn) of kaars-grootte-knoppen (candles)
-    +'<div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn '+(CRY_KIND==="line"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(0)">📈 Lijn</button><button class="btn '+(CRY_KIND==="candle"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(1)">🕯 Candles</button><button id="cryFsBtn" class="btn dark" style="width:auto;flex:none;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryFsToggle(event)">&#128421;&#65039;</button></div>' // v3.180: kiezen tussen lijn en candlesticks + v3.231: knop voor de chart op het hele scherm
+    +'<div id="cryFsArea">'+modeRow // v3.183: tijdvak-knoppen (lijn) of kaars-grootte-knoppen (candles) + v3.234: op het volledige scherm draaien de instel-knopen mee met de chart
+    +'<div id="cryKindRow" style="display:flex;gap:8px;margin-bottom:10px"><button class="btn '+(CRY_KIND==="line"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(0)">📈 Lijn</button><button class="btn '+(CRY_KIND==="candle"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(1)">🕯 Candles</button><button id="cryFsBtn" class="btn dark" style="width:auto;flex:none;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryFsToggle(event)">&#128421;&#65039;</button></div>' // v3.180: kiezen tussen lijn en candlesticks + v3.231: knop voor de chart op het hele scherm + v3.234: id voor de instel-knopen op het volledige scherm
     +'<div id="cryChartBox" style="margin:0 -24px"><div class="tip">Grafiek laden...</div></div>' // v3.183: grafiek over de volle breedte van het scherm
-    +'<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:0 2px"><div class="n" style="margin:0;white-space:nowrap">Geschiedenis</div><input type="range" id="cryHistR" min="10" max="100" step="5" value="'+CRY_HIST+'" style="flex:1;accent-color:#facc15;padding:0;margin:0" oninput="cryHistSet(this.value)"><div class="n" style="margin:0;width:44px;text-align:right" id="cryHistL">'+CRY_HIST+'%</div></div>'
+    +'<div id="cryHistRow" style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:0 2px"><div class="n" style="margin:0;white-space:nowrap">Geschiedenis</div><input type="range" id="cryHistR" min="10" max="100" step="5" value="'+CRY_HIST+'" style="flex:1;accent-color:#facc15;padding:0;margin:0" oninput="cryHistSet(this.value)"><div class="n" style="margin:0;width:44px;text-align:right" id="cryHistL">'+CRY_HIST+'%</div></div></div>' // v3.234: hier gaat het volledige-scherm-gebied dicht - chart en instel-knopen samen
     +'</div>';
   var tok=++CRY_TOK;
   if(!g) return;
@@ -2802,7 +2809,7 @@ function cryChartLoad(g, s, tok){ // v3.183: s = symbool voor Binance-candles; v
         if(rows.length) CRY_CUR=rows[rows.length-1][4]; // v3.229: nieuwste prijs voor de prijs-lijn
         var dp2=cryTrim(rows), b5=document.getElementById("cryChartBox"); if(b5){ b5.innerHTML=cryChartCandle(dp2); cryHovAttach(dp2); } // v3.189
       })
-      .catch(function(){ if(tok!==CRY_TOK) return; var b6=document.getElementById("cryChartBox"); if(b6) b6.innerHTML='<div class="note">Candles konden niet worden geladen - geen verbinding of deze munt staat niet op Binance. Probeer de lijn-grafiek.</div>'; });
+      .catch(function(){ if(tok!==CRY_TOK) return; var b6=document.getElementById("cryChartBox"); if(b6) b6.innerHTML='<div class="note">Candles konden niet worden geladen - geen verbinding of deze munt staat niet op Binance. Probeer de lijn-grafiek.</div>'; cryFsBtns(); }); // v3.234: ook bij een fout de weg- en draai-knop tonen
     return;
   }
   fetch("https://api.coingecko.com/api/v3/coins/"+encodeURIComponent(g)+"/market_chart?vs_currency=usd&days="+CRY_RANGE)
@@ -2815,7 +2822,7 @@ function cryChartLoad(g, s, tok){ // v3.183: s = symbool voor Binance-candles; v
       if(pts.length) CRY_CUR=pts[pts.length-1]; // v3.229: nieuwste prijs voor de prijs-lijn
       var dp3=cryTrim(pts), dts3=cryTrim(ts), b3=document.getElementById("cryChartBox"); if(b3){ b3.innerHTML=cryChartSvg(dp3,dts3); cryHovAttach(dp3); } // v3.189 + v3.211
     })
-    .catch(function(){ if(tok!==CRY_TOK) return; var b4=document.getElementById("cryChartBox"); if(b4) b4.innerHTML='<div class="note">Grafiek kon niet worden geladen - geen verbinding of tijdelijke API-limiet.</div>'; });
+    .catch(function(){ if(tok!==CRY_TOK) return; var b4=document.getElementById("cryChartBox"); if(b4) b4.innerHTML='<div class="note">Grafiek kon niet worden geladen - geen verbinding of tijdelijke API-limiet.</div>'; cryFsBtns(); }); // v3.234: ook bij een fout de weg- en draai-knop tonen
 }
 function cryAiUpd(){ // v3.192: korte markt-update van de AI - berekend uit de geladen grafiek
   var cx=window._CRY_CTX, box=document.getElementById("cryAiBox");
@@ -2922,23 +2929,37 @@ document.addEventListener("wheel", function(e){
 var cryPanDrag=null;
 function cryPanNow(){ CRY_PAN_F=0; var cq=window._CRY_CTX; if(cq&&cq.g) cryChartLoad(cq.g, cq.s, ++CRY_TOK); } // v3.228: de "terug naar nu"-knop op de grafiek
 var CRY_FS=0; // v3.231: 1 = de chart staat op het hele scherm
+var CRY_FSROT=0; // v3.234: 1 = de chart staat op z'n kant - met de draai-knop zelf om te zetten
 function cryFsToggle(e){ // v3.231: de chart op het hele scherm - de telefoon draaien geeft vanzelf een brede horizontale chart (de grafiek past zichzelf aan, geen herladen nodig)
   try{ if(e&&e.stopPropagation) e.stopPropagation(); if(navigator.vibrate) navigator.vibrate(10); }catch(e2){}
   CRY_FS=CRY_FS?0:1;
-  var b=document.getElementById("cryChartBox");
-  if(!b) return;
+  var b=document.getElementById("cryFsArea");
+  if(!b) return; // v3.234: de knop zit nu op het hele gebied - chart en instellingen samen
   b.classList.toggle("cryFS",CRY_FS===1);
   try{
     if(CRY_FS===1){ if(b.requestFullscreen) b.requestFullscreen(); } // v3.231: op een computer/Android de echte fullscreen - op de iPhone doet de CSS-klasse het werk
     else if(document.fullscreenElement&&document.exitFullscreen) document.exitFullscreen();
   }catch(e3){}
+  if(CRY_FS===1){ window._cryP=(window.innerHeight>window.innerWidth); CRY_FSROT=window._cryP?1:0; } // v3.234: op het volledige scherm begint hij in staand meteen een kwartslag gedraaid
   cryFsRot(); // v3.232: meteen bijhouden of de chart op z'n kant staat
 }
 var CRY_ROT=0; // v3.232: 1 = de chart staat een kwartslag gedraaid (volledig scherm in staand)
-function cryFsRot(){ // v3.232: alleen op het volledige scherm in staand - de telefoon echt kantelen = gewoon rechtop
-  CRY_ROT=(CRY_FS===1&&window.innerHeight>window.innerWidth)?1:0;
+function cryFsRot(){ // v3.234: de draai-stand zit in de klasse cryFSR op het volledige-scherm-gebied - de draai-knop zet hem handmatig om
+  CRY_ROT=(CRY_FS===1&&CRY_FSROT===1)?1:0;
+  var b=document.getElementById("cryFsArea");
+  if(b) b.classList.toggle("cryFSR",CRY_ROT===1);
 }
-window.addEventListener("resize", function(){ if(CRY_FS===1) cryFsRot(); }); // v3.232: telefoon kantelen tijdens het volledige scherm = draai-stand loopt mee
+function cryFsRotTgl(e){ // v3.234: de draai-knop - de chart terugdraaien of juist weer op z'n kant zetten
+  try{ if(e&&e.stopPropagation) e.stopPropagation(); if(navigator.vibrate) navigator.vibrate(10); }catch(e2){}
+  CRY_FSROT=CRY_FSROT?0:1;
+  cryFsRot();
+}
+window.addEventListener("resize", function(){ // v3.232: telefoon kantelen tijdens het volledige scherm = draai-stand loopt mee
+  if(CRY_FS!==1) return;
+  var p=(window.innerHeight>window.innerWidth);
+  if(window._cryP!==undefined&&p!==window._cryP){ CRY_FSROT=(p?1:0); window._cryP=p; } // v3.234: echt kantelen = de draai-stand past automatisch aan
+  cryFsRot();
+});
 document.addEventListener("pointerdown", function(e){
   try{
     var t=e.target;
@@ -2967,10 +2988,15 @@ document.addEventListener("pointermove", function(e){
 }, {passive:true});
 document.addEventListener("pointerup", function(){ cryPanDrag=null; }, {passive:true});
 document.addEventListener("pointercancel", function(){ cryPanDrag=null; }, {passive:true});
+function cryFsBtns(){ // v3.234: de weg- en draai-knop op de grafiek in een eigen functie - ook de fout-meldingen roepen die aan, zodat je op het volledige scherm nooit vastzit
+  var box=document.getElementById("cryChartBox"); if(!box) return;
+  if(document.getElementById("cryFsX")) return; // v3.234: niet dubbel invoegen
+  box.style.position="relative"; // v3.231: de knoppen op de grafiek hebben dit nodig
+  box.insertAdjacentHTML("beforeend",'<div id="cryFsX" onclick="cryFsToggle(event)" style="position:absolute;top:4px;left:8px;background:#0f172a;color:#f87171;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;white-space:nowrap;cursor:pointer">&#10005;</div><div id="cryFsRotBtn" onclick="cryFsRotTgl(event)" style="position:absolute;top:4px;left:44px;background:#0f172a;color:#facc15;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;white-space:nowrap;cursor:pointer">&#128260;</div>'); // v3.231: wegknop + v3.234: draai-knop (&#128260; = draai-teken)
+}
 function cryHovAttach(data){ // v3.189: prijs bij hover met de muis of tik op het scherm
   var box=document.getElementById("cryChartBox"); if(!box) return;
-  box.style.position="relative"; // v3.231: de knoppen op de grafiek hebben dit nodig
-  box.insertAdjacentHTML("beforeend",'<div id="cryFsX" onclick="cryFsToggle(event)" style="position:absolute;top:4px;left:8px;background:#0f172a;color:#f87171;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;white-space:nowrap;cursor:pointer">&#10005;</div>'); // v3.231: wegknop - v3.232: de chart draait op z'n kant dus de draai-hint is niet meer nodig
+  cryFsBtns(); // v3.234: de weg- en draai-knop zit in een eigen functie - ook de fout-meldingen roepen die aan
   var sv=box.querySelector("svg"); if(!sv) return;
   var isC=(CRY_KIND==="candle"), W=340, H=150, pad=10, n=data.length;
   if(n<2) return;
@@ -3642,7 +3668,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.233";
+var VERSION="3.234";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5701,7 +5727,7 @@ document.addEventListener("pointerdown", function(e){ // v3.226: alleen vegen da
     var edge=(e.clientX<=30)?"L":((e.clientX>=vw-30)?"R":null);
     if(!edge) return;
     var t=e.target;
-    if(t&&t.closest&&(t.closest(".zoomWrap")||t.closest("#colHistWrap")||t.closest("#cryChartBox")||t.closest(".cryDrag")||t.closest("#ibFullWrap")||t.closest("textarea")||t.closest("input"))) return; // v3.226: geen swipe op de kaart-zoom, grafieken, sleep-handvat, foto-op-groot en typvelden
+    if(t&&t.closest&&(t.closest(".zoomWrap")||t.closest("#colHistWrap")||t.closest("#cryChartBox")||t.closest("#cryFsArea")||t.closest(".cryDrag")||t.closest("#ibFullWrap")||t.closest("textarea")||t.closest("input"))) return; // v3.226: geen swipe op de kaart-zoom, grafieken, sleep-handvat, foto-op-groot en typvelden
     swipeStart={x:e.clientX,y:e.clientY,edge:edge};
   }catch(e2){}
 }, {passive:true});
@@ -5727,7 +5753,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.233-->
+<!--v:3.234-->
 
 
 
