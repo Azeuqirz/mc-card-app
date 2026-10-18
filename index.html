@@ -321,7 +321,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.211</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.212</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2184,6 +2184,9 @@ function verChkFin(nv){
   if(b){ b.textContent="🔄 Update v"+colEsc(nv)+" - de app laadt zichzelf opnieuw..."; b.classList.remove("full"); b.classList.add("show"); }
   try{ if(navigator.vibrate) navigator.vibrate(120); }catch(e){}
   clearTimeout(window._pbT); window._pbT=setTimeout(function(){ var b2=document.getElementById("pushBanner"); if(b2) b2.classList.remove("show"); },6000); // v3.159: melding bovenin, verdwijnt vanzelf
+  var _vv=curView, _vi=null; // v3.212: onthouden op welke pagina je was - na de update kom je daar weer terug
+  if(_vv==="hydDetView") _vi=HYD_DET; else if(_vv==="recDetView") _vi=REC_DET; else if(_vv==="colDetailView") _vi=window._colDetId; else if(_vv==="detailView") _vi=window._detailIdx; else if(_vv==="dsHistView") _vi=dsHistSite; else if(_vv==="cryptoView"&&CRY_DET!==null) _vi=CRY_DET;
+  try{ localStorage.setItem("mcVerView",JSON.stringify({v:_vv,i:_vi,t:Date.now()})); }catch(e){}
   setTimeout(function(){ location.replace(location.pathname.split("?")[0]+"?v="+encodeURIComponent(nv)+"&t="+Date.now()); },2500); // v3.159: na 2,5s automatisch herladen; &t= = uniek per herlaadbeurt (cache-mixer)
 }
 function verChk(){
@@ -2242,7 +2245,8 @@ function slPush(k){
       for(var j=out.length-1;j>=0;j--){
         var it2=out[j];
         if(it2.p&&it2.p.img){ delete it2.p.img; done=true; }
-        if(!done&&it2.u){ for(var q=it2.u.length-1;q>=0;q--){ if(it2.u[q].img){ delete it2.u[q].img; done=true; } } }
+        if(!done&&it2.p&&it2.p.imgs&&it2.p.imgs.length){ it2.p.imgs.pop(); done=true; } // v3.212: ook de extra plant-foto's strippen uit een te grote sync
+        if(!done&&it2.u){ for(var q=it2.u.length-1;q>=0;q--){ var uu2=it2.u[q]; if(uu2.img){ delete uu2.img; done=true; } else if(uu2.imgs&&uu2.imgs.length){ uu2.imgs.pop(); done=true; } if(done) break; } }
         if(done) break;
       }
       if(!done) break;
@@ -2343,7 +2347,8 @@ function hydDetRender(){
   if(!e.p.pd) h+='<button class="btn dark" style="flex:1;margin-top:0" onclick="hydPdEdit('+e.id+')"><span class="bt"><span class="bi">📅</span>Plantdatum</span></button>'; // v3.168: knop weg zodra de plantdatum vaststaat
   h+='<button class="btn dark" style="flex:1;margin-top:0" onclick="hydPick('+e.id+',0)"><span class="bt"><span class="bi">📷</span>Foto</span></button>';
   h+='</div>';
-  if(e.p.img) h+='<img src="'+e.p.img+'" alt="" onclick="ibFull(this.src)" style="width:100%;border-radius:10px;margin-top:8px;display:block">';
+  var ph=hydImgs(e.p); // v3.212: meerdere foto's per plant, elk met eigen verwijder-knop
+  if(ph.length){ h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">'; ph.forEach(function(src,pi){ h+='<div style="position:relative"><img src="'+src+'" alt="" onclick="ibFull(this.src)" style="width:86px;height:86px;object-fit:cover;border-radius:8px;cursor:pointer;display:block"><button style="position:absolute;top:-6px;right:-6px;background:#1e293b;border:0;color:#f87171;border-radius:99px;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1;padding:0" onclick="hydPhDel('+e.id+',0,'+pi+')">✕</button></div>'; }); h+='</div>'; }
   h+='</div>';
   h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🌱 AI-verzorgcheck</div><p class="n">Scan de plant - je krijgt meteen een beoordeling op basis van de foto en je gelogde verzorging (updates, EC en pH).</p><button class="btn yellow" style="margin-top:8px" onclick="hydAiStart()"><span class="bt"><span class="bi">📷</span>Plant scannen</span></button>'+hydAiRes(e)+'</div>'; // v3.188
   h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📈 Updates</div>';
@@ -2352,7 +2357,8 @@ function hydDetRender(){
     h+='<div class="ibCmt" style="position:relative;padding-right:108px">'; // v3.167: ruimte voor 3 knoppen
     h+='<div style="font-size:12px;color:#94a3b8">'+slFmt(u.ts)+((u.ec||u.ph)?' - EC '+colEsc(String(u.ec||"-"))+' / pH '+colEsc(String(u.ph||"-")):'')+'</div>';
     if(u.txt) h+='<div class="remBody">'+colEsc(u.txt)+'</div>';
-    if(u.img) h+='<img src="'+u.img+'" alt="" onclick="ibFull(this.src)" style="width:64px;height:64px;object-fit:cover;border-radius:8px;margin-top:6px;cursor:pointer">';
+    var up=hydImgs(u); // v3.212: meerdere foto's per update
+    if(up.length){ h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'; up.forEach(function(src,pi){ h+='<div style="position:relative"><img src="'+src+'" alt="" onclick="ibFull(this.src)" style="width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;display:block"><button style="position:absolute;top:-6px;right:-6px;background:#1e293b;border:0;color:#f87171;border-radius:99px;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:1;padding:0" onclick="hydPhDel('+e.id+','+u.id+','+pi+')">✕</button></div>'; }); h+='</div>'; }
     h+='<div style="position:absolute;top:8px;right:8px;display:flex;gap:6px">';
     h+='<button style="background:#1e293b;border:0;color:#e2e8f0;border-radius:8px;padding:6px 8px;font-size:13px;cursor:pointer" onclick="hydUpdEdit('+e.id+','+u.id+')">✏️</button>';
     h+='<button style="background:#1e293b;border:0;color:#e2e8f0;border-radius:8px;padding:6px 8px;font-size:13px;cursor:pointer" onclick="hydPick('+e.id+','+u.id+')">📷</button>';
@@ -2372,10 +2378,13 @@ function hydUpdAdd(){
   if(ph===null) return;
   var tx=prompt("Notitie? (optioneel, bijv. water + voeding gegeven)","");
   if(tx===null) return;
+  var mk=confirm("📷 Meteen een foto bij deze update?\nOK = foto maken of kiezen - Annuleren = update zonder foto."); // v3.212: foto hoort nu bij de update-zelf, niet pas erna via een aparte knop
+  var uid=Date.now();
   hydMut(HYD_DET,function(x){
     x.u=x.u||[];
-    x.u.unshift({id:Date.now(),ts:Date.now(),ec:String(ec).trim(),ph:String(ph).trim(),txt:String(tx).trim(),img:""});
+    x.u.unshift({id:uid,ts:Date.now(),ec:String(ec).trim(),ph:String(ph).trim(),txt:String(tx).trim(),img:""});
   });
+  if(mk) hydPick(HYD_DET,uid);
 }
 function hydUpdDel(id,uid){ hydMut(id,function(x){ if(x.u) x.u=x.u.filter(function(u){ return u.id!==uid; }); }); }
 function hydUpdEdit(id,uid){ // v3.167: update bewerken - EC/pH/notitie met huidige waarden vooringevuld
@@ -2391,6 +2400,17 @@ function hydUpdEdit(id,uid){ // v3.167: update bewerken - EC/pH/notitie met huid
   if(tx===null) return;
   hydMut(id,function(x){ if(x.u) x.u.forEach(function(y){ if(y.id===uid){ y.ec=String(ec).trim(); y.ph=String(ph).trim(); y.txt=String(tx).trim(); } }); });
 }
+function hydImgs(o){ var a=[]; if(o.img) a.push(o.img); if(o.imgs) o.imgs.forEach(function(x){ if(x) a.push(x); }); return a; } // v3.212: alle foto's van een plant of update - de oude enkele foto plus de nieuwe reeks
+function hydPhDel(id,uid,idx){ // v3.212: foto verwijderen (plant of update), ook later nog
+  if(!confirm("Deze foto weggooien?")) return;
+  hydMut(id,function(x){
+    var o=null; if(uid){ if(x.u) x.u.forEach(function(u){ if(u.id===uid) o=u; }); } else o=x.p;
+    if(!o) return;
+    var lg=(o.img?1:0);
+    if(idx<lg){ o.img=""; return; }
+    if(o.imgs&&o.imgs.length>idx-lg) o.imgs.splice(idx-lg,1);
+  });
+}
 var _hydPick=null;
 function hydPick(id,uid){ _hydPick={id:id,uid:uid}; var el=document.getElementById("hydFile"); if(!el) return; try{ el.value=""; }catch(e){} el.click(); }
 function hydFilePicked(el){
@@ -2405,9 +2425,9 @@ function hydImgSet(d){
   try{
     var tp=_hydPick; _hydPick=null;
     if(!tp||!d) return;
-    hydMut(tp.id,function(x){
-      if(tp.uid){ if(x.u) x.u.forEach(function(u){ if(u.id===tp.uid) u.img=d; }); }
-      else { x.p=x.p||{pd:"",img:""}; x.p.img=d; }
+    hydMut(tp.id,function(x){ // v3.212: nieuwe foto's gaan in een reeks - meerdere foto's per plant en per update
+      if(tp.uid){ if(x.u) x.u.forEach(function(u){ if(u.id===tp.uid){ u.imgs=u.imgs||[]; u.imgs.push(d); } }); }
+      else { x.p=x.p||{pd:"",img:""}; x.p.imgs=x.p.imgs||[]; x.p.imgs.push(d); }
     });
   }catch(e2){}
 }
@@ -2695,7 +2715,7 @@ function cryDetRender(){
     +'<div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn '+(CRY_KIND==="line"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(0)">📈 Lijn</button><button class="btn '+(CRY_KIND==="candle"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(1)">🕯 Candles</button></div>' // v3.180: kiezen tussen lijn en candlesticks
     +'<div id="cryChartBox" style="margin:0 -24px"><div class="tip">Grafiek laden...</div></div>' // v3.183: grafiek over de volle breedte van het scherm
     +'<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:0 2px"><div class="n" style="margin:0;white-space:nowrap">Geschiedenis</div><input type="range" id="cryHistR" min="10" max="100" step="5" value="'+CRY_HIST+'" style="flex:1;accent-color:#facc15;padding:0;margin:0" oninput="cryHistSet(this.value)"><div class="n" style="margin:0;width:44px;text-align:right" id="cryHistL">'+CRY_HIST+'%</div></div>'
-    +'<div class="tip">Toegevoegd door '+ibName(e.by)+'</div></div>';
+    +'</div>';
   var tok=++CRY_TOK;
   if(!g) return;
   fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(g)+"&vs_currencies=usd&include_24hr_change=true")
@@ -2920,19 +2940,19 @@ var PROD_SRC=[
   {n:"Marktplaats", e:"📱", d:"nieuw en tweedehands van particulieren", u:"https://www.marktplaats.nl/q/", tail:"/"}
 ];
 function prodOpen(){ showView("prodView"); prodRender(); }
-function prodQ(){ try{ return localStorage.getItem("mcProdQ")||""; }catch(e){ return ""; } }
+function prodQ(){ try{ var q=localStorage.getItem("mcProdQ")||""; if(q) return q; }catch(e){} return window._prodQ||""; } // v3.212: ook een kop in het geheugen - op een resultaat tikken vraagt nooit meer opnieuw om invoer
 function prodQs(){ try{ return JSON.parse(localStorage.getItem("mcProdQs")||"[]"); }catch(e){ return []; } }
 function prodAsk(){ // v3.210: nieuw product intypen
   var q=prompt("Welk product zoek je?\nBijvoorbeeld: De'Longhi Magnifica S ECAM 22.110");
   if(q===null) return;
   q=String(q).trim(); if(!q) return;
-  try{ localStorage.setItem("mcProdQ",q); }catch(e){}
+  window._prodQ=q; try{ localStorage.setItem("mcProdQ",q); }catch(e){}
   var qs=prodQs().filter(function(x){ return x!==q; }); qs.unshift(q); // recents voorin, geen dubbels
   try{ localStorage.setItem("mcProdQs",JSON.stringify(qs.slice(0,6))); }catch(e){}
   prodRender();
 }
 function prodRe(eq){ // v3.210: recente zoekopdracht weer aanzetten
-  var q=decodeURIComponent(eq); try{ localStorage.setItem("mcProdQ",q); }catch(e){}
+  var q=decodeURIComponent(eq); window._prodQ=q; try{ localStorage.setItem("mcProdQ",q); }catch(e){}
   prodRender();
 }
 function prodGo(i){ // v3.210: site openen met de zoekopdracht er al in
@@ -2943,13 +2963,13 @@ function prodGo(i){ // v3.210: site openen met de zoekopdracht er al in
 }
 function prodRender(){ // v3.210: overzicht met de beste plekken om te kopen
   var sc=document.getElementById("prodScroll"); if(!sc) return;
-  var q=prodQ(), qs=prodQs(), h="";
+  var q=prodQ(); window._prodQ=q||window._prodQ||""; var qs=prodQs(), h=""; // v3.212: het gezochte product blijft ook in het geheugen staan
   h+='<h1 style="margin:4px 0 2px">🛍️ Productzoeker</h1><div class="sub">Vul een product in - je krijgt meteen de beste plekken om te kijken waar ie het goedkoopst is</div>';
   if(!q){ h+='<div class="tip">Tik hieronder op "Product zoeken" en typ bijv. De\'Longhi Magnifica S ECAM 22.110.</div>'; }
   else{
     h+='<div class="card"><div style="font-size:15px;font-weight:800;margin:0 0 2px">Zoekresultaten voor: <span style="color:#facc15">'+colEsc(q)+'</span></div><div class="n" style="margin:0 0 10px">Elke knop opent de site met jouw product er al ingevuld - de prijssites staan meteen op prijs gesorteerd, de goedkoopste bovenaan.</div>';
     for(var i=0;i<PROD_SRC.length;i++){ var s=PROD_SRC[i];
-      h+='<button class="btn '+(i===0?"yellow":"dark")+'" style="margin-top:'+(i===0?"0":"8px")+'" onclick="prodGo('+i+')"><span class="bt"><span class="bi">'+s.e+'</span>'+s.n+' - '+s.d+'</span></button>';
+      h+='<button class="btn '+(i===0?"yellow":"dark")+'" style="margin-top:'+(i===0?"0":"8px")+'" onclick="prodGo('+i+')"><span class="bt">'+s.n+' - '+s.d+'</span></button>'; // v3.212: emojis van de resultaat-knoppen af
     }
     h+='</div>';
   }
@@ -3375,7 +3395,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.211";
+var VERSION="3.212";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5277,10 +5297,34 @@ function exportCSV(){
   });
   window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
 }
+// ===== v3.212: na een automatische update terug naar de pagina waar je was =====
+try{
+  var _rv=null; try{ _rv=JSON.parse(localStorage.getItem("mcVerView")||"null"); }catch(e9){} try{ localStorage.removeItem("mcVerView"); }catch(e8){}
+  if(_rv&&_rv.t&&Date.now()-_rv.t<45000&&_rv.v&&_rv.v!=="home"&&document.getElementById(_rv.v)){
+    var _vd=String(_rv.v), _vi=(_rv.i==null)?null:_rv.i;
+    if(_vd==="hydDetView"&&_vi){ hydDet(_vi); }
+    else if(_vd==="recDetView"&&_vi){ recDet(_vi); }
+    else if(_vd==="colDetailView"&&_vi){ colDetail(_vi); }
+    else if(_vd==="detailView"&&_vi!==null){ showScanDetail(_vi); }
+    else if(_vd==="dsHistView"&&_vi){ dsHistView(_vi); }
+    else if(_vd==="cryptoView"){ CRY_DET=(_vi!==null)?_vi:null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,30000); } cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ if(CRY_DET===null) cryRender(); else cryDetRender(); }); }
+    else if(_vd==="agendaView"){ renderAgenda(); }
+    else if(_vd==="remView"){ remOpen(); }
+    else if(_vd==="ideaView"){ ibOpen(); }
+    else if(_vd==="prodView"){ prodOpen(); }
+    else if(_vd==="recView"){ recOpen(); }
+    else if(_vd==="hydView"){ hydOpen(); }
+    else if(_vd==="ntView"){ showView("ntView"); ntRender(); }
+    else if(_vd==="collectionView"){ renderCollection(); }
+    else if(_vd==="dealView"){ renderDeals(); }
+    else if(_vd==="historyView"){ renderHistory(); }
+  }
+}catch(e7){}
 </script>
 </body>
 </html>
-<!--v:3.211-->
+<!--v:3.212-->
+
 
 
 
