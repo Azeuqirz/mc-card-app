@@ -340,7 +340,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.223</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.224</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3540,7 +3540,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.223";
+var VERSION="3.224";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3698,6 +3698,8 @@ function killCam(){
 }
 function bindCamStream(s){
   camStream=s;
+  var fb0=document.getElementById("camFailBox"); if(fb0&&fb0.parentNode) fb0.parentNode.removeChild(fb0); // v3.224: oude foutmelding van het scherm halen
+  var zi0=document.getElementById("zoomInd"); if(zi0){ zi0.textContent=""; zi0.style.display="none"; } // v3.224: "Camera starten..." weer weg
   // v3.05: iOS houdt een eenmaal gebruikt video-element soms permanent vast
   // (zwart beeld bij her-openen) - daarom bij ELKE opening een vers element.
   var old=document.getElementById("camVideo");
@@ -3718,18 +3720,36 @@ function bindCamStream(s){
     var vv=document.getElementById("camVideo");
     if(!vv||vv.videoWidth===0){
       killCam();
-      closeCam(true); // native camera-fallback
+      camFailShow(false); // v3.224: stil zwart scherm is vervangen door een duidelijke melding met werkende knop (een .click() buiten de tik start de camera op iOS niet)
     }
   },2500);
 }
 function openCam(){
   showView("camView");
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ closeCam(true); return; }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ camFailShow(false); return; } // v3.224: op iOS mag een file-input alleen vanuit een eigen tik worden aangeklikt - een stille programmatische klik doet niks
   killCam(); // v2.99: altijd schoon beginnen
+  var ziS=document.getElementById("zoomInd"); if(ziS){ ziS.textContent="⏳ Camera starten..."; ziS.style.display=""; } // v3.224: korte feedback terwijl de camera opstart
   navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:"environment"}, width:{ideal:4032}, height:{ideal:3024} }, audio:false })
     .then(bindCamStream)
-    .catch(function(){ closeCam(true); }); // geen toegang: terug naar native fallback
+    .catch(function(err){ camFailShow(err&&err.name==="NotAllowedError"); }); // v3.224: camera start niet -> melding met native-camera-knop i.p.v. niets
 }
+// v3.224: start de camera niet? Dan geen zwart scherm maar een duidelijke melding.
+// De gele knop opent de iPhone-camera; dat werkt alléén vanuit een eigen tik van de
+// gebruiker (programmatic .click() buiten een tik doet op iOS niets - vandaar de knop).
+function camFailShow(denied){
+  killCam();
+  var w=document.getElementById("camWrap");
+  if(!w) return;
+  var fb=document.getElementById("camFailBox");
+  if(!fb){ fb=document.createElement("div"); fb.id="camFailBox";
+    fb.style.cssText="position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;";
+    w.appendChild(fb); }
+  fb.innerHTML='<div class="note" style="margin:0">⚠️ De camera kan niet worden geopend'+(denied?" - geef de app toegang tot de camera in de instellingen van je iPhone":"")+'. Tik op de knop hieronder om met de iPhone-camera een foto van de kaart te maken.</div>'
+    +'<button class="btn yellow" style="width:auto;min-width:230px;margin:0" onclick="camNativePick()">📷 Foto maken met de iPhone-camera</button>'
+    +'<button class="btn dark" style="width:auto;min-width:230px;margin:0" onclick="camFailClose()">⬅ Terug</button>';
+}
+function camNativePick(){ document.getElementById("fileInput").click(); }
+function camFailClose(){ var fb=document.getElementById("camFailBox"); if(fb&&fb.parentNode) fb.parentNode.removeChild(fb); showView("home"); }
 // v2.89: raster aan/uit in het camera-kader
 var gridOn=true;
 function toggleGrid(){
@@ -3783,19 +3803,22 @@ function startCapMonitor(){
     // de oude drempel). Nu ook kleurcontrast tussen kadergebied en de strook
     // boven het kader: een kaart steekt duidelijk af tegen de ondergrond.
     var texAvg=tex/Math.max(1,tn);
-    var inR=0,inG=0,inB=0,cn=0, outR=0,outG=0,outB=0,on2=0;
+    var inR=0,inG=0,inB=0,cn=0, inBrt=0,inCol=0, outR=0,outG=0,outB=0,on2=0;
     for(ti=fx0;ti<fx0+fw;ti+=2){ for(tj=0;tj<Math.max(1,fy0-2);tj+=2){ var oi=(tj*64+ti)*4; outR+=d[oi];outG+=d[oi+1];outB+=d[oi+2];on2++; } }
-    for(ti=fx0;ti<fx0+fw;ti+=2){ for(tj=fy0;tj<fy0+fh;tj+=2){ var ci=(tj*64+ti)*4; inR+=d[ci];inG+=d[ci+1];inB+=d[ci+2];cn++; } }
+    for(ti=fx0;ti<fx0+fw;ti+=2){ for(tj=fy0;tj<fy0+fh;tj+=2){ var ci=(tj*64+ti)*4; inR+=d[ci];inG+=d[ci+1];inB+=d[ci+2];cn++;
+      var cL=0.3*d[ci]+0.6*d[ci+1]+0.1*d[ci+2]; if(cL>110) inBrt++;
+      if(Math.max(d[ci],d[ci+1],d[ci+2])-Math.min(d[ci],d[ci+1],d[ci+2])>40) inCol++; } }
     var cOut=on2>0&&cn>0 ? Math.abs(inR/cn-outR/on2)+Math.abs(inG/cn-outG/on2)+Math.abs(inB/cn-outB/on2) : 0;
-    var cardInFrame=texAvg>12 && cOut>40;
+    // v3.224: pas automatisch fotograferen als er ECHT een Pokemon-kaart in het kader ligt - een kaart is helder én kleurrijk; een toetsenbord (donker/grijs) en wit papier (kleurloos) vallen af
+    var cardInFrame=texAvg>12 && cOut>40 && cn>0 && inBrt/cn>0.30 && inCol/cn>0.10;
     if(!cardInFrame){
       capProg=0; setCapBar(0); capPrev=new Uint8Array(d);
       var zi=document.getElementById("zoomInd");
-      if(zi){ zi.textContent="Geen kaart in beeld"; zi.style.display=""; }
+      if(zi){ zi.textContent="Geen Pokemon-kaart in beeld"; zi.style.display=""; } // v3.224: eerlijk zeggen dat er een Pokemon-kaart in het kader moet liggen
       return;
     }
     var zi2=document.getElementById("zoomInd");
-    if(zi2 && zi2.textContent==="Geen kaart in beeld"){ zi2.style.display="none"; zi2.textContent=""; }
+    if(zi2 && zi2.textContent==="Geen Pokemon-kaart in beeld"){ zi2.style.display="none"; zi2.textContent=""; }
     if(capPrev){
       var diff=0, n=d.length/4;
       for(var i=0;i<d.length;i+=4){ diff+=Math.abs(d[i]-capPrev[i])+Math.abs(d[i+1]-capPrev[i+1]); }
@@ -5173,6 +5196,33 @@ function legacyAutoQuery(name,num){
   attempt(0);
 }
 
+// v3.224: ligt binnen het gevonden vierkant wel een echte Pokemon-kaart? Een Pokemon-kaart
+// is helder én kleurrijk (gele rand + kleurrijk artwork). Een toetsenbord (donker/grijs)
+// of een wit vel papier (kleurloos) is dat niet - die foto's krijgen geen AI-analyse.
+function cardLooksPokemon(im,q){
+  try{
+    var nw=im.naturalWidth, nh=im.naturalHeight; if(!nw||!nh) return true;
+    var sc=Math.min(1,240/Math.max(nw,nh)), w=Math.max(8,Math.round(nw*sc)), h=Math.max(8,Math.round(nh*sc));
+    var c=document.createElement("canvas"); c.width=w; c.height=h;
+    var x=c.getContext("2d"); if(!x) return true;
+    x.drawImage(im,0,0,w,h);
+    var d; try{ d=x.getImageData(0,0,w,h).data; }catch(e2){ return true; }
+    var qs=q.quad.map(function(p){ return [p[0]*sc,p[1]*sc]; });
+    function inQ(px2,py2){ var k2=0,i2,j2; for(i2=0,j2=3;i2<4;j2=i2++){ var xa=qs[i2][0],ya=qs[i2][1],xb=qs[j2][0],yb=qs[j2][1];
+      if(((ya>py2)!==(yb>py2))&&(px2<(xb-xa)*(py2-ya)/(yb-ya)+xa)) k2++; } return (k2%2)===1; }
+    var brt=0, col=0, n2=0, xi3, yi3;
+    for(yi3=2;yi3<h-2;yi3+=2){ for(xi3=2;xi3<w-2;xi3+=2){
+      if(!inQ(xi3,yi3)) continue;
+      var ii2=(yi3*w+xi3)*4, r2=d[ii2], g2=d[ii2+1], b2=d[ii2+2];
+      var L2=0.3*r2+0.6*g2+0.1*b2;
+      if(L2>110) brt++;
+      if(Math.max(r2,g2,b2)-Math.min(r2,g2,b2)>40) col++;
+      n2++;
+    } }
+    if(n2<20) return false;
+    return (brt/n2>0.15 && col/n2>0.08); // twijfel = geen kaart, dan de gebruiker een nieuwe foto laten maken
+  }catch(e){ return true; }
+}
 function aiRun(){ // v3.191: volledig AI - foto maken en de AI keurt meteen, geen handmatig bijstellen meer
   if(!img) return;
   var el0=document.getElementById("resultScroll");
@@ -5182,6 +5232,8 @@ function aiRun(){ // v3.191: volledig AI - foto maken en de AI keurt meteen, gee
     try{
       dims={ w:img.naturalWidth, h:img.naturalHeight };
       var q=detectCard(img);
+      var notCard=false;
+      if(q && !cardLooksPokemon(img,q)){ q=null; notCard=true; } // v3.224: geen Pokemon-kaart op de foto (bijv. een toetsenbord) -> geen onzinnige AI-analyse
       if(q){
         rect={ tl:{x:q.quad[0][0],y:q.quad[0][1]}, tr:{x:q.quad[1][0],y:q.quad[1][1]}, br:{x:q.quad[2][0],y:q.quad[2][1]}, bl:{x:q.quad[3][0],y:q.quad[3][1]} };
         rect.edge=q.edge; rect.nPts=q.nPts;
@@ -5189,7 +5241,7 @@ function aiRun(){ // v3.191: volledig AI - foto maken en de AI keurt meteen, gee
       inner=null; window._numHitBox=null;
       if(!rect){
         var el1=document.getElementById("resultScroll");
-        if(el1) el1.innerHTML='<div class="note">⚠️ AI kon de kaart niet vinden. Maak een nieuwe foto met de hele kaart scherp in beeld, op een rustige ondergrond en bij goed licht.</div>'
+        if(el1) el1.innerHTML='<div class="note">'+(notCard?'⚠️ Geen Pokemon-kaart gevonden op de foto - de AI keurt alleen echte Pokemon-kaarten. Maak een nieuwe foto met de kaart goed in beeld en bij goed licht.':'⚠️ AI kon de kaart niet vinden. Maak een nieuwe foto met de hele kaart scherp in beeld, op een rustige ondergrond en bij goed licht.')+'</div>'
           +'<button class="btn yellow" style="margin-top:10px" onclick="rejectScan()">📷 Nieuwe foto maken</button>';
         return;
       }
@@ -5501,7 +5553,8 @@ rbSync(); // v3.221: bij het opstarten de ververs-knop meteen goed zetten - vó�
 </script>
 </body>
 </html>
-<!--v:3.223-->
+<!--v:3.224-->
+
 
 
 
