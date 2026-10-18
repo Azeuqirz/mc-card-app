@@ -196,6 +196,21 @@
   #pushBanner.full { white-space:normal; overflow:visible; text-overflow:clip; line-height:1.35; }
   /* v3.31: roze thema compleet - ook banner, menu-kop, grafieken en gele accent-tekst */
   body.pink #pushBanner { color:#f472b6; border-color:#ec4899; }
+/* v3.214: bolletjes-spinner bij het verversen - midden in het scherm, zolang de verversing bezig is */
+#refSpin { position:fixed; inset:0; z-index:9990; display:none; background:rgba(2,6,23,.6); }
+#refSpin.show { display:flex; align-items:center; justify-content:center; }
+#refSpin .rsDots { position:relative; width:56px; height:56px; }
+#refSpin .rsDots i { position:absolute; left:50%; top:50%; width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:99px; background:#facc15; animation:rsP 0.8s linear infinite; }
+#refSpin .rsDots i:nth-child(1){ transform:rotate(0deg) translateY(-22px); animation-delay:-0.8s; }
+#refSpin .rsDots i:nth-child(2){ transform:rotate(45deg) translateY(-22px); animation-delay:-0.7s; }
+#refSpin .rsDots i:nth-child(3){ transform:rotate(90deg) translateY(-22px); animation-delay:-0.6s; }
+#refSpin .rsDots i:nth-child(4){ transform:rotate(135deg) translateY(-22px); animation-delay:-0.5s; }
+#refSpin .rsDots i:nth-child(5){ transform:rotate(180deg) translateY(-22px); animation-delay:-0.4s; }
+#refSpin .rsDots i:nth-child(6){ transform:rotate(225deg) translateY(-22px); animation-delay:-0.3s; }
+#refSpin .rsDots i:nth-child(7){ transform:rotate(270deg) translateY(-22px); animation-delay:-0.2s; }
+#refSpin .rsDots i:nth-child(8){ transform:rotate(315deg) translateY(-22px); animation-delay:-0.1s; }
+@keyframes rsP { 0%,100%{opacity:.12;} 50%{opacity:1;} }
+body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes voor Chantal */
   body.pink .mHead { color:#ec4899; }
   body.pink .bar > div { background:#ec4899 !important; }
   body.pink #colScroll polyline { stroke:#f472b6 !important; }
@@ -294,6 +309,7 @@
 <body>
 <div id="pushBanner"></div>
 <div id="confetti"></div>
+<div id="refSpin"><div class="rsDots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div> <!-- v3.214: spinner bij verversen -->
 
 <!-- v2.62: vaste bovenbalk: terug links, logo+naam midden, verversen rechts -->
 <div class="topBar">
@@ -321,7 +337,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.213</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.214</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2311,13 +2327,15 @@ function hydEmoji(t){
   for(var i=0;i<M.length;i++){ if(s.indexOf(M[i][0])>-1) return M[i][1]; }
   return '🌱';
 } // v3.174: passende emoji per plant op basis van de naam
+function hydAgeDays(pd){ try{ var m=String(pd||"").match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/); if(!m) return null; var dt=new Date(parseInt(m[3],10),parseInt(m[2],10)-1,parseInt(m[1],10)); var n=Math.floor((Date.now()-dt.getTime())/864e5); return (n>=0)?n:null; }catch(e){ return null; } } // v3.214: leeftijd van de plant in dagen, gerekend vanaf de plantdatum
 function hydRender(){
   var a=slLoad("hyd"), h="";
   if(!a.length) h+='<div class="tip">Nog geen planten. Tik hieronder op "Nieuwe plant".</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
   a.forEach(function(e){
     var np=(e.u&&e.u.length)?e.u.length:0;
-    h+='<button class="btn yellow" style="margin:0;padding:16px 8px;font-size:13px" onclick="hydDet('+e.id+')"><div style="font-size:26px;line-height:1;margin-bottom:6px">'+hydEmoji(e.t)+'</div>'+colEsc(e.t)+(np?'<div style="font-size:10px;font-weight:400;margin-top:3px">'+np+' update'+(np===1?'':'s')+'</div>':'')+(e.ai?'<div style="font-size:10px;font-weight:800;margin-top:3px;background:#0f172a;color:'+hydAiColor(e.ai.s)+';border-radius:99px;padding:2px 6px;display:inline-block">🌱 '+e.ai.s+'/10</div>':'')+'</button>'; // v3.188: AI-score op de tegel
+    var agT=hydAgeDays(e.p&&e.p.pd); // v3.214: leeftijd op de tegel
+    h+='<button class="btn yellow" style="margin:0;padding:16px 8px;font-size:13px" onclick="hydDet('+e.id+')"><div style="font-size:26px;line-height:1;margin-bottom:6px">'+hydEmoji(e.t)+'</div>'+colEsc(e.t)+(np?'<div style="font-size:10px;font-weight:400;margin-top:3px">'+np+' update'+(np===1?'':'s')+'</div>':'')+((agT!==null)?'<div style="font-size:10px;font-weight:400;margin-top:3px">🌱 '+agT+' dag'+(agT===1?'':'en')+'</div>':'')+(e.ai?'<div style="font-size:10px;font-weight:800;margin-top:3px;background:#0f172a;color:'+hydAiColor(e.ai.s)+';border-radius:99px;padding:2px 6px;display:inline-block">🌱 '+e.ai.s+'/10</div>':'')+'</button>'; // v3.188: AI-score op de tegel
   });
   h+='</div>';
   document.getElementById("hydScroll").innerHTML=h;
@@ -2342,7 +2360,8 @@ function hydDetRender(){
   if(!e.u) e.u=[];
   var h='<div class="remItem" style="padding-right:12px"><div style="font-size:19px;font-weight:800">'+hydEmoji(e.t)+' '+colEsc(e.t)+'</div><div class="remSub">'+ibName(e.by)+' - '+slFmt(e.ts)+'</div></div>';
   h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🪴 Plant-info</div>';
-  h+='<div class="remSub" style="margin-bottom:6px">🌱 Geplant: '+(e.p.pd?colEsc(e.p.pd):'nog niet ingevuld')+'</div>';
+  var agD=hydAgeDays(e.p.pd); // v3.214: hoe oud de plant is in dagen - elke keer dat je het scherm opent of ververselt opnieuw berekend
+  h+='<div class="remSub" style="margin-bottom:6px">🌱 Geplant: '+(e.p.pd?colEsc(e.p.pd):'nog niet ingevuld')+((agD!==null)?' · '+agD+' dag'+(agD===1?'':'en')+' oud':'')+'</div>';
   h+='<div style="display:flex;gap:8px">';
   if(!e.p.pd) h+='<button class="btn dark" style="flex:1;margin-top:0" onclick="hydPdEdit('+e.id+')"><span class="bt"><span class="bi">📅</span>Plantdatum</span></button>'; // v3.168: knop weg zodra de plantdatum vaststaat
   h+='<button class="btn dark" style="flex:1;margin-top:0" onclick="hydPick('+e.id+',0)"><span class="bt"><span class="bi">📷</span>Foto</span></button>';
@@ -2350,7 +2369,7 @@ function hydDetRender(){
   var ph=hydImgs(e.p); // v3.212: meerdere foto's per plant, elk met eigen verwijder-knop
   if(ph.length){ h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">'; ph.forEach(function(src,pi){ h+='<div style="position:relative"><img src="'+src+'" alt="" onclick="ibFull(this.src)" style="width:86px;height:86px;object-fit:cover;border-radius:8px;cursor:pointer;display:block"><button style="position:absolute;top:-6px;right:-6px;background:#1e293b;border:0;color:#f87171;border-radius:99px;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1;padding:0" onclick="hydPhDel('+e.id+',0,'+pi+')">✕</button></div>'; }); h+='</div>'; }
   h+='</div>';
-  h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🌱 AI-verzorgcheck</div><p class="n">Scan de plant - je krijgt meteen een beoordeling op basis van de foto en je gelogde verzorging (updates, EC en pH).</p><button class="btn yellow" style="margin-top:8px" onclick="hydAiStart()"><span class="bt"><span class="bi">📷</span>Plant scannen</span></button>'+hydAiRes(e)+'</div>'; // v3.188
+  h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🌱 AI-verzorgcheck</div><p class="n">Tik op AI plant scan - de app pakt de nieuwste foto van deze plant (uit de updates) en beoordeelt die op basis van je gelogde verzorging (updates, EC en pH).</p><button class="btn yellow" style="margin-top:8px" onclick="hydAiStart()"><span class="bt"><span class="bi">🤖</span>AI plant scan</span></button>'+hydAiRes(e)+'</div>'; // v3.188 + v3.214: heet nu AI plant scan en gebruikt de nieuwste plant-foto
   h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📈 Updates</div>';
   if(!e.u.length) h+='<div class="remSub">Nog geen updates. Tik hieronder op "Update toevoegen".</div>';
   e.u.forEach(function(u){
@@ -2435,7 +2454,15 @@ function hydDel(){ if(!confirm("Plant weggooien?")) return; var id=HYD_DET; var 
 // ===== v3.188: AI-verzorgcheck - plant scannen en beoordelen op basis van de app-gegevens =====
 var _HYD_AI={};
 function hydAiColor(s){ return s>=8?"#84cc16":(s>=6?"#facc15":(s>=4?"#fb923c":"#f87171")); }
-function hydAiStart(){ var el=document.getElementById("hydAiFile"); if(!el) return; try{ el.value=""; }catch(e){} el.click(); }
+function hydAiStart(){ // v3.214: AI plant scan - geen nieuwe foto meer vragen, de nieuwste foto van de plant/updates wordt gebruikt
+  var e=hydFind(HYD_DET), best="";
+  try{
+    if(e&&e.u) e.u.forEach(function(u2){ if(best) return; var a2=hydImgs(u2); if(a2.length) best=a2[a2.length-1]; });
+    if(!best&&e&&e.p){ var a3=hydImgs(e.p); if(a3.length) best=a3[a3.length-1]; }
+  }catch(e2){}
+  if(!best){ alert("Er staat nog geen foto bij deze plant - voeg eerst een foto toe bij de plant of bij een update."); return; }
+  ibImgProc(best, function(d){ try{ hydAiRun(d); }catch(e3){} });
+}
 function hydAiPicked(el){
   try{
     var f=el&&el.files&&el.files[0]; if(!f) return;
@@ -3395,7 +3422,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.213";
+var VERSION="3.214";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3437,24 +3464,28 @@ function goBackTo(id){ // v3.197: "terug naar X" gaat nu ALTIJD direct naar dat 
 }
 // v3.33: beginscherm verversen (herlaadt de app + haalt alles opnieuw op)
 function refreshHome(){ try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){} location.replace(location.pathname+'?v='+VERSION+'&r='+Date.now()); }
-function refreshBtnTap(){ // v3.211: verversen op élke pagina met data - je blijft op de pagina zelf
+var _refSpinT=null;
+function refSpinShow(){ try{ clearTimeout(_refSpinT); var s=document.getElementById("refSpin"); if(s){ s._t0=Date.now(); s.classList.add("show"); } }catch(e){} } // v3.214: bolletjes in beeld zolang de verversing draait
+function refSpinHide(){ try{ var s=document.getElementById("refSpin"); if(!s) return; var left=600-(Date.now()-(s._t0||0)); clearTimeout(_refSpinT); _refSpinT=setTimeout(function(){ try{ s.classList.remove("show"); }catch(e2){} },(left>0?left:0)); }catch(e){} } // v3.214: minimaal kort zichtbaar, daarna weg - geen melding nodig
+function refreshBtnTap(){ // v3.211: verversen op élke pagina met data - je blijft op de pagina zelf; v3.214: spinner met bolletjes zolang het bezig is
   var act=document.querySelector(".view.active"), id=(act&&act.id)||"";
-  var done=function(){ try{ if(navigator.vibrate) navigator.vibrate(20); }catch(e){} };
-  if(id==="dealView"){ dsScanAll(false); dsNote("🔄 Alle winkels worden opnieuw gescanned..."); return; } // v3.102: scanner opnieuw
-  if(id==="agendaView"){ agRefresh(); return; } // v3.47: agenda uit de cloud
-  if(id==="collectionView"){ colRefresh(1); return; } // prijzen opnieuw ophalen, blijft op de pagina
-  if(id==="colDetailView"){ colDetail(window._colDetId); return; } // v3.211: open kaart opnieuw
+  refSpinShow();
+  var done=function(){ try{ if(navigator.vibrate) navigator.vibrate(20); }catch(e){} refSpinHide(); };
+  if(id==="dealView"){ dsScanAll(false); dsNote("🔄 Alle winkels worden opnieuw gescanned..."); refSpinHide(); return; } // v3.102: scanner opnieuw
+  if(id==="agendaView"){ agRefresh(); refSpinHide(); return; } // v3.47: agenda uit de cloud
+  if(id==="collectionView"){ colRefresh(1); refSpinHide(); return; } // prijzen opnieuw ophalen, blijft op de pagina
+  if(id==="colDetailView"){ colDetail(window._colDetId); refSpinHide(); return; } // v3.211: open kaart opnieuw
   if(id==="cryptoView"){ slPull("cry",function(){ if(CRY_DET===null) cryRender(); else cryDetRender(); done(); }); return; }
   if(id==="hydView"){ slPull("hyd",function(){ hydRender(); done(); }); return; }
   if(id==="hydDetView"){ slPull("hyd",function(){ hydDetRender(); done(); }); return; }
   if(id==="recView"){ slPull("rec",function(){ recRender(); done(); }); return; }
   if(id==="recDetView"){ slPull("rec",function(){ recDetRender(); done(); }); return; }
   if(id==="ideaView"){ ibPull(function(){ ibRender(); ibBadge(); done(); }); return; }
-  if(id==="historyView"){ renderHistory(); return; }
-  if(id==="detailView"){ showScanDetail(window._detailIdx); return; }
-  if(id==="remView"){ remRender(); return; }
-  if(id==="dsHistView"){ dsHistRender(); return; }
-  refreshHome(); // home: de app zelf vers opnieuw laden
+  if(id==="historyView"){ renderHistory(); refSpinHide(); return; }
+  if(id==="detailView"){ showScanDetail(window._detailIdx); refSpinHide(); return; }
+  if(id==="remView"){ remRender(); refSpinHide(); return; }
+  if(id==="dsHistView"){ dsHistRender(); refSpinHide(); return; }
+  refreshHome(); // home: de app zelf vers opnieuw laden - de spinner blijft zichtbaar tot de app opnieuw geladen is
 }
 // v2.84: refreshPage verwijderd samen met de ververs-knop
 // v2.49: knoppenbalk schuift grotendeels weg bij scrollen, tik op zichtbare deel = terug
@@ -5332,7 +5363,8 @@ try{
 </script>
 </body>
 </html>
-<!--v:3.213-->
+<!--v:3.214-->
+
 
 
 
