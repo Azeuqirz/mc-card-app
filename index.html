@@ -373,7 +373,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.236</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.237</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3253,7 +3253,7 @@ function recNew(){
   if(t===null) return;
   t=String(t).trim(); if(!t) return;
   t=t.charAt(0).toUpperCase()+t.slice(1);
-  var a=slLoad("rec"); a.unshift({id:Date.now(),t:t,by:String(FB.user.email).toLowerCase(),ts:Date.now(),m:Date.now(),r:{ing:[],dsc:""}});
+  var a=slLoad("rec"); a.unshift({id:Date.now(),t:t,by:String(FB.user.email).toLowerCase(),ts:Date.now(),m:Date.now(),r:{ing:[],ben:[],dsc:""}  /* v3.237: ben = benodigdheden (bijv. oven of mixer) */});
   a.sort(function(x,y){ return y.id-x.id; });
   slSave("rec",a); slPush("rec"); recRender(); recDet(a[0].id);
 }
@@ -3262,12 +3262,16 @@ function recDet(id){ REC_DET=id; REC_EDIT=false; showView("recDetView"); recDetR
 function recDetRender(){
   var e=recFind(REC_DET), el=document.getElementById("recDetScroll"), bar=document.getElementById("recDetBar"); if(!el) return;
   if(!e){ showView("recView",true); recRender(); return; }
-  var r=e.r||{}; var ing=r.ing||[]; var dsc=r.dsc||"";
+  var r=e.r||{}; var ing=r.ing||[]; var ben=r.ben||[]; var dsc=r.dsc||""; // v3.237: ben = benodigdheden
   var h='<div class="remItem" style="padding-right:12px"><div style="font-size:19px;font-weight:800">'+recEmoji(e.t)+' '+colEsc(e.t)+'</div><div class="remSub">'+ibName(e.by)+' - '+slFmt(e.ts)+'</div></div>';
   if(!REC_EDIT){ // v3.166: lees-modus - ingredienten onder elkaar, bewerken via 1 knop onderaan
     h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🧂 Ingredienten</div>';
     if(!ing.length) h+='<div class="remSub">Nog geen ingredienten.</div>';
     ing.forEach(function(g){ h+='<div style="padding:7px 0;border-bottom:1px solid #1e293b;font-size:14px">• '+colEsc(g)+'</div>'; });
+    h+='</div>';
+    h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🍳 Benodigdheden</div>'; // v3.237: wat je nodig hebt (bijv. oven of mixer) staat onder de ingredienten
+    if(!ben.length) h+='<div class="remSub">Nog geen benodigdheden.</div>';
+    ben.forEach(function(g){ h+='<div style="padding:7px 0;border-bottom:1px solid #1e293b;font-size:14px">• '+colEsc(g)+'</div>'; });
     h+='</div>';
     h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📝 Beschrijving</div>';
     h+= dsc ? '<div class="remBody">'+colEsc(dsc)+'</div>' : '<div class="remSub">Nog geen beschrijving.</div>';
@@ -3276,22 +3280,24 @@ function recDetRender(){
     if(ph.length){ h+='<div class="card" style="display:flex;flex-wrap:wrap;gap:8px">'; ph.forEach(function(src,pi){ h+='<div style="position:relative"><img src="'+src+'" alt="" onclick="ibFull(this.src)" style="width:86px;height:86px;object-fit:cover;border-radius:8px;cursor:pointer;display:block"><button style="position:absolute;top:-6px;right:-6px;background:#1e293b;border:0;color:#f87171;border-radius:99px;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1;padding:0" onclick="recPhDel('+e.id+','+pi+')">✕</button></div>'; }); h+='</div>'; }
     if(bar) bar.innerHTML='<button class="btn yellow" style="flex:1;margin-top:0" onclick="recEditStart()"><span class="bt"><span class="bi">✏️</span>Bewerken</span></button><button class="btn dark" style="flex:none;width:110px;margin-top:0" onclick="recPick(REC_DET)"><span class="bt"><span class="bi">📷</span>Foto</span></button>';
   } else { // v3.166: bewerk-modus - alles in 1x
-    h+='<div class="tip" style="text-align:left">Zet elk ingredient op een eigen regel.</div>';
+    h+='<div class="tip" style="text-align:left">Zet elk ingredient of benodigdheid op een eigen regel.</div>';
     h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🧂 Ingredienten</div>';
     h+='<textarea id="recIngTa" placeholder="Bijv. 200 gr boter" style="width:100%;min-height:140px;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:10px;color:#f1f5f9;font-family:inherit;font-size:14px">'+colEsc(ing.join("\n"))+'</textarea></div>';
+    h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🍳 Benodigdheden</div>'; // v3.237
+    h+='<textarea id="recBenTa" placeholder="Bijv. oven, mixer, koekenpan" style="width:100%;min-height:80px;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:10px;color:#f1f5f9;font-family:inherit;font-size:14px">'+colEsc(ben.join("\n"))+'</textarea></div>';
     h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📝 Beschrijving</div>';
     h+='<textarea id="recDscTa" placeholder="Bereiding / beschrijving" style="width:100%;min-height:140px;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:10px;color:#f1f5f9;font-family:inherit;font-size:14px">'+colEsc(dsc)+'</textarea></div>';
     if(bar) bar.innerHTML='<button class="btn yellow" style="flex:1;margin-top:0" onclick="recEditSave()"><span class="bt"><span class="bi">💾</span>Opslaan</span></button><button class="btn dark" style="flex:none;width:110px;margin-top:0" onclick="recEditCancel()"><span class="bt">✕ Annuleer</span></button>';
   }
   el.innerHTML=h;
   if(REC_EDIT){ // v3.200: meegetypte tekst automatisch als concept bewaren - bij een update/herlaad is niets meer kwijt
-    var ti=document.getElementById("recIngTa"), td=document.getElementById("recDscTa");
-    if(ti&&td){
+    var ti=document.getElementById("recIngTa"), td=document.getElementById("recDscTa"), tb=document.getElementById("recBenTa"); // v3.237: tb = benodigdheden
+    if(ti&&td&&tb){
       var dKey="mcRecDraft"+(REC_DET||0);
       var dft=null; try{ dft=JSON.parse(localStorage.getItem(dKey)||"null"); }catch(e2){}
-      if(dft&&Date.now()-(dft.ts||0)<1728e5){ if(dft.ing!=null) ti.value=dft.ing; if(dft.dsc!=null) td.value=dft.dsc; } // v3.200: concept terugzetten na een herlaad (max 2 dagen oud)
-      var dSave=function(){ try{ localStorage.setItem(dKey, JSON.stringify({ing:ti.value,dsc:td.value,ts:Date.now()})); }catch(e3){} };
-      ti.oninput=dSave; td.oninput=dSave;
+      if(dft&&Date.now()-(dft.ts||0)<1728e5){ if(dft.ing!=null) ti.value=dft.ing; if(dft.ben!=null) tb.value=dft.ben; if(dft.dsc!=null) td.value=dft.dsc; } // v3.237: ook de benodigdheden terugzetten na een herlaad // v3.200: concept terugzetten na een herlaad (max 2 dagen oud)
+      var dSave=function(){ try{ localStorage.setItem(dKey, JSON.stringify({ing:ti.value,ben:tb.value,dsc:td.value,ts:Date.now()})); }catch(e3){} }; // v3.237: benodigdheden mee in het concept
+      ti.oninput=dSave; tb.oninput=dSave; td.oninput=dSave;
     }
   }
 }
@@ -3303,12 +3309,13 @@ function recMut(id,fn){
 function recEditStart(){ if(!FB.user){ showView("loginView"); return; } REC_EDIT=true; recDetRender(); } // v3.166: alles in 1x bewerken
 function recEditCancel(){ try{ localStorage.removeItem("mcRecDraft"+(REC_DET||0)); }catch(e5){} REC_EDIT=false; recDetRender(); } // v3.200: annuleren gooit het concept weg
 function recEditSave(){
-  var ta1=document.getElementById("recIngTa"), ta2=document.getElementById("recDscTa");
+  var ta1=document.getElementById("recIngTa"), ta2=document.getElementById("recDscTa"), ta3=document.getElementById("recBenTa"); // v3.237: ta3 = benodigdheden
   var ing=(ta1?String(ta1.value):"").split("\n").map(function(x){ return x.trim(); }).filter(function(x){ return x; });
+  var ben=(ta3?String(ta3.value):"").split("\n").map(function(x){ return x.trim(); }).filter(function(x){ return x; }); // v3.237
   var dsc=(ta2?String(ta2.value):"").trim();
   try{ localStorage.removeItem("mcRecDraft"+(REC_DET||0)); }catch(e4){} // v3.200: concept weg na opslaan
   REC_EDIT=false;
-  recMut(REC_DET,function(x){ x.r={ing:ing,dsc:dsc}; });
+  recMut(REC_DET,function(x){ x.r={ing:ing,ben:ben,dsc:dsc}; }); // v3.237
 }
 function recDelDo(id){ var del=slDelLoad("rec").filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()}); slSaveDel("rec",del); slSave("rec",slLoad("rec").filter(function(e){ return e.id!==id; })); slPush("rec"); }
 function recDel(id){ if(!confirm("Recept weggooien?")) return; recDelDo(id); showView("recView",true); recRender(); }
@@ -3687,7 +3694,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.236";
+var VERSION="3.237";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5772,7 +5779,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.236-->
+<!--v:3.237-->
 
 
 
