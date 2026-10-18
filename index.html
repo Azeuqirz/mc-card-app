@@ -185,7 +185,7 @@
   body.pink .note { color:#f472b6; border-color:rgba(244,114,182,.3); }
   body.pink #zoomInd { color:#f472b6; }
   body.pink #cryPanBtn { color:#f472b6 !important; } /* v3.228: roze variant van de terug-naar-nu-knop */
-#cryFsArea.cryFS { position:fixed; left:0; right:0; top:0; bottom:0; z-index:9999; background:#0f172a; display:flex; flex-direction:column; padding:calc(12px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left)); } /* v3.231+v3.236: de chart bovenin en de instel-knoppen eronder - de chart gaat zo iets omhoog */
+#cryFsArea.cryFS { position:fixed; left:0; right:0; top:0; bottom:0; z-index:9999; background:#0f172a; display:flex; flex-direction:column; padding:calc(12px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)) 10px; /* v3.242: aan de zijkanten geen safe-area-marge meer - de chart gebruikt de hele schermbreedte */ } /* v3.231+v3.236: de chart bovenin en de instel-knoppen eronder - de chart gaat zo iets omhoog */
 #cryFsArea.cryFS #cryChartBox { order:1; flex:1 1 auto; min-width:0; min-height:0; margin:0 !important; display:flex; flex-direction:column; justify-content:center; } /* v3.236: de grafiek staat bovenaan en vult de ruimte boven de knoppen-rijen */
 #cryFsArea.cryFS svg { width:100%; height:auto; max-height:100%; flex:none; } /* v3.231+v3.240: de verhouding van de grafiek past zich op het volledige scherm aan de beschikbare ruimte aan - geen lege randen meer */
 #cryFsArea.cryFS #crySetRow { order:2; flex:none; width:100%; } /* v3.236: de instel-rijen staan onder de chart in plaats van erboven */
@@ -197,7 +197,7 @@
 #cryFsX, #cryFsRotBtn { display:none; } /* v3.231+v3.234: de weg- en draai-knop staan altijd in de grafiek maar zijn alleen zichtbaar op het volledige scherm */
 #cryFsArea.cryFS #cryFsX, #cryFsArea.cryFS #cryFsRotBtn { display:block; } /* v3.231+v3.234 */
 #cryHovT { transform:translateX(-50%); } /* v3.232: stond eerst inline in de tooltip - nu in CSS zodat hij op z'n kant tegendraaid kan worden */
-#cryFsArea.cryFS.cryFSR { left:50%; right:auto; top:50%; bottom:auto; width:100vh; height:100vw; width:100dvh; height:100dvw; padding:12px 14px; transform:translate(-50%,-50%) rotate(90deg); } /* v3.232+v3.234: de chart draait een kwartslag - breed over de lange kant van de telefoon; v3.238: houd de telefoon op z'n zijkant, dan zie je alles rechtop met de instel-knoppen onderaan de chart */
+#cryFsArea.cryFS.cryFSR { left:50%; right:auto; top:50%; bottom:auto; width:100vh; height:100vw; width:100dvh; height:100dvw; padding:10px 10px; transform:translate(-50%,-50%) rotate(90deg); /* v3.242: ook op z'n kant een smalle marge zodat de chart de hele breedte vult */ } /* v3.232+v3.234: de chart draait een kwartslag - breed over de lange kant van de telefoon; v3.238: houd de telefoon op z'n zijkant, dan zie je alles rechtop met de instel-knoppen onderaan de chart */
 /* v3.238: op z'n kant precies dezelfde opmaak als staand - de chart bovenaan en de instel-knoppen eronder als gewone rijen; wie de telefoon op z'n zijkant houdt ziet de knoppen netjes onderaan en de prijs- en tijd-teksten gewoon rechtop (de knoppen-kolom aan de zijkant en de tegendraaide teksten zijn weg) */
 body.pink #cryFsBtn { color:#f472b6 !important; } /* v3.231: roze variant van de volledig-scherm-knop */
 body.pink #cryFsX { color:#f472b6 !important; } /* v3.231: roze variant van de wegknop */
@@ -359,7 +359,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.241</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.242</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3696,7 +3696,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.241";
+var VERSION="3.242";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5781,7 +5781,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.241-->
+<!--v:3.242-->
 
 
 
