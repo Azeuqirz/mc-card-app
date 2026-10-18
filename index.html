@@ -70,6 +70,7 @@
   .cryNewsIt:active { color:#facc15; }
   .cryNewsIt span { display:block; font-size:11px; font-weight:400; color:#64748b; margin-top:2px; }
   #cryChartBox { touch-action:none; } /* v3.193: grafiek volledig vast - elke beweging leest de prijs, het scherm schuift niet meer */
+  #colHistWrap, #colHistWrap *, #cryChartBox, #cryChartBox * { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; } /* v3.207: lang ingedrukt houden op een grafiek geeft geen Apple-vergrootglas (loupe) meer */
   #cryScroll { touch-action:pan-y; } /* v3.193: munt-scherm kan alleen verticaal scrollen, nooit horizontaal schuiven */
   .lookupItem:active { background:#1e293b; }
   .lookupItem img { width:44px; height:61px; object-fit:cover; border-radius:5px; background:#1e293b; }
@@ -318,7 +319,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.206</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.207</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -469,7 +470,7 @@ function colLineChart(hist){
     var x=P+(dn>0?(W-2*P)*i/dn:0), y=H-P-(H-2*P)*(hist[i].v-min)/(max-min);
     pts+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);
   }
-  var svg='<svg id="colHistSvg" viewBox="0 0 '+W+' '+H+'" style="width:100%;touch-action:pan-y">';
+  var svg='<svg id="colHistSvg" viewBox="0 0 '+W+' '+H+'" style="width:100%;touch-action:none">';
   svg+='<line x1="'+P+'" y1="'+(H-P)+'" x2="'+(W-P)+'" y2="'+(H-P)+'" stroke="#1e293b" stroke-width="1"/>';
   svg+='<polyline points="'+pts+'" fill="none" stroke="#facc15" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
   svg+='<text x="'+P+'" y="12" font-size="10" fill="#64748b">'+fmtE(max)+'</text>';
@@ -480,10 +481,16 @@ function colLineChart(hist){
   }
   svg+='<g id="colHistMark" style="display:none"><line x1="0" y1="0" x2="0" y2="'+H+'" stroke="#f472b6" stroke-width="1" stroke-dasharray="3,3"/><circle cx="0" cy="0" r="4" fill="none" stroke="#f472b6" stroke-width="2"/></g>';
   svg+='</svg>';
-  window._COLH={hist:hist,min:min,max:max,W:W,H:H,P:P}; // v3.198: data voor colHistTap
-  return '<div class="n">Totale waarde - afgelopen maand ('+hist.length+' metingen)</div><div onpointerdown="colHistTap(event)">'+svg+'</div><div class="n" id="colHistRead" style="display:none"></div>';
+  window._COLH={hist:hist,min:min,max:max,W:W,H:H,P:P}; // v3.198: data voor colHistRead
+  return '<div class="n">Totale waarde - afgelopen maand ('+hist.length+' metingen)</div><div id="colHistWrap" onpointerdown="colHistDown(event)" onpointermove="colHistMove(event)">'+svg+'</div><div class="n" id="colHistRead" style="display:none"></div>';
 }
-function colHistTap(e){ // v3.198: tik op de grafiek laat zien wat de collectie toen waard was
+function colHistDown(e){ // v3.207: ingedrukt houden + verschuiven leest doorlopend de waarde - de grafiek volgt je vinger
+  e.preventDefault(); try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(err){}
+  colHistRead(e);
+  try{ if(navigator.vibrate){ navigator.vibrate(10); } }catch(err){}
+}
+function colHistMove(e){ colHistRead(e); }
+function colHistRead(e){ // v3.198: tik op de grafiek laat zien wat de collectie toen waard was
   var c=window._COLH; if(!c||!c.hist||!c.hist.length){ return; }
   var svg=document.getElementById("colHistSvg"); if(!svg){ return; }
   var r=svg.getBoundingClientRect(), f=(e.clientX-r.left)/r.width*c.W;
@@ -498,7 +505,6 @@ function colHistTap(e){ // v3.198: tik op de grafiek laat zien wat de collectie 
   var rd=document.getElementById("colHistRead");
   if(rd){ var d=new Date(p.t), MN=["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"];
     rd.style.display=""; rd.innerHTML="\ud83d\udcc5 "+d.getDate()+" "+MN[d.getMonth()]+": de collectie was toen <b>"+fmtE(p.v)+"</b> waard"; }
-  try{ if(navigator.vibrate){ navigator.vibrate(10); } }catch(err){}
 }
 
 // grafiek 2: waarde per kaart (top 8)
@@ -2822,7 +2828,7 @@ function cryHovAttach(data){ // v3.189: prijs bij hover met de muis of tik op he
     if(c){ c.style.left=(px/W*r.width)+"px"; c.style.top=(yv/H*r.height)+"px"; }
     if(t){ t.textContent=cryFmt(v); t.style.left=Math.max(46,Math.min(r.width-46,px/W*r.width))+"px"; }
   };
-  box.onpointermove=ev; box.onpointerdown=ev; box.onpointerleave=hid;
+  box.onpointermove=ev; box.onpointerdown=function(e2){ e2.preventDefault(); ev(e2); }; box.onpointerleave=hid; // v3.207: preventDefault tegen het Apple-vergrootglas
 }
 function cryChartSvg(pts){
   if(!pts||pts.length<2) return '<div class="tip">Te weinig gegevens.</div>';
@@ -3280,7 +3286,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.206";
+var VERSION="3.207";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5081,7 +5087,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.206-->
+<!--v:3.207-->
 
 
 
