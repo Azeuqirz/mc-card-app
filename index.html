@@ -211,6 +211,9 @@
 #refSpin .rsDots i:nth-child(8){ transform:rotate(315deg) translateY(-22px); animation-delay:-0.1s; }
 @keyframes rsP { 0%,100%{opacity:.12;} 50%{opacity:1;} }
 body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes voor Chantal */
+  .mistMsg { max-width:86%; border-radius:12px; padding:10px 12px; font-size:14px; white-space:pre-wrap; word-break:break-word; } /* v3.218: chat-ballonnen voor Mistral in de app */
+  .mistMsg.me { background:#facc15; color:#0f172a; }
+  body.pink .mistMsg.me { background:#ec4899; color:#fff; } /* v3.218: roze ballon voor Chantal */
   body.pink .mHead { color:#ec4899; }
   body.pink .bar > div { background:#ec4899 !important; }
   body.pink #colScroll polyline { stroke:#f472b6 !important; }
@@ -337,7 +340,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.217</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.218</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2371,7 +2374,7 @@ function hydDetRender(){
   var ph=hydImgs(e.p); // v3.212: meerdere foto's per plant, elk met eigen verwijder-knop
   if(ph.length){ h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">'; ph.forEach(function(src,pi){ h+='<div style="position:relative"><img src="'+src+'" alt="" onclick="ibFull(this.src)" style="width:86px;height:86px;object-fit:cover;border-radius:8px;cursor:pointer;display:block"><button style="position:absolute;top:-6px;right:-6px;background:#1e293b;border:0;color:#f87171;border-radius:99px;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1;padding:0" onclick="hydPhDel('+e.id+',0,'+pi+')">✕</button></div>'; }); h+='</div>'; }
   h+='</div>';
-  h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🌱 AI-verzorgcheck</div><p class="n">Tik op AI plant scan - de uitslag komt als knop bij de gescande update.</p><button class="btn yellow" style="margin-top:8px" onclick="hydAiStart()"><span class="bt"><span class="bi">🤖</span>AI plant scan</span></button>'+hydAiRes(e)+'</div>'; // v3.188 + v3.214 + v3.216: uitslag staat voortaan bij de update
+  h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🌱 AI-verzorgcheck</div><p class="n">De scan gebruikt altijd de foto van je laatste update - de uitslag komt als knop bij die update. Elke tik op de knop is een verse scan.</p><button class="btn yellow" style="margin-top:8px" onclick="hydAiStart()"><span class="bt"><span class="bi">🤖</span>AI plant scan</span></button></div>'; // v3.188 + v3.214 + v3.216 + v3.218: geen oude uitslag meer op de plant-pagina - het resultaat staat alléén bij de update
   h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📈 Updates</div>';
   if(!e.u.length) h+='<div class="remSub">Nog geen updates. Tik hieronder op "Update toevoegen".</div>';
   e.u.forEach(function(u){
@@ -2551,10 +2554,7 @@ function hydAiRun(img){
       if(_HYD_AIUID!=null&&p.u) p.u.forEach(function(y){ if(y.id===_HYD_AIUID) y.ai={s:s,v:v,tip:tips,t:now}; }); }); // v3.216: uitslag op de update-zelf
   });
 }
-function hydAiRes(e){ // v3.216: op de plant-pagina alleen nog een korte samenvatting - de hele uitslag staat bij de open update
-  var r=_HYD_AI[e.id]||e.ai; if(!r) return '<div class="remSub" style="margin-top:8px">Nog geen check gedaan - scan de plant voor een eerste beoordeling.</div>';
-  return '<div class="remSub" style="margin-top:8px">🤖 Laatste check: <b style="color:'+hydAiColor(r.s)+'">'+r.s+'/10</b> - '+colEsc(r.v)+'</div>';
-}
+// v3.218: hydAiRes is verwijderd - de AI-uitslag staat alléén bij de update zelf (hydAiResFull)
 function hydAiResFull(r){ // v3.216: volledige AI-uitslag bij de open geklikte update
   if(!r) return '';
   var h='';
@@ -2982,7 +2982,73 @@ var PROD_SRC=[
   {n:"Marktplaats", e:"📱", d:"nieuw en tweedehands van particulieren", u:"https://www.marktplaats.nl/q/", tail:"/"}
 ];
 function prodOpen(){ showView("prodView"); prodRender(); }
-function mistOpen(){ showView("mistView"); } // v3.217: Mistral-tegel - opent Le Chat in een eigen tabblad
+var MIST_MSGS=[], MIST_BUSY=false; // v3.218: chatgeschiedenis blijft in het geheugen - persoonlijk, wordt niet gesynchroniseerd
+function mistOpen(){ showView("mistView"); mistRender(); } // v3.218: Mistral AI chát nu volledig binnen de app via de Mistral API - geen tabblad meer
+function mistKey(){ try{ return localStorage.getItem("mcMistKey")||""; }catch(e){ return ""; } }
+function mistKeyAsk(){
+  var k=prompt("Plak hier je Mistral API-key. Nog geen key? Maak gratis een account aan op console.mistral.ai en maak daar een API key aan. De key blijft op je eigen toestel opgeslagen.","");
+  if(k===null) return;
+  k=String(k).trim();
+  try{ if(k) localStorage.setItem("mcMistKey",k); }catch(e2){}
+  mistRender();
+}
+function mistRender(){
+  var sc=document.getElementById("mistScroll"); if(!sc) return;
+  var h="";
+  if(!mistKey()){
+    h+='<div class="card" style="text-align:center">'
+      +'<div style="font-size:44px;line-height:1;margin-bottom:10px">🤖</div>'
+      +'<div style="font-weight:800;font-size:16px;margin-bottom:6px">Mistral AI in de app</div>'
+      +'<div class="remSub" style="text-align:left">Hier chat je met Mistral zonder de app te verlaten. Voer één keer je Mistral API-key in - die maak je gratis aan op console.mistral.ai (La Plateforme). De key wordt alleen op je eigen toestel bewaard en komt nooit bij anderen terecht.</div>'
+      +'<button class="btn yellow" style="margin-top:10px" onclick="mistKeyAsk()"><span class="bt"><span class="bi">🔑</span>API-key invoeren</span></button>'
+      +'</div>';
+  } else if(MIST_MSGS.length===0){
+    h+='<div class="card" style="text-align:center">'
+      +'<div style="font-size:44px;line-height:1;margin-bottom:10px">🤖</div>'
+      +'<div style="font-weight:800;font-size:16px;margin-bottom:6px">Mistral AI</div>'
+      +'<div class="tip">Stel hieronder je vraag - het antwoord verschijnt direct in de app.</div>'
+      +'<button class="btn dark" style="margin-top:8px" onclick="mistKeyAsk()"><span class="bt"><span class="bi">🔑</span>API-key wijzigen</span></button>'
+      +'</div>';
+  }
+  MIST_MSGS.forEach(function(m){
+    h+='<div style="display:flex;justify-content:'+(m.r?'flex-start':'flex-end')+';margin:0 2px 8px 2px"><div class="mistMsg '+(m.r?'bot':'me')+'">'+colEsc(m.t)+'</div></div>';
+  });
+  if(MIST_BUSY) h+='<div class="tip" style="margin:0 0 8px">Mistral denkt na...</div>';
+  sc.innerHTML=h;
+  sc.scrollTop=sc.scrollHeight;
+}
+function mistSend(){
+  var inp=document.getElementById("mistInp"); if(!inp) return;
+  var q=String(inp.value||"").trim(); if(!q||MIST_BUSY) return;
+  if(!mistKey()){ mistRender(); mistKeyAsk(); return; }
+  inp.value="";
+  MIST_MSGS.push({t:q}); MIST_BUSY=true; mistRender();
+  var msgs=MIST_MSGS.slice(-20).map(function(m){ return {role:(m.r?"assistant":"user"),content:m.t}; });
+  fetch("https://api.mistral.ai/v1/chat/completions",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+mistKey(), "Accept":"application/json" },
+    body:JSON.stringify({ model:"mistral-small-latest",
+      messages:[{role:"system",content:"Je bent de AI-assistent in de M&C App. Antwoord kort, helder en in het Nederlands."}].concat(msgs) })
+  }).then(function(r){
+    if(r.status===401||r.status===403){
+      try{ localStorage.removeItem("mcMistKey"); }catch(e2){}
+      MIST_BUSY=false;
+      MIST_MSGS.push({t:"Je API-key wordt niet geaccepteerd - voer hem opnieuw in.",r:1});
+      mistRender(); mistKeyAsk(); return null;
+    }
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return r.json();
+  }).then(function(j){
+    MIST_BUSY=false; if(!j) return;
+    var a=(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"(geen antwoord gekregen)";
+    MIST_MSGS.push({t:a,r:1});
+    mistRender();
+  }).catch(function(){
+    MIST_BUSY=false;
+    MIST_MSGS.push({t:"Geen verbinding met Mistral - controleer je internetverbinding en probeer het opnieuw.",r:1});
+    mistRender();
+  });
+}
 function prodQ(){ try{ var q=localStorage.getItem("mcProdQ")||""; if(q) return q; }catch(e){} return window._prodQ||""; } // v3.212: ook een kop in het geheugen - op een resultaat tikken vraagt nooit meer opnieuw om invoer
 function prodQs(){ try{ return JSON.parse(localStorage.getItem("mcProdQs")||"[]"); }catch(e){ return []; } }
 function prodAsk(){ // v3.210: nieuw product intypen
@@ -3381,16 +3447,13 @@ function fbSync(interactive){
   </div>
 </div>
 
-<!-- ===== MISTRAL AI (v3.217): tegel die Le Chat opent - vragen stellen, teksten schrijven, vertalen ===== -->
+<!-- ===== MISTRAL AI (v3.218): chatten met Mistral binnen de app - geen tabblad meer ===== -->
 <div class="view" id="mistView">
-  <div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:24px">
-    <div class="card" style="text-align:center">
-      <div style="font-size:44px;line-height:1;margin-bottom:10px">🤖</div>
-      <div style="font-weight:800;font-size:16px;margin-bottom:6px">Mistral AI</div>
-      <div class="remSub" style="text-align:left">Stel vragen, laat teksten schrijven of vertalen - alles via Le Chat van Mistral. De app opent hem in een eigen tabblad, één keer inloggen is genoeg.</div>
-      <button class="btn yellow" style="margin-top:10px" onclick="window.open('https://chat.mistral.ai','_blank')"><span class="bt"><span class="bi">💬</span>Open Le Chat</span></button>
-      <div class="tip">Tip: voeg Le Chat toe aan je beginscherm - dan werkt hij precies zoals deze app.</div>
-    </div>
+  <div id="mistScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:12px"></div>
+  <div class="bottomBar" data-scroll="mistScroll" style="display:flex;gap:8px;align-items:center">
+    <input id="mistInp" placeholder="Stel je vraag aan Mistral..." onkeydown="if(event.key==='Enter')mistSend()"
+      style="flex:1;min-width:0;padding:12px;border-radius:12px;border:1px solid #1e293b;background:#0f172a;color:#f1f5f9;font-size:15px;margin-top:0">
+    <button class="btn yellow" style="width:auto;margin-top:0;padding:12px 18px" onclick="mistSend()"><span class="bt"><span class="bi">➤</span>Verstuur</span></button>
   </div>
 </div>
 
@@ -3477,7 +3540,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.217";
+var VERSION="3.218";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5420,7 +5483,8 @@ try{
 </script>
 </body>
 </html>
-<!--v:3.217-->
+<!--v:3.218-->
+
 
 
 
