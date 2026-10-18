@@ -340,7 +340,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.225</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.226</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3540,7 +3540,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.225";
+var VERSION="3.226";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3553,6 +3553,8 @@ function rbSync(id){ // v3.221: zichtbaarheid van de ververs-knop op één plek 
   _rb.style.display=(v==="camView"||v==="resultView"||v==="loginView"||v==="colAddView"||v==="dealAddView"||v==="pokeView"||v==="prodView"||v==="ntView"||v==="mistView")?"none":"";
 }
 function showView(id, noPush){
+  if(!window._histNav && !noPush){ window._fwdStack=[]; } // v3.226: een gewone navigatie wist de vooruit-geschiedenis, net als in een browser
+  window._histNav=false; // v3.226: historie-stappen (terug-/vooruit-vegen) markeerden zichzelf vooraf
   document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
   document.querySelectorAll(".bottomBar.peek").forEach(function(b){ b.classList.remove("peek"); }); // v2.49: bij wisselen van pagina balken terug
   // v2.70: alleen vooruit-navigatie bouwt geschiedenis op; terug-knop (noPush) bouwt af -
@@ -3577,6 +3579,8 @@ function goBack(){ // v3.197: één niveau omhoog in de vaste structuur - binnen
   var i=viewStack.lastIndexOf(v);
   if(i>=0) viewStack.length=i; // v3.197: diepere stappen uit de geschiedenis knippen
   if(v==="home") viewStack.length=0;
+  if(curView!=="home"&&curView!=="loginView"&&curView!==v){ if(!window._fwdStack) window._fwdStack=[]; window._fwdStack.push({v:curView,i:(typeof swipeDetId==="function")?swipeDetId(curView):null}); if(window._fwdStack.length>30) window._fwdStack.shift(); } // v3.226: onthouden waar je vandaan komt - vanaf de rechterrand vegen brengt je hier weer terug
+  window._histNav=true; // v3.226: deze showView is een historie-stap en mag de vooruit-stack niet wissen
   showView(v, true);
 }
 function goHome(){ viewStack.length=0; showView("home", true); } // v3.110: logo/naam tikken = altijd terug naar home, geschiedenis weer schoon
@@ -5547,10 +5551,75 @@ try{
   }
 }catch(e7){}
 rbSync(); // v3.221: bij het opstarten de ververs-knop meteen goed zetten - vóór deze fix bleef hij na een herlaad op display:none staan tot de eerste showView-aanroep
+// ===== v3.226: vanaf de rand van het scherm vegen = pagina terug of vooruit =====
+// Vanaf de LINKERRAND naar rechts vegen = één pagina terug (zelfde als de terug-knop).
+// Vanaf de RECHTERRAND naar links vegen = weer vooruit, naar de pagina waar je vandaan
+// kwam - ook details zoals de open plant, recept, kaart of coin komen zo terug.
+function swipeDetId(v){
+  if(v==="hydDetView") return HYD_DET;
+  if(v==="recDetView") return REC_DET;
+  if(v==="colDetailView") return window._colDetId;
+  if(v==="detailView") return window._detailIdx;
+  if(v==="dsHistView") return (typeof dsHistSite!=="undefined")?dsHistSite:null;
+  if(v==="cryptoView") return (typeof CRY_DET!=="undefined")?CRY_DET:null;
+  return null;
+}
+function swipeOpenView(v,vi){ // zelfde open-routes als de v3.212-herstelcode na een update
+  if(v==="hydDetView"&&vi){ hydDet(vi); }
+  else if(v==="recDetView"&&vi){ recDet(vi); }
+  else if(v==="colDetailView"&&vi){ colDetail(vi); }
+  else if(v==="detailView"&&vi!==null&&vi!==undefined){ showScanDetail(vi); }
+  else if(v==="dsHistView"&&vi){ dsHistView(vi); }
+  else if(v==="cryptoView"){ CRY_DET=(vi!==null&&vi!==undefined)?vi:null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,30000); } cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ if(CRY_DET===null) cryRender(); else cryDetRender(); }); }
+  else if(v==="agendaView"){ renderAgenda(); }
+  else if(v==="remView"){ remOpen(); }
+  else if(v==="ideaView"){ ibOpen(); }
+  else if(v==="prodView"){ prodOpen(); }
+  else if(v==="recView"){ recOpen(); }
+  else if(v==="hydView"){ hydOpen(); }
+  else if(v==="ntView"){ showView("ntView"); ntRender(); }
+  else if(v==="collectionView"){ renderCollection(); }
+  else if(v==="dealView"){ renderDeals(); }
+  else if(v==="historyView"){ renderHistory(); }
+  else if(document.getElementById(v)){ showView(v, true); }
+}
+var swipeStart=null;
+document.addEventListener("pointerdown", function(e){ // v3.226: alleen vegen dat begint in de buitenste 30px van het scherm telt
+  swipeStart=null;
+  try{
+    if(!e.clientX||!e.clientY) return;
+    var vw=window.innerWidth||390;
+    var edge=(e.clientX<=30)?"L":((e.clientX>=vw-30)?"R":null);
+    if(!edge) return;
+    var t=e.target;
+    if(t&&t.closest&&(t.closest(".zoomWrap")||t.closest("#colHistWrap")||t.closest("#cryChartBox")||t.closest(".cryDrag")||t.closest("#ibFullWrap")||t.closest("textarea")||t.closest("input"))) return; // v3.226: geen swipe op de kaart-zoom, grafieken, sleep-handvat, foto-op-groot en typvelden
+    swipeStart={x:e.clientX,y:e.clientY,edge:edge};
+  }catch(e2){}
+}, {passive:true});
+document.addEventListener("pointerup", function(e){
+  if(!swipeStart) return;
+  var s=swipeStart; swipeStart=null;
+  try{
+    var dx=e.clientX-s.x, dy=e.clientY-s.y;
+    if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*0.6) return; // v3.226: het moet echt een horizontale veeg zijn, geen scroll
+    if(s.edge==="L"&&dx>0){ // v3.226: linkerrand naar rechts = terug
+      try{ if(navigator.vibrate) navigator.vibrate(10); }catch(e3){}
+      goBack();
+    } else if(s.edge==="R"&&dx<0){ // v3.226: rechterrand naar links = weer vooruit
+      var st=(window._fwdStack||[]);
+      if(!st.length) return;
+      var it=st.pop();
+      window._histNav=true;
+      try{ if(navigator.vibrate) navigator.vibrate(10); }catch(e3){}
+      swipeOpenView(it.v,it.i);
+    }
+  }catch(e2){}
+}, {passive:true});
 </script>
 </body>
 </html>
-<!--v:3.225-->
+<!--v:3.226-->
+
 
 
 
