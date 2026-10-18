@@ -340,7 +340,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.224</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.225</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3540,7 +3540,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.224";
+var VERSION="3.225";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3724,14 +3724,11 @@ function bindCamStream(s){
     }
   },2500);
 }
+// v3.225: direct de iPhone-camera openen zodra je op "Foto van kaart maken" tikt.
+// De in-app camera (getUserMedia) liet iOS steeds om cameratoegang vragen, maar een tik
+// op de knop betekent al "camera aan". De native camera vraagt niets en opent meteen.
 function openCam(){
-  showView("camView");
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ camFailShow(false); return; } // v3.224: op iOS mag een file-input alleen vanuit een eigen tik worden aangeklikt - een stille programmatische klik doet niks
-  killCam(); // v2.99: altijd schoon beginnen
-  var ziS=document.getElementById("zoomInd"); if(ziS){ ziS.textContent="⏳ Camera starten..."; ziS.style.display=""; } // v3.224: korte feedback terwijl de camera opstart
-  navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:"environment"}, width:{ideal:4032}, height:{ideal:3024} }, audio:false })
-    .then(bindCamStream)
-    .catch(function(err){ camFailShow(err&&err.name==="NotAllowedError"); }); // v3.224: camera start niet -> melding met native-camera-knop i.p.v. niets
+  document.getElementById("fileInput").click(); // native iPhone-camera, rechtstreeks vanuit de tik
 }
 // v3.224: start de camera niet? Dan geen zwart scherm maar een duidelijke melding.
 // De gele knop opent de iPhone-camera; dat werkt alléén vanuit een eigen tik van de
@@ -5553,7 +5550,8 @@ rbSync(); // v3.221: bij het opstarten de ververs-knop meteen goed zetten - vó�
 </script>
 </body>
 </html>
-<!--v:3.224-->
+<!--v:3.225-->
+
 
 
 
