@@ -340,7 +340,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.219</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.220</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -1106,7 +1106,7 @@ function agRefresh(){ // v3.47: draait op de bovenbalk-knop
   if(b){ b.style.opacity=".4"; b.style.transform="rotate(180deg)"; b.style.transition="transform .4s ease,opacity .2s"; }
   agCloudPull(function(){
     agRender();
-    if(b){ b.style.opacity=""; b.disabled=false; }
+    if(b){ b.style.opacity=""; b.style.transform=""; b.style.transition=""; b.disabled=false; } // v3.220: transform werd nooit teruggezet - na een verversing bleef de knop 180° gedraaid staan (leek "weg"); nu komt hij altijd recht terug
     try{ if(navigator.vibrate) navigator.vibrate(20); }catch(e){}
   });
 }
@@ -3540,7 +3540,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.219";
+var VERSION="3.220";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5495,7 +5495,8 @@ try{
 </script>
 </body>
 </html>
-<!--v:3.219-->
+<!--v:3.220-->
+
 
 
 
