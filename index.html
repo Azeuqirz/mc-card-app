@@ -359,7 +359,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.238</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.239</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2596,6 +2596,7 @@ var CRY_CUR=0; // v3.229: de nieuwste prijs van de geladen grafiek - hier loopt 
 function cryOpen(){ CRY_DET=null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,30000); } cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ cryRender(); }); } // v3.181: elke 30s live prijzen zolang het crypto-scherm open is
 function cryBarUpd(){
   var b=document.getElementById("cryBar"); if(!b) return;
+  b.style.display=(typeof CRY_FS==="number"&&CRY_FS===1)?"none":"flex"; // v3.239: op het volledige scherm hoort de terug-naar-munten-knop niet in beeld
   b.innerHTML = CRY_DET!==null
     ? '<button class="btn dark" onclick="cryBack()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">⬅</span>Terug naar munten</span></button>'
     : '<button class="btn yellow" onclick="cryAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Munt toevoegen</span></button>';
@@ -2947,6 +2948,7 @@ function cryFsToggle(e){ // v3.231: de chart op het hele scherm - de telefoon dr
   }catch(e3){}
   if(CRY_FS===1){ window._cryP=(window.innerHeight>window.innerWidth); CRY_FSROT=window._cryP?1:0; } // v3.234: op het volledige scherm begint hij in staand meteen een kwartslag gedraaid
   cryFsRot(); // v3.232: meteen bijhouden of de chart op z'n kant staat
+  var cb=document.getElementById("cryBar"); if(cb) cb.style.display=CRY_FS?"none":"flex"; // v3.239: de terug-naar-munten-knop gaat weg op het volledige scherm en komt terug na het kruisje
 }
 var CRY_ROT=0; // v3.232: 1 = de chart staat een kwartslag gedraaid (volledig scherm in staand)
 function cryFsRot(){ // v3.234: de draai-stand zit in de klasse cryFSR op het volledige-scherm-gebied - de draai-knop zet hem handmatig om
@@ -3680,7 +3682,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.238";
+var VERSION="3.239";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5765,7 +5767,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.238-->
+<!--v:3.239-->
 
 
 
