@@ -185,22 +185,31 @@
   body.pink .note { color:#f472b6; border-color:rgba(244,114,182,.3); }
   body.pink #zoomInd { color:#f472b6; }
   body.pink #cryPanBtn { color:#f472b6 !important; } /* v3.228: roze variant van de terug-naar-nu-knop */
-#cryFsArea.cryFS { position:fixed; left:0; right:0; top:0; bottom:0; z-index:9999; background:#0f172a; display:grid; grid-template-columns:1fr 150px; grid-template-rows:auto auto auto 1fr; gap:8px; align-items:center; padding:calc(12px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left)); } /* v3.231+v3.234: de chart EN de instel-knoppen samen op het hele scherm - de knoppen als kolom naast de chart */
-#cryFsArea.cryFS #cryChartBox { grid-column:1; grid-row:1 / -1; margin:0 !important; min-width:0; min-height:0; display:flex; flex-direction:column; justify-content:center; } /* v3.234: de grafiek vult de ruimte naast de knoppenkolom */
-#cryFsArea.cryFS svg { width:100%; height:auto; max-height:calc(100% - 44px); flex:none; } /* v3.231: chart vult de kolom, verhouding blijft netjes */
-#cryFsArea.cryFS #crySetRow { grid-column:2; grid-row:1; display:block !important; width:150px; margin:0 !important; } /* v3.234: de instel-knoppen als compacte kolom naast de chart */
-#cryFsArea.cryFS #cryKindRow { grid-column:2; grid-row:2; display:block !important; width:150px; margin:0 !important; } /* v3.234 */
-#cryFsArea.cryFS #cryHistRow { grid-column:2; grid-row:3; display:block !important; width:150px; margin:0 !important; } /* v3.234 */
-#cryFsArea.cryFS #crySetRow .btn, #cryFsArea.cryFS #cryKindRow .btn { display:block; width:100%; margin:3px 0 0 !important; padding:7px 4px !important; } /* v3.234: knoppen netjes onder elkaar in de kolom */
+#cryFsArea.cryFS { position:fixed; left:0; right:0; top:0; bottom:0; z-index:9999; background:#0f172a; display:flex; flex-direction:column; padding:calc(12px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left)); } /* v3.231+v3.236: de chart bovenin en de instel-knoppen eronder - de chart gaat zo iets omhoog */
+#cryFsArea.cryFS #cryChartBox { order:1; flex:1 1 auto; min-width:0; min-height:0; margin:0 !important; display:flex; flex-direction:column; justify-content:center; } /* v3.236: de grafiek staat bovenaan en vult de ruimte boven de knoppen-rijen */
+#cryFsArea.cryFS svg { width:100%; height:auto; max-height:calc(100% - 44px); flex:none; } /* v3.231: chart vult de breedte, verhouding blijft netjes */
+#cryFsArea.cryFS #crySetRow { order:2; flex:none; width:100%; } /* v3.236: de instel-rijen staan onder de chart in plaats van erboven */
+#cryFsArea.cryFS #cryKindRow { order:3; flex:none; width:100%; } /* v3.236 */
+#cryFsArea.cryFS #cryHistRow { order:4; flex:none; width:100%; } /* v3.236 */
 #cryFsArea.cryFS .tip { display:none; } /* v3.234: het kaars-grootte-label is op het volledige scherm overbodig */
-#cryFsArea.cryFS #cryHistR { width:100%; } /* v3.234: schuifbalk over de volle knoppenkolom */
 #cryFsArea.cryFS #cryFsBtn { display:none; } /* v3.234: binnen het volledige scherm is de kruis de wegknop */
+#cryFsArea.cryFS #cryPanBtn { display:none !important; } /* v3.236: de terug-naar-nu-knop staat op het volledige scherm in de weg - zoom met het wiel of de schuifbalk om terug naar nu te gaan */
 #cryFsX, #cryFsRotBtn { display:none; } /* v3.231+v3.234: de weg- en draai-knop staan altijd in de grafiek maar zijn alleen zichtbaar op het volledige scherm */
 #cryFsArea.cryFS #cryFsX, #cryFsArea.cryFS #cryFsRotBtn { display:block; } /* v3.231+v3.234 */
 #cryHovT { transform:translateX(-50%); } /* v3.232: stond eerst inline in de tooltip - nu in CSS zodat hij op z'n kant tegendraaid kan worden */
 #cryFsArea.cryFS.cryFSR { left:50%; right:auto; top:50%; bottom:auto; width:100vh; height:100vw; width:100dvh; height:100dvw; padding:12px 14px; transform:translate(-50%,-50%) rotate(90deg); } /* v3.232+v3.234: de chart draait een kwartslag - breed over de lange kant van de telefoon, breedte en hoogte wisselen mee */
+#cryFsArea.cryFS.cryFSR { display:grid; grid-template-columns:1fr 150px; grid-template-rows:1fr auto auto auto 1fr; gap:8px; align-items:center; } /* v3.236: op z'n kant staat de knoppen-balk netjes in het midden onderaan het scherm */
+#cryFsArea.cryFS.cryFSR #cryChartBox { grid-column:1; grid-row:1 / -1; align-self:stretch; } /* v3.236: de chart vult op z'n kant de ruimte boven de knoppen-balk */
+#cryFsArea.cryFS.cryFSR #crySetRow { grid-column:2; grid-row:2; display:block !important; width:150px; margin:0 !important; } /* v3.236: de instel-knoppen als compacte balk onder de chart */
+#cryFsArea.cryFS.cryFSR #cryKindRow { grid-column:2; grid-row:3; display:block !important; width:150px; margin:0 !important; } /* v3.236 */
+#cryFsArea.cryFS.cryFSR #cryHistRow { grid-column:2; grid-row:4; display:block !important; width:150px; margin:0 !important; } /* v3.236 */
+#cryFsArea.cryFS.cryFSR #crySetRow .btn, #cryFsArea.cryFS.cryFSR #cryKindRow .btn { display:block; width:100%; margin:3px 0 0 !important; padding:7px 4px !important; } /* v3.236: knoppen netjes onder elkaar in de balk */
+#cryFsArea.cryFS.cryFSR #cryHistR { width:100%; } /* v3.236: schuifbalk over de volle knoppen-balk */
+#cryFsArea.cryFS.cryFSR svg { width:calc(100% - 40px); } /* v3.236: de tijd-datum-balk krijgt een eigen strook onder de chart - zo staat die er niet meer overheen */
 #cryFsArea.cryFS.cryFSR svg text { transform-box:fill-box; transform-origin:center; transform:rotate(-90deg); } /* v3.232: prijs-labels in de chart blijven rechtop leesbaar */
 #cryFsArea.cryFS.cryFSR #cryAxis { position:absolute; left:calc(100% - 12px); top:50%; transform:translate(-50%,-50%) rotate(-90deg); } /* v3.232: tijdbalk netjes leesbaar onderaan het scherm */
+#cryFsArea.cryFS.cryFSR #cryFsX { left:8px !important; right:auto !important; } /* v3.236: op z'n kant blijft de kruis rechtsboven op het scherm */
+#cryFsArea.cryFS.cryFSR #cryFsRotBtn { left:44px !important; } /* v3.236: de draai-knop komt op z'n kant onder de kruis */
 #cryFsArea.cryFS.cryFSR #cryFsX, #cryFsArea.cryFS.cryFSR #cryFsRotBtn { transform:rotate(-90deg); } /* v3.232+v3.234: knoppen blijven rechtop leesbaar */
 #cryFsArea.cryFS.cryFSR #cryPanBtn { transform:rotate(-90deg); } /* v3.232 */
 #cryFsArea.cryFS.cryFSR #cryHovT { transform:translate(-50%,-50%) rotate(-90deg); top:12px !important; } /* v3.232: prijs-tooltip rechtop langs de zijkant */
@@ -364,7 +373,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.235</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.236</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3002,7 +3011,7 @@ function cryFsBtns(){ // v3.234: de weg- en draai-knop op de grafiek in een eige
   var box=document.getElementById("cryChartBox"); if(!box) return;
   if(document.getElementById("cryFsX")) return; // v3.234: niet dubbel invoegen
   box.style.position="relative"; // v3.231: de knoppen op de grafiek hebben dit nodig
-  box.insertAdjacentHTML("beforeend",'<div id="cryFsX" onclick="cryFsToggle(event)" style="position:absolute;top:4px;left:8px;background:#0f172a;color:#f87171;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;white-space:nowrap;cursor:pointer">&#10005;</div><div id="cryFsRotBtn" onclick="cryFsRotTgl(event)" style="position:absolute;top:4px;left:44px;background:#0f172a;color:#facc15;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;white-space:nowrap;cursor:pointer">&#128260;</div>'); // v3.231: wegknop + v3.234: draai-knop (&#128260; = draai-teken)
+  box.insertAdjacentHTML("beforeend",'<div id="cryFsX" onclick="cryFsToggle(event)" style="position:absolute;top:4px;right:8px;background:#0f172a;color:#f87171;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;white-space:nowrap;cursor:pointer">&#10005;</div><div id="cryFsRotBtn" onclick="cryFsRotTgl(event)" style="position:absolute;top:4px;left:8px;background:#0f172a;color:#facc15;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;white-space:nowrap;cursor:pointer">&#128260;</div>'); // v3.231: wegknop + v3.234: draai-knop + v3.236: de kruis rechtsboven (terug naar het normale scherm), de draai-knop linksboven
 }
 function cryHovAttach(data){ // v3.189: prijs bij hover met de muis of tik op het scherm
   var box=document.getElementById("cryChartBox"); if(!box) return;
@@ -3255,8 +3264,6 @@ function recDetRender(){
   if(!e){ showView("recView",true); recRender(); return; }
   var r=e.r||{}; var ing=r.ing||[]; var dsc=r.dsc||"";
   var h='<div class="remItem" style="padding-right:12px"><div style="font-size:19px;font-weight:800">'+recEmoji(e.t)+' '+colEsc(e.t)+'</div><div class="remSub">'+ibName(e.by)+' - '+slFmt(e.ts)+'</div></div>';
-  var ph=recImgs(e); // v3.215: recept-foto's, elk met eigen verwijder-knop
-  if(!REC_EDIT&&ph.length){ h+='<div class="card" style="display:flex;flex-wrap:wrap;gap:8px">'; ph.forEach(function(src,pi){ h+='<div style="position:relative"><img src="'+src+'" alt="" onclick="ibFull(this.src)" style="width:86px;height:86px;object-fit:cover;border-radius:8px;cursor:pointer;display:block"><button style="position:absolute;top:-6px;right:-6px;background:#1e293b;border:0;color:#f87171;border-radius:99px;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1;padding:0" onclick="recPhDel('+e.id+','+pi+')">✕</button></div>'; }); h+='</div>'; }
   if(!REC_EDIT){ // v3.166: lees-modus - ingredienten onder elkaar, bewerken via 1 knop onderaan
     h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🧂 Ingredienten</div>';
     if(!ing.length) h+='<div class="remSub">Nog geen ingredienten.</div>';
@@ -3265,6 +3272,8 @@ function recDetRender(){
     h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📝 Beschrijving</div>';
     h+= dsc ? '<div class="remBody">'+colEsc(dsc)+'</div>' : '<div class="remSub">Nog geen beschrijving.</div>';
     h+='</div>';
+    var ph=recImgs(e); // v3.215: recept-foto's, elk met eigen verwijder-knop + v3.236: de foto's staan onderaan het recept, net boven de knoppen
+    if(ph.length){ h+='<div class="card" style="display:flex;flex-wrap:wrap;gap:8px">'; ph.forEach(function(src,pi){ h+='<div style="position:relative"><img src="'+src+'" alt="" onclick="ibFull(this.src)" style="width:86px;height:86px;object-fit:cover;border-radius:8px;cursor:pointer;display:block"><button style="position:absolute;top:-6px;right:-6px;background:#1e293b;border:0;color:#f87171;border-radius:99px;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1;padding:0" onclick="recPhDel('+e.id+','+pi+')">✕</button></div>'; }); h+='</div>'; }
     if(bar) bar.innerHTML='<button class="btn yellow" style="flex:1;margin-top:0" onclick="recEditStart()"><span class="bt"><span class="bi">✏️</span>Bewerken</span></button><button class="btn dark" style="flex:none;width:110px;margin-top:0" onclick="recPick(REC_DET)"><span class="bt"><span class="bi">📷</span>Foto</span></button>';
   } else { // v3.166: bewerk-modus - alles in 1x
     h+='<div class="tip" style="text-align:left">Zet elk ingredient op een eigen regel.</div>';
@@ -3678,7 +3687,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.235";
+var VERSION="3.236";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5763,7 +5772,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.235-->
+<!--v:3.236-->
 
 
 
