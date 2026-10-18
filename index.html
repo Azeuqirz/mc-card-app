@@ -337,7 +337,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.216</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.217</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -368,6 +368,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="recOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🍳</div>Recepten</button>
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="ibOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">💡</div>Ideeënbus<span id="ibBadge" class="ibBadge"></span></button>
     <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="prodOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🛍️</div>Productzoeker</button>
+    <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="mistOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🤖</div>Mistral AI</button>
   </div>
   </div>
   <button class="btn yellow" id="homeLogin" onclick="showView('loginView');fbRenderLogin()"><span class="bt"><span class="bi">🔐</span>Inloggen</span></button>
@@ -2981,6 +2982,7 @@ var PROD_SRC=[
   {n:"Marktplaats", e:"📱", d:"nieuw en tweedehands van particulieren", u:"https://www.marktplaats.nl/q/", tail:"/"}
 ];
 function prodOpen(){ showView("prodView"); prodRender(); }
+function mistOpen(){ showView("mistView"); } // v3.217: Mistral-tegel - opent Le Chat in een eigen tabblad
 function prodQ(){ try{ var q=localStorage.getItem("mcProdQ")||""; if(q) return q; }catch(e){} return window._prodQ||""; } // v3.212: ook een kop in het geheugen - op een resultaat tikken vraagt nooit meer opnieuw om invoer
 function prodQs(){ try{ return JSON.parse(localStorage.getItem("mcProdQs")||"[]"); }catch(e){ return []; } }
 function prodAsk(){ // v3.210: nieuw product intypen
@@ -3379,6 +3381,19 @@ function fbSync(interactive){
   </div>
 </div>
 
+<!-- ===== MISTRAL AI (v3.217): tegel die Le Chat opent - vragen stellen, teksten schrijven, vertalen ===== -->
+<div class="view" id="mistView">
+  <div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:24px">
+    <div class="card" style="text-align:center">
+      <div style="font-size:44px;line-height:1;margin-bottom:10px">🤖</div>
+      <div style="font-weight:800;font-size:16px;margin-bottom:6px">Mistral AI</div>
+      <div class="remSub" style="text-align:left">Stel vragen, laat teksten schrijven of vertalen - alles via Le Chat van Mistral. De app opent hem in een eigen tabblad, één keer inloggen is genoeg.</div>
+      <button class="btn yellow" style="margin-top:10px" onclick="window.open('https://chat.mistral.ai','_blank')"><span class="bt"><span class="bi">💬</span>Open Le Chat</span></button>
+      <div class="tip">Tip: voeg Le Chat toe aan je beginscherm - dan werkt hij precies zoals deze app.</div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== RECEPT-DETAIL (v3.164) ===== -->
 <div class="view" id="recDetView">
   <div id="recDetScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
@@ -3462,7 +3477,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.216";
+var VERSION="3.217";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3479,14 +3494,14 @@ function showView(id, noPush){
   curView=id;
   document.getElementById(id).classList.add("active");
   document.getElementById("backBtn").style.visibility=(id==="home")?"hidden":"visible"; // v2.62
-  var _rb=document.getElementById("refreshBtn"); if(_rb) _rb.style.display=(id==="camView"||id==="resultView"||id==="loginView"||id==="colAddView"||id==="dealAddView"||id==="pokeView"||id==="prodView"||id==="ntView")?"none":""; // v3.211: ververs-knop op elke pagina met data - camera/resultaat/login/invoer uitgezonderd
+  var _rb=document.getElementById("refreshBtn"); if(_rb) _rb.style.display=(id==="camView"||id==="resultView"||id==="loginView"||id==="colAddView"||id==="dealAddView"||id==="pokeView"||id==="prodView"||id==="ntView"||id==="mistView")?"none":""; // v3.211: ververs-knop op elke pagina met data - camera/resultaat/login/invoer uitgezonderd; v3.217: mistView heeft geen data
   if(id==="home") cryHomeTick(); // v3.182: bitcoin-prijs op de crypto-tegel bijwerken
 }
 // v3.197: vaste hiërarchie voor de terug-knop - terug = altijd precies één niveau omhoog richting home
 var VIEW_UP={ pokeView:"home", camView:"pokeView", resultView:"pokeView", historyView:"pokeView", detailView:"historyView",
   collectionView:"pokeView", colAddView:"collectionView", colDetailView:"collectionView",
   cryptoView:"home", agendaView:"home", remView:"home", ideaView:"home", ntView:"home", loginView:"home",
-  hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView", prodView:"home",
+  hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView", prodView:"home", mistView:"home",
   dealView:"pokeView", dealAddView:"dealView", dsHistView:"dealView" };
 // v2.60: terug naar vorige pagina
 function goBack(){ // v3.197: één niveau omhoog in de vaste structuur - binnen een paar tikken altijd op home, geen lussen meer
@@ -4678,7 +4693,7 @@ function lookupCard(){
   var q=inp.value.trim();
   if(!q){ el.innerHTML='<div class="note">Typ eerst een kaartnaam.</div>'; return; }
   var nm=q, num=""; // v3.213: kaartnummer mag mee in de zoekopdracht, bijv. "Fomantis 13" - de app zoekt dan op naam én nummer
-  var mq=q.match(/^(.+?)[\s#]+(\d{1,4}[a-z]{0,2}|[a-z]{1,2}\d{1,4})$/i);
+  var mq=q.match(/^(.+?)[\s#]*(\d{1,4}[a-z]{0,3}|[a-z]{1,3}\d{1,4})$/i); // v3.217: nummer MAG ook vast aan de naam ("Pikachu39") en promo-vormen als "GG45" meepakken
   if(mq){ nm=mq[1].replace(/[\s#]+$/,""); num=mq[2].toUpperCase(); }
   el.innerHTML='<div class="note">⏳ Zoeken naar "'+colEsc(nm)+(num?' #'+num:'')+'"…</div>';
   tcgFetch("https://api.pokemontcg.io/v2/cards?q=name:"+encodeURIComponent(nm)+(num?"&pageSize=250":"&pageSize=8")) // v3.213: met een nummer de hele naam doorzoeken zodat de juiste kaart er zeker bij zit
@@ -4686,6 +4701,8 @@ function lookupCard(){
       var cards=(j&&j.data)||[], numTip="";
       if(num&&cards.length){ // v3.213: kaartnummer gebruiken - alleen kaarten met dit nummer eruit pakken (het deel vóór de "/", dus "228" vindt ook "228/230")
         var f=cards.filter(function(c){ return String(c.number||"").toUpperCase().split("/")[0]===num; });
+        if(!f.length) f=cards.filter(function(c){ return String(c.number||"").toUpperCase().split("/")[0].replace(/^0+/,"")===num.replace(/^0+/,""); }); // v3.217: nummers met nullen ervoor tellen mee ("013" = "13")
+        if(!f.length) f=cards.filter(function(c){ return String(c.number||"").toUpperCase().split("/")[0].replace(/[^0-9]/g,"").replace(/^0+/,"")===num.replace(/[^0-9]/g,"").replace(/^0+/,""); }); // v3.217: letters rond het nummer tellen niet mee ("13a" en "GG45" worden "13" en "45")
         if(f.length) cards=f;
         else numTip='<div class="tip" style="text-align:left;margin:4px 0 6px">Geen kaart met nummer '+colEsc(num)+' erbij - dit zijn alle kaarten die "'+colEsc(nm)+'" heten.</div>';
       }
@@ -5403,7 +5420,8 @@ try{
 </script>
 </body>
 </html>
-<!--v:3.216-->
+<!--v:3.217-->
+
 
 
 
