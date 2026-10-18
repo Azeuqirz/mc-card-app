@@ -340,7 +340,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.220</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.221</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3540,13 +3540,18 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.220";
+var VERSION="3.221";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
 // v2.69: versienummer in de bovenbalk zetten
 document.querySelector(".tbVer").textContent="v"+VERSION;
 var curView="home", viewStack=[];
+function rbSync(id){ // v3.221: zichtbaarheid van de ververs-knop op één plek - óók bij het opstarten, want home staat al actief in de HTML en showView loopt dan niet (na een verversing bleef de knop daardoor "weg")
+  var _rb=document.getElementById("refreshBtn"); if(!_rb) return;
+  var v=id||curView;
+  _rb.style.display=(v==="camView"||v==="resultView"||v==="loginView"||v==="colAddView"||v==="dealAddView"||v==="pokeView"||v==="prodView"||v==="ntView"||v==="mistView")?"none":"";
+}
 function showView(id, noPush){
   document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
   document.querySelectorAll(".bottomBar.peek").forEach(function(b){ b.classList.remove("peek"); }); // v2.49: bij wisselen van pagina balken terug
@@ -3557,7 +3562,7 @@ function showView(id, noPush){
   curView=id;
   document.getElementById(id).classList.add("active");
   document.getElementById("backBtn").style.visibility=(id==="home")?"hidden":"visible"; // v2.62
-  var _rb=document.getElementById("refreshBtn"); if(_rb) _rb.style.display=(id==="camView"||id==="resultView"||id==="loginView"||id==="colAddView"||id==="dealAddView"||id==="pokeView"||id==="prodView"||id==="ntView"||id==="mistView")?"none":""; // v3.211: ververs-knop op elke pagina met data - camera/resultaat/login/invoer uitgezonderd; v3.217: mistView heeft geen data
+  rbSync(id); // v3.211: ververs-knop op elke pagina met data - camera/resultaat/login/invoer uitgezonderd; v3.217: mistView heeft geen data; v3.221: lijst verplaatst naar rbSync zodat de knop ook bij het opstarten goed staat
   if(id==="home") cryHomeTick(); // v3.182: bitcoin-prijs op de crypto-tegel bijwerken
 }
 // v3.197: vaste hiërarchie voor de terug-knop - terug = altijd precies één niveau omhoog richting home
@@ -5492,10 +5497,12 @@ try{
     else if(_vd==="historyView"){ renderHistory(); }
   }
 }catch(e7){}
+rbSync(); // v3.221: bij het opstarten de ververs-knop meteen goed zetten - vóór deze fix bleef hij na een herlaad op display:none staan tot de eerste showView-aanroep
 </script>
 </body>
 </html>
-<!--v:3.220-->
+<!--v:3.221-->
+
 
 
 
