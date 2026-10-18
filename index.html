@@ -189,9 +189,15 @@
 #cryChartBox.cryFS svg { width:100%; height:auto; max-height:calc(100% - 56px); flex:none; } /* v3.231: chart vult de hele breedte, verhouding blijft netjes */
 #cryFsX { display:none; } /* v3.231: de wegknop staat altijd in de grafiek maar is alleen zichtbaar op het volledige scherm */
 #cryChartBox.cryFS #cryFsX { display:block; } /* v3.231 */
-#cryFsHint { display:none; } /* v3.231: draai-hint - alleen op het volledige scherm in staand */
-#cryChartBox.cryFS #cryFsHint { display:block; text-align:center; font-size:11px; color:#64748b; padding:10px 0 2px; } /* v3.231 */
-@media (orientation:landscape){ #cryChartBox.cryFS #cryFsHint { display:none; } } /* v3.231: liggend = geen draai-hint nodig */
+#cryHovT { transform:translateX(-50%); } /* v3.232: stond eerst inline in de tooltip - nu in CSS zodat hij op z'n kant tegendraaid kan worden */
+@media (orientation:portrait){ /* v3.232: op het volledige scherm in staand draait de chart automatisch een kwartslag - de grafiek ligt breed over de lange kant van de telefoon */
+#cryChartBox.cryFS { left:50%; right:auto; top:50%; bottom:auto; width:100vh; height:100vw; width:100dvh; height:100dvw; padding:12px 14px; transform:translate(-50%,-50%) rotate(90deg); } /* v3.232: breedte en hoogte wisselen met de draai van plek */
+#cryChartBox.cryFS svg text { transform-box:fill-box; transform-origin:center; transform:rotate(-90deg); } /* v3.232: prijs-labels in de chart blijven rechtop leesbaar */
+#cryChartBox.cryFS #cryAxis { position:absolute; left:calc(100% - 12px); top:50%; transform:translate(-50%,-50%) rotate(-90deg); } /* v3.232: tijdbalk netjes leesbaar onderaan het scherm */
+#cryChartBox.cryFS #cryFsX { transform:rotate(-90deg); } /* v3.232: knoppen blijven rechtop leesbaar */
+#cryChartBox.cryFS #cryPanBtn { transform:rotate(-90deg); } /* v3.232 */
+#cryChartBox.cryFS #cryHovT { transform:translate(-50%,-50%) rotate(-90deg); top:12px !important; } /* v3.232: prijs-tooltip rechtop langs de zijkant */
+}
 body.pink #cryFsBtn { color:#f472b6 !important; } /* v3.231: roze variant van de volledig-scherm-knop */
 body.pink #cryFsX { color:#f472b6 !important; } /* v3.231: roze variant van de wegknop */
   /* v3.27: push-stijl melding bij eigen login */
@@ -350,7 +356,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.231</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.232</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2926,12 +2932,18 @@ function cryFsToggle(e){ // v3.231: de chart op het hele scherm - de telefoon dr
     if(CRY_FS===1){ if(b.requestFullscreen) b.requestFullscreen(); } // v3.231: op een computer/Android de echte fullscreen - op de iPhone doet de CSS-klasse het werk
     else if(document.fullscreenElement&&document.exitFullscreen) document.exitFullscreen();
   }catch(e3){}
+  cryFsRot(); // v3.232: meteen bijhouden of de chart op z'n kant staat
 }
+var CRY_ROT=0; // v3.232: 1 = de chart staat een kwartslag gedraaid (volledig scherm in staand)
+function cryFsRot(){ // v3.232: alleen op het volledige scherm in staand - de telefoon echt kantelen = gewoon rechtop
+  CRY_ROT=(CRY_FS===1&&window.innerHeight>window.innerWidth)?1:0;
+}
+window.addEventListener("resize", function(){ if(CRY_FS===1) cryFsRot(); }); // v3.232: telefoon kantelen tijdens het volledige scherm = draai-stand loopt mee
 document.addEventListener("pointerdown", function(e){
   try{
     var t=e.target;
     if(!t||!t.closest||!t.closest("#cryChartBox")) return;
-    cryPanDrag={x:e.clientX, pan:CRY_PAN_F, moved:false, last:0};
+    cryPanDrag={x:e.clientX, y:e.clientY, pan:CRY_PAN_F, moved:false, last:0}; // v3.232: ook de hoogte onthouden voor het slepen op z'n kant
   }catch(e2){}
 }, {passive:true});
 document.addEventListener("pointermove", function(e){
@@ -2940,15 +2952,16 @@ document.addEventListener("pointermove", function(e){
     var box=document.getElementById("cryChartBox");
     if(!box) return;
     var dx=e.clientX-cryPanDrag.x, now=Date.now();
+    var dd=CRY_ROT?(e.clientY-cryPanDrag.y):dx; // v3.232: op z'n kant staat de chart-as verticaal - dan sleept boven/onder in plaats van links/rechts
     if(!cryPanDrag.moved){
-      if(Math.abs(dx)<8) return; // v3.228: eerst een klein eindje bewegen voordat het slepen start - even tikken blijft gewoon tikken
+      if(Math.abs(dd)<8) return; // v3.228: eerst een klein eindje bewegen voordat het slepen start - even tikken blijft gewoon tikken
       cryPanDrag.moved=true;
     }
     if(CRY_HIST>=100) return;
     if(now-cryPanDrag.last<50) return; // v3.228: niet vaker dan 20x per seconde opnieuw tekenen
     cryPanDrag.last=now;
     var hf=CRY_HIST/100, w=box.clientWidth||340, cx=window._CRY_CTX;
-    CRY_PAN_F=Math.max(0,Math.min(1-hf,cryPanDrag.pan+(dx/w)*hf)); // v3.228: naar rechts slepen = oudere candles, naar links = weer naar nu
+    CRY_PAN_F=Math.max(0,Math.min(1-hf,cryPanDrag.pan+(dd/w)*hf)); // v3.228: naar rechts slepen = oudere candles, naar links = weer naar nu
     if(cx&&cx.g) cryChartLoad(cx.g, cx.s, ++CRY_TOK); // uit de cache, dus het slepen gaat vlot
   }catch(e2){}
 }, {passive:true});
@@ -2957,7 +2970,7 @@ document.addEventListener("pointercancel", function(){ cryPanDrag=null; }, {pass
 function cryHovAttach(data){ // v3.189: prijs bij hover met de muis of tik op het scherm
   var box=document.getElementById("cryChartBox"); if(!box) return;
   box.style.position="relative"; // v3.231: de knoppen op de grafiek hebben dit nodig
-  box.insertAdjacentHTML("beforeend",'<div id="cryFsX" onclick="cryFsToggle(event)" style="position:absolute;top:4px;left:8px;background:#0f172a;color:#f87171;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;white-space:nowrap;cursor:pointer">&#10005;</div><div id="cryFsHint">Draai je telefoon &#128260; voor een brede chart</div>'); // v3.231: wegknop en draai-hint - zichtbaar zolang de chart op het volledige scherm staat
+  box.insertAdjacentHTML("beforeend",'<div id="cryFsX" onclick="cryFsToggle(event)" style="position:absolute;top:4px;left:8px;background:#0f172a;color:#f87171;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;white-space:nowrap;cursor:pointer">&#10005;</div>'); // v3.231: wegknop - v3.232: de chart draait op z'n kant dus de draai-hint is niet meer nodig
   var sv=box.querySelector("svg"); if(!sv) return;
   var isC=(CRY_KIND==="candle"), W=340, H=150, pad=10, n=data.length;
   if(n<2) return;
@@ -2965,19 +2978,20 @@ function cryHovAttach(data){ // v3.189: prijs bij hover met de muis of tik op he
   for(var i=0;i<n;i++){ var vv=isC?data[i][4]:data[i]; if(isC){ if(data[i][3]<mn) mn=data[i][3]; if(data[i][2]>mx) mx=data[i][2]; } else { if(vv<mn) mn=vv; if(vv>mx) mx=vv; } }
   if(mx<=mn) mx=mn+1;
   box.style.position="relative";
-  box.insertAdjacentHTML("beforeend",'<div id="cryHovL" style="position:absolute;top:0;bottom:0;width:2px;background:#facc15;opacity:.7;left:-99px;pointer-events:none"></div><div id="cryHovC" style="position:absolute;width:11px;height:11px;border-radius:50%;background:#facc15;border:2px solid #0f172a;left:-99px;top:-99px;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 0 6px rgba(0,0,0,.4)"></div><div id="cryHovT" style="position:absolute;top:4px;background:#0f172a;color:#facc15;font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;white-space:nowrap;transform:translateX(-50%);left:-999px;pointer-events:none"></div><div id="cryPanBtn" onclick="cryPanNow()" style="position:absolute;top:4px;right:8px;background:#0f172a;color:#facc15;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;white-space:nowrap;cursor:pointer;display:'+(CRY_PAN_F>0?"block":"none")+'">◀ terug naar nu</div>');
+  box.insertAdjacentHTML("beforeend",'<div id="cryHovL" style="position:absolute;top:0;bottom:0;width:2px;background:#facc15;opacity:.7;left:-99px;pointer-events:none"></div><div id="cryHovC" style="position:absolute;width:11px;height:11px;border-radius:50%;background:#facc15;border:2px solid #0f172a;left:-99px;top:-99px;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 0 6px rgba(0,0,0,.4)"></div><div id="cryHovT" style="position:absolute;top:4px;background:#0f172a;color:#facc15;font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;white-space:nowrap;left:-999px;pointer-events:none"></div><div id="cryPanBtn" onclick="cryPanNow()" style="position:absolute;top:4px;right:8px;background:#0f172a;color:#facc15;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;white-space:nowrap;cursor:pointer;display:'+(CRY_PAN_F>0?"block":"none")+'">◀ terug naar nu</div>');
   var hid=function(){ var l=document.getElementById("cryHovL"), c=document.getElementById("cryHovC"), t=document.getElementById("cryHovT"); if(l) l.style.left="-99px"; if(c){ c.style.left="-99px"; c.style.top="-99px"; } if(t) t.style.left="-999px"; };
   var ev=function(e){
     var r=sv.getBoundingClientRect(); if(!r.width) return;
-    var x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+    var x=Math.max(0,Math.min(1,(CRY_ROT?((e.clientY-r.top)/r.height):((e.clientX-r.left)/r.width)))); // v3.232: op z'n kant leest de chart-as verticaal van het scherm
     var idx=Math.round(x*(n-1));
     var v=isC?data[idx][4]:data[idx];
     var yv=pad+(H-2*pad)*(1-(v-mn)/(mx-mn));
     var px=pad+(W-2*pad)*idx/(n-1);
+    var bw=(CRY_ROT?r.height:r.width), bh=(CRY_ROT?r.width:r.height); // v3.232: gedraaid wisselen de afmetingen van plek
     var l=document.getElementById("cryHovL"), c=document.getElementById("cryHovC"), t=document.getElementById("cryHovT");
-    if(l) l.style.left=(px/W*r.width-1)+"px";
-    if(c){ c.style.left=(px/W*r.width)+"px"; c.style.top=(yv/H*r.height)+"px"; }
-    if(t){ t.textContent=cryFmt(v); t.style.left=Math.max(46,Math.min(r.width-46,px/W*r.width))+"px"; }
+    if(l) l.style.left=(px/W*bw-1)+"px";
+    if(c){ c.style.left=(px/W*bw)+"px"; c.style.top=(yv/H*bh)+"px"; }
+    if(t){ t.textContent=cryFmt(v); t.style.left=Math.max(46,Math.min(bw-46,px/W*bw))+"px"; }
   };
   box.onpointermove=ev; box.onpointerdown=function(e2){ e2.preventDefault(); ev(e2); }; box.onpointerleave=hid; // v3.207: preventDefault tegen het Apple-vergrootglas
 }
@@ -2997,7 +3011,7 @@ function crySpan(span){ // v3.211: hoe lang de getoonde periode is
 function cryAxis(ts){ // v3.211: begintijd + eindtijd + lengte onder de grafiek - nooit meer raden over welke periode hij gaat
   if(!ts||ts.length<2) return "";
   var t0=ts[0], t1=ts[ts.length-1], span=t1-t0, wt=span<=48*36e5;
-  return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11px;color:#64748b;padding:4px 14px 0">' // v3.227: 14px zijruimte - de grafiek loopt met -24px tot de schermrand, daardoor vielen de datum/tijd-teksten eraf
+  return '<div id="cryAxis" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11px;color:#64748b;padding:4px 14px 0">' // v3.227: 14px zijruimte - de grafiek loopt met -24px tot de schermrand, daardoor vielen de datum/tijd-teksten eraf + v3.232: id voor de tegendraaide tijdbalk op het volledige scherm
     +'<span>'+cryDT(t0,wt)+'</span>'
     +'<span style="font-size:10px">'+crySpan(span)+'</span>'
     +'<span>'+cryDT(t1,wt)+'</span>'
@@ -3628,7 +3642,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.231";
+var VERSION="3.232";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5706,7 +5720,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.231-->
+<!--v:3.232-->
 
 
 
