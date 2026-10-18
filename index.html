@@ -167,17 +167,6 @@
     cursor:pointer; margin-top:2px; }
   .mItem:active { background:#1e293b; }
   .mItem.danger { color:#f87171; }
-  /* ===== v3.222: professionelere look - strakke lijnicoontjes (svg.ln) i.p.v. emoji's, rustige donkere tegels i.p.v. felle kleurblokken ===== */
-  svg.ln { stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-  .bi svg.ln { width:1.1em; height:1.1em; vertical-align:-.22em; }
-  .mItem svg.ln { width:18px; height:18px; margin-right:9px; vertical-align:-4px; }
-  .tile { position:relative; display:block; width:100%; border:1px solid #1e293b; border-radius:14px; margin:0;
-    background:#0f172a; color:#e2e8f0; font-size:13px; font-weight:700; text-align:center;
-    padding:16px 8px 14px; cursor:pointer; }
-  .tile:active { background:#1e293b; }
-  .tile .tIc { font-size:25px; line-height:1; margin-bottom:8px; color:#facc15; }
-  .tile .tSub { font-size:11px; font-weight:700; color:#64748b; margin-top:6px; line-height:1.2; }
-  body.pink .tile .tIc { color:#f472b6; }
   .mHead { font-size:12px; font-weight:800; color:#facc15; padding:0 10px 6px;
     border-bottom:1px solid #1e293b; margin-bottom:8px; }
   /* v3.15: login-velden */
@@ -199,7 +188,7 @@
   #pushBanner { position:fixed; top:calc(10px + env(safe-area-inset-top)); left:50%;
     transform:translateX(-50%) translateY(-90px); z-index:300; background:#1e293b;
     color:#facc15; font-weight:800; font-size:14px; border:1px solid #facc15;
-    border-radius:14px; padding:12px 18px; box-shadow:0 4px 12px rgba(0,0,0,.35);
+    border-radius:14px; padding:12px 18px; box-shadow:0 6px 20px rgba(0,0,0,.5);
     opacity:0; transition:all .35s ease; pointer-events:none; max-width:90%;
     text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #pushBanner.show { transform:translateX(-50%) translateY(0); opacity:1; }
@@ -337,13 +326,13 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <div id="menuWrap" onclick="menuDimTap(event)">
   <div id="menuDim"></div>
   <div id="menuPanel">
-    <div class="mHead">Menu</div>
+    <div class="mHead">☰ Menu</div>
     <div id="menuAcc" class="n" style="padding:0 10px 4px;word-break:break-all"></div>
-    <button class="mItem" onclick="menuGoLogin()"><svg class="ln" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Inloggen / account</button>
-    <button class="mItem" onclick="fbSyncNow()"><svg class="ln" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>Nu synchroniseren</button>
-    <button class="mItem" style="position:relative" onclick="menuGoAgenda()"><svg class="ln" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4m8-4v4M3 9h18"/></svg>Gedeelde agenda<span id="agBadgeM" class="ibBadge" style="top:8px;right:8px"></span></button>
-    <button class="mItem" onclick="menuGoNotif()"><svg class="ln" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></svg>Melding-geschiedenis</button>
-    <button class="mItem danger" onclick="fbLogout()"><svg class="ln" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>Uitloggen</button>
+    <button class="mItem" onclick="menuGoLogin()">🔐 Inloggen / account</button>
+    <button class="mItem" onclick="fbSyncNow()">☁️ Nu synchroniseren</button>
+    <button class="mItem" style="position:relative" onclick="menuGoAgenda()">📅 Gedeelde agenda<span id="agBadgeM" class="ibBadge" style="top:8px;right:8px"></span></button>
+    <button class="mItem" onclick="menuGoNotif()">🔔 Melding-geschiedenis</button>
+    <button class="mItem danger" onclick="fbLogout()">⏏ Uitloggen</button>
     <div id="menuSync" class="n" style="padding:8px 10px 0"></div>
   </div>
 </div>
@@ -351,7 +340,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.222</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.223</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -374,19 +363,18 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   <!-- v3.22: actie-knoppen alleen zichtbaar als je ingelogd bent -->
   <div id="homeActions" style="display:none">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:340px;margin:0 auto">
-  <!-- v3.222: strakke tegels met lijnicoontjes i.p.v. emoji's - rustige, professionele look (roze variant automatisch via body.pink .tile .tIc) -->
-  <button class="tile" onclick="cryOpen()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 7.5h2.6a2.2 2.2 0 0 1 0 4.4H10m0 4.6h2.9a2.3 2.3 0 0 0 0-4.6M11.2 7.5v9"/></svg></div>Crypto<div id="cryBtcTile" class="tSub">₿ ...</div></button>
-  <button class="tile" onclick="showView('pokeView')"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></div>Pokemon</button>
-  <button class="tile" onclick="renderAgenda()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4m8-4v4M3 9h18"/></svg></div>Gedeelde agenda<span id="agBadge" class="ibBadge"></span></button>
-  <button class="tile" onclick="remOpen()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></svg></div>Herinneringen</button>
-  <button class="tile" onclick="hydOpen()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></div>Hydrocultuur</button>
-  <button class="tile" onclick="recOpen()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="M4 10h16"/><path d="M5 10v5a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6v-5"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/></svg></div>Recepten</button>
-  <button class="tile" onclick="ibOpen()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="M15 14c.2-1 1-1.7 1.8-2.5A6 6 0 1 0 6.2 11.5C7 12.2 7.8 13 8 14"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>Ideeënbus<span id="ibBadge" class="ibBadge"></span></button>
-    <button class="tile" onclick="prodOpen()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>Productzoeker</button>
-    <button class="tile" onclick="mistOpen()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3Z"/><path d="M5 3v4M3 5h4M19 17v4M17 19h4"/></svg></div>Mistral AI</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="cryOpen()"><div id="cryBtcTile" style="font-size:17px;line-height:1.1;margin:8px 0 9px;font-weight:800">₿ ...</div>Crypto</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="showView('pokeView')"><div style="font-size:28px;line-height:1;margin-bottom:6px">⚡</div>Pokemon</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="renderAgenda()"><div style="font-size:28px;line-height:1;margin-bottom:6px">📅</div>Gedeelde agenda<span id="agBadge" class="ibBadge"></span></button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="remOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🔔</div>Herinneringen</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="hydOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🌱</div>Hydrocultuur</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="recOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🍳</div>Recepten</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="ibOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">💡</div>Ideeënbus<span id="ibBadge" class="ibBadge"></span></button>
+    <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="prodOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🛍️</div>Productzoeker</button>
+    <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="mistOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🤖</div>Mistral AI</button>
   </div>
   </div>
-  <button class="btn yellow" id="homeLogin" onclick="showView('loginView');fbRenderLogin()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>Inloggen</span></button>
+  <button class="btn yellow" id="homeLogin" onclick="showView('loginView');fbRenderLogin()"><span class="bt"><span class="bi">🔐</span>Inloggen</span></button>
 </div>
 
 <!-- ===== POKEMON-PAGINA (v3.33) ===== -->
@@ -394,15 +382,15 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   <div id="pokeActions" style="display:none">
   <!-- v3.84: knoppen als tegels, net als op het beginscherm -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:340px;margin:0 auto">
-  <button class="tile" onclick="openCam()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/></svg></div>Foto van kaart maken</button>
-  <label class="tile"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg></div>Kies foto uit je bibliotheek
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="openCam()"><div style="font-size:28px;line-height:1;margin-bottom:6px">📷</div>Foto van kaart maken</button>
+  <label class="btn dark" style="margin:0;padding:18px 8px;font-size:13px"><div style="font-size:28px;line-height:1;margin-bottom:6px">🖼</div>Kies foto uit je bibliotheek
         <input type="file" accept="image/*" id="fileInputLib">
   </label>
-  <button class="tile" onclick="renderCollection()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></div>Mijn collectie</button>
-  <button class="tile" onclick="renderHistory()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M8 17v-4"/><path d="M13 17v-8"/><path d="M18 17v-5"/></svg></div>Scanrapport</button>
+  <button class="btn dark" style="margin:0;padding:18px 8px;font-size:13px" onclick="renderCollection()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🗂</div>Mijn collectie</button>
+  <button class="btn dark" style="margin:0;padding:18px 8px;font-size:13px" onclick="renderHistory()"><div style="font-size:28px;line-height:1;margin-bottom:6px">📚</div>Scanrapport</button>
   </div>
   <input type="file" accept="image/*" capture="environment" id="fileInput">
-  <button class="tile" style="margin:10px auto 0;display:block;max-width:340px" onclick="renderDeals()"><div class="tIc"><svg class="ln" viewBox="0 0 24 24"><path d="M12.6 2.6 21 11a2 2 0 0 1 0 2.8l-7.2 7.2a2 2 0 0 1-2.8 0L2.6 12.6A2 2 0 0 1 2 11.2V5a3 3 0 0 1 3-3h6.2c.5 0 1 .2 1.4.6Z"/><circle cx="7.5" cy="7.5" r=".8"/></svg></div>Aanbiedingsscanner</button>
+  <button class="btn dark" style="margin:10px auto 0;display:block;max-width:340px;padding:14px 8px;font-size:13px" onclick="renderDeals()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🔥</div>Aanbiedingsscanner</button>
   </div>
 </div>
 
@@ -417,8 +405,8 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   </div>
   <div id="capBar"><div id="capFill"></div></div>
   <div id="camBar">
-    <button class="btn dark" style="flex:1;margin:0" onclick="closeCam()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></span>Annuleren</span></button>
-    <button class="btn yellow" style="flex:1;margin:0" onclick="captureCam()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/></svg></span>Foto maken</span></button>
+    <button class="btn dark" style="flex:1;margin:0" onclick="closeCam()"><span class="bt"><span class="bi">⬅</span>Annuleren</span></button>
+    <button class="btn yellow" style="flex:1;margin:0" onclick="captureCam()"><span class="bt"><span class="bi">📷</span>Foto maken</span></button>
   </div>
 </div>
 
@@ -430,9 +418,9 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
       <p class="n">Log in om de gedeelde collectie en gescande kaarten te bekijken. Iedereen die inlogt (jij en je vriendin, elk met hun eigen account) ziet en bewerkt dezelfde collectie in de cloud. Uitgelogd = verborgen op dit apparaat.</p>
       <input id="logE" class="logIn" type="email" placeholder="E-mailadres" autocomplete="email">
       <input id="logP" class="logIn" type="password" placeholder="Wachtwoord" autocomplete="current-password" onkeydown="if(event.key==='Enter')fbLogin()">
-      <button class="btn yellow" style="margin-top:10px" onclick="fbLogin()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>Inloggen</span></button>
+      <button class="btn yellow" style="margin-top:10px" onclick="fbLogin()"><span class="bt"><span class="bi">🔐</span>Inloggen</span></button>
       <button class="btn dark" style="background:#fff;color:#0f172a;border:1px solid #e2e8f0" onclick="fbGoogle()"><svg viewBox="0 0 48 48" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.3 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-2.8-.4-4.1H24v8.4h12.5c-.3 2.1-1.6 5.2-4.6 7.3l7.6 5.9c4.4-4.1 6.6-10.1 6.6-17.5z"/><path fill="#FBBC05" d="M10.4 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.5-2 15.5-5.9l-7.6-5.9c-2 1.4-4.8 2.4-7.9 2.4-6.4 0-11.7-3.8-13.6-9.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg>Doorgaan met Google</button>
-      <button class="btn dark" onclick="fbRegister()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3Z"/><path d="M5 3v4M3 5h4M19 17v4M17 19h4"/></svg></span>Account aanmaken</span></button>
+      <button class="btn dark" onclick="fbRegister()"><span class="bt"><span class="bi">✨</span>Account aanmaken</span></button>
       <div id="logMsg" class="n" style="margin-top:8px"></div>
     </div>
   </div>
@@ -442,7 +430,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <div class="view" id="ntView">
   <div id="ntScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="ntScroll">
-    <button class="btn dark" style="color:#f87171" onclick="ntClear()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg></span>Meldingen wissen</span></button>
+    <button class="btn dark" style="color:#f87171" onclick="ntClear()"><span class="bt"><span class="bi">🗑</span>Meldingen wissen</span></button>
   </div>
 </div>
 
@@ -450,8 +438,8 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <div class="view" id="collectionView">
   <div id="colScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="colScroll" style="display:flex;gap:8px">
-    <button class="btn yellow" onclick="showView('colAddView')" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Kaart toevoegen</span></button>
-    <button class="btn dark" onclick="colRefresh(1)" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></span>Prijzen verversen</span></button>
+    <button class="btn yellow" onclick="showView('colAddView')" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Kaart toevoegen</span></button>
+    <button class="btn dark" onclick="colRefresh(1)" style="flex:1;margin-top:0"><span class="bt"><span class="bi">🔄</span>Prijzen verversen</span></button>
   </div>
 </div>
 <div class="view" id="colAddView">
@@ -461,7 +449,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
         style="width:100%;padding:10px;border-radius:10px;border:1px solid #1e293b;background:#0f172a;color:#f1f5f9;font-size:15px;">
       <input id="colN" placeholder="Kaartnummer (optioneel, bijv. 25 of 025/189)" inputmode="text" onkeydown="if(event.key==='Enter')colSearch()"
         style="width:100%;padding:10px;margin-top:8px;border-radius:10px;border:1px solid #1e293b;background:#0f172a;color:#f1f5f9;font-size:15px;">
-      <button class="btn yellow" style="margin-top:8px" onclick="colSearch()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>Zoeken</span></button>
+      <button class="btn yellow" style="margin-top:8px" onclick="colSearch()"><span class="bt"><span class="bi">🔍</span>Zoeken</span></button>
       <p class="n" style="margin-top:8px">Zoek op kaartnaam (+ optioneel kaartnummer) - vul je het nummer in, dan zie je alleen kaarten met precies dat nummer. Vul je ook de set in, dan filter je nog specifieker.</p>
       <input id="colS" placeholder="Set (optioneel, bijv. Base Set of Evolving Skies)" onkeydown="if(event.key==='Enter')colSearch()"
         style="width:100%;padding:10px;margin-top:8px;border-radius:10px;border:1px solid #1e293b;background:#0f172a;color:#f1f5f9;font-size:13px;">
@@ -1243,8 +1231,8 @@ function agRender(){
       h+='<div style="font-size:14px;margin-top:2px">'+colEsc(cap1(e.txt))+'</div>';
       if(e.modBy) h+='<div style="font-size:11px;color:#94a3b8;margin-top:3px">✏️ Gewijzigd door '+agName(e.modBy)+'</div>'; // v3.39: wie heeft gewijzigd
       h+='<div style="display:flex;gap:6px;margin-top:6px">';
-      h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="agEdit('+e.id+')"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span>Wijzigen</span></button>';
-      h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px;color:#f87171" onclick="agDel('+e.id+')"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg></span>Verwijderen</span></button>';
+      h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="agEdit('+e.id+')"><span class="bt"><span class="bi">✏️</span>Wijzigen</span></button>';
+      h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px;color:#f87171" onclick="agDel('+e.id+')"><span class="bt"><span class="bi">🗑</span>Verwijderen</span></button>';
       h+='</div>';
       h+='</div>';
     });
@@ -2125,8 +2113,8 @@ function ibRender(){
       var me=FB.user?String(FB.user.email).toLowerCase():"";
       if(e.c&&e.c.length){ e.c.forEach(function(c){ h+='<div class="ibCmt" style="border:1px solid '+ibClr(c.by)+'33"><div style="font-size:10px;font-weight:800;color:'+ibClr(c.by)+'">'+ibName(c.by)+' · '+ibFmt(c.ts)+(c.by===me?' <b style="color:#f87171;cursor:pointer" onclick="ibCmtDel('+e.id+','+c.id+')">✕</b>':'')+'</div><div style="display:flex;gap:6px;margin-top:1px;align-items:flex-start">'+(c.i?'<img src="'+c.i+'" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;cursor:pointer;flex:none" onclick="ibFull(this.src)">':'')+'<div style="font-size:13px;flex:1;min-width:0">'+colEsc(c.t)+'</div></div></div>'; }); }
       h+='<div style="display:flex;gap:6px;margin-top:6px">';
-      if(e.by===me){ h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibEdit('+e.id+')"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span>Bewerk</span></button>'; }
-      h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibCmt('+e.id+')"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg></span>Reactie</span></button>';
+      if(e.by===me){ h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibEdit('+e.id+')"><span class="bt"><span class="bi">✏️</span>Bewerk</span></button>'; }
+      h+='<button class="btn dark" style="flex:1;margin:0;font-size:12px;padding:8px" onclick="ibCmt('+e.id+')"><span class="bt"><span class="bi">💬</span>Reactie</span></button>';
       h+='<button class="btn dark" style="flex:.5;margin:0;font-size:15px;padding:8px;'+(e.ok?'background:#4ade80;color:#0f172a;':'color:#4ade80;')+'" onclick="ibOk('+e.id+')">✅</button>';
       h+='<button class="btn dark" style="flex:.5;margin:0;font-size:15px;padding:8px" onclick="ibPick('+e.id+',0)">📷</button>';
       h+='<button class="btn dark" style="flex:.5;margin:0;font-size:15px;padding:8px;color:#f87171" onclick="ibDel('+e.id+')">🗑</button></div>';
@@ -2380,13 +2368,13 @@ function hydDetRender(){
   var agD=hydAgeDays(e.p.pd); // v3.214: hoe oud de plant is in dagen - elke keer dat je het scherm opent of ververselt opnieuw berekend
   h+='<div class="remSub" style="margin-bottom:6px">🌱 Geplant: '+(e.p.pd?colEsc(e.p.pd):'nog niet ingevuld')+((agD!==null)?' · '+agD+' dag'+(agD===1?'':'en')+' oud':'')+'</div>';
   h+='<div style="display:flex;gap:8px">';
-  if(!e.p.pd) h+='<button class="btn dark" style="flex:1;margin-top:0" onclick="hydPdEdit('+e.id+')"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4m8-4v4M3 9h18"/></svg></span>Plantdatum</span></button>'; // v3.168: knop weg zodra de plantdatum vaststaat
-  h+='<button class="btn dark" style="flex:1;margin-top:0" onclick="hydPick('+e.id+',0)"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/></svg></span>Foto</span></button>';
+  if(!e.p.pd) h+='<button class="btn dark" style="flex:1;margin-top:0" onclick="hydPdEdit('+e.id+')"><span class="bt"><span class="bi">📅</span>Plantdatum</span></button>'; // v3.168: knop weg zodra de plantdatum vaststaat
+  h+='<button class="btn dark" style="flex:1;margin-top:0" onclick="hydPick('+e.id+',0)"><span class="bt"><span class="bi">📷</span>Foto</span></button>';
   h+='</div>';
   var ph=hydImgs(e.p); // v3.212: meerdere foto's per plant, elk met eigen verwijder-knop
   if(ph.length){ h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">'; ph.forEach(function(src,pi){ h+='<div style="position:relative"><img src="'+src+'" alt="" onclick="ibFull(this.src)" style="width:86px;height:86px;object-fit:cover;border-radius:8px;cursor:pointer;display:block"><button style="position:absolute;top:-6px;right:-6px;background:#1e293b;border:0;color:#f87171;border-radius:99px;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1;padding:0" onclick="hydPhDel('+e.id+',0,'+pi+')">✕</button></div>'; }); h+='</div>'; }
   h+='</div>';
-  h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🌱 AI-verzorgcheck</div><p class="n">De scan gebruikt altijd de foto van je laatste update - de uitslag komt als knop bij die update. Elke tik op de knop is een verse scan.</p><button class="btn yellow" style="margin-top:8px" onclick="hydAiStart()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3Z"/><path d="M5 3v4M3 5h4M19 17v4M17 19h4"/></svg></span>AI plant scan</span></button></div>'; // v3.188 + v3.214 + v3.216 + v3.218: geen oude uitslag meer op de plant-pagina - het resultaat staat alléén bij de update
+  h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🌱 AI-verzorgcheck</div><p class="n">De scan gebruikt altijd de foto van je laatste update - de uitslag komt als knop bij die update. Elke tik op de knop is een verse scan.</p><button class="btn yellow" style="margin-top:8px" onclick="hydAiStart()"><span class="bt"><span class="bi">🤖</span>AI plant scan</span></button></div>'; // v3.188 + v3.214 + v3.216 + v3.218: geen oude uitslag meer op de plant-pagina - het resultaat staat alléén bij de update
   h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📈 Updates</div>';
   if(!e.u.length) h+='<div class="remSub">Nog geen updates. Tik hieronder op "Update toevoegen".</div>';
   e.u.forEach(function(u){
@@ -2588,8 +2576,8 @@ function cryOpen(){ CRY_DET=null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,30
 function cryBarUpd(){
   var b=document.getElementById("cryBar"); if(!b) return;
   b.innerHTML = CRY_DET!==null
-    ? '<button class="btn dark" onclick="cryBack()" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></span>Terug naar munten</span></button>'
-    : '<button class="btn yellow" onclick="cryAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Munt toevoegen</span></button>';
+    ? '<button class="btn dark" onclick="cryBack()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">⬅</span>Terug naar munten</span></button>'
+    : '<button class="btn yellow" onclick="cryAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Munt toevoegen</span></button>';
 }
 function cryAdd(){
   var q=prompt("Welke munt wil je toevoegen? (bijvoorbeeld Bitcoin of BTC)");
@@ -3012,14 +3000,14 @@ function mistRender(){
       +'<div style="font-size:44px;line-height:1;margin-bottom:10px">🤖</div>'
       +'<div style="font-weight:800;font-size:16px;margin-bottom:6px">Mistral AI in de app</div>'
       +'<div class="remSub" style="text-align:left">Hier chat je met Mistral zonder de app te verlaten. Voer één keer je Mistral API-key in - die maak je gratis aan op console.mistral.ai (La Plateforme). De key wordt alleen op je eigen toestel bewaard en komt nooit bij anderen terecht.</div>'
-      +'<button class="btn yellow" style="margin-top:10px" onclick="mistKeyAsk()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>API-key invoeren</span></button>'
+      +'<button class="btn yellow" style="margin-top:10px" onclick="mistKeyAsk()"><span class="bt"><span class="bi">🔑</span>API-key invoeren</span></button>'
       +'</div>';
   } else if(MIST_MSGS.length===0){
     h+='<div class="card" style="text-align:center">'
       +'<div style="font-size:44px;line-height:1;margin-bottom:10px">🤖</div>'
       +'<div style="font-weight:800;font-size:16px;margin-bottom:6px">Mistral AI</div>'
       +'<div class="tip">Stel hieronder je vraag - het antwoord verschijnt direct in de app.</div>'
-      +'<button class="btn dark" style="margin-top:8px" onclick="mistKeyAsk()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>API-key wijzigen</span></button>'
+      +'<button class="btn dark" style="margin-top:8px" onclick="mistKeyAsk()"><span class="bt"><span class="bi">🔑</span>API-key wijzigen</span></button>'
       +'</div>';
   }
   MIST_MSGS.forEach(function(m){
@@ -3139,14 +3127,14 @@ function recDetRender(){
     h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📝 Beschrijving</div>';
     h+= dsc ? '<div class="remBody">'+colEsc(dsc)+'</div>' : '<div class="remSub">Nog geen beschrijving.</div>';
     h+='</div>';
-    if(bar) bar.innerHTML='<button class="btn yellow" style="flex:1;margin-top:0" onclick="recEditStart()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span>Bewerken</span></button><button class="btn dark" style="flex:none;width:110px;margin-top:0" onclick="recPick(REC_DET)"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/></svg></span>Foto</span></button>';
+    if(bar) bar.innerHTML='<button class="btn yellow" style="flex:1;margin-top:0" onclick="recEditStart()"><span class="bt"><span class="bi">✏️</span>Bewerken</span></button><button class="btn dark" style="flex:none;width:110px;margin-top:0" onclick="recPick(REC_DET)"><span class="bt"><span class="bi">📷</span>Foto</span></button>';
   } else { // v3.166: bewerk-modus - alles in 1x
     h+='<div class="tip" style="text-align:left">Zet elk ingredient op een eigen regel.</div>';
     h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">🧂 Ingredienten</div>';
     h+='<textarea id="recIngTa" placeholder="Bijv. 200 gr boter" style="width:100%;min-height:140px;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:10px;color:#f1f5f9;font-family:inherit;font-size:14px">'+colEsc(ing.join("\n"))+'</textarea></div>';
     h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">📝 Beschrijving</div>';
     h+='<textarea id="recDscTa" placeholder="Bereiding / beschrijving" style="width:100%;min-height:140px;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:10px;color:#f1f5f9;font-family:inherit;font-size:14px">'+colEsc(dsc)+'</textarea></div>';
-    if(bar) bar.innerHTML='<button class="btn yellow" style="flex:1;margin-top:0" onclick="recEditSave()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg></span>Opslaan</span></button><button class="btn dark" style="flex:none;width:110px;margin-top:0" onclick="recEditCancel()"><span class="bt">✕ Annuleer</span></button>';
+    if(bar) bar.innerHTML='<button class="btn yellow" style="flex:1;margin-top:0" onclick="recEditSave()"><span class="bt"><span class="bi">💾</span>Opslaan</span></button><button class="btn dark" style="flex:none;width:110px;margin-top:0" onclick="recEditCancel()"><span class="bt">✕ Annuleer</span></button>';
   }
   el.innerHTML=h;
   if(REC_EDIT){ // v3.200: meegetypte tekst automatisch als concept bewaren - bij een update/herlaad is niets meer kwijt
@@ -3401,7 +3389,7 @@ function fbSync(interactive){
 <div class="view" id="agendaView">
   <div id="agendaScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="agendaScroll" style="display:flex;gap:8px">
-    <button class="btn yellow" onclick="agAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Afspraak toevoegen</span></button>
+    <button class="btn yellow" onclick="agAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Afspraak toevoegen</span></button>
     <button class="btn dark" onclick="smMenu()" style="flex:none;width:110px;margin-top:0"><span class="bt">Samen</span></button>
   </div>
 </div>
@@ -3410,7 +3398,7 @@ function fbSync(interactive){
 <div class="view" id="ideaView">
   <div id="ideaScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="ideaScroll" style="display:flex;gap:8px">
-    <button class="btn yellow" onclick="ibAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M15 14c.2-1 1-1.7 1.8-2.5A6 6 0 1 0 6.2 11.5C7 12.2 7.8 13 8 14"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span>Idee toevoegen</span></button>
+    <button class="btn yellow" onclick="ibAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">💡</span>Idee toevoegen</span></button>
     <input type="file" id="ibFile" accept="image/*" onchange="ibFilePicked(this)">
   </div>
 </div>
@@ -3419,7 +3407,7 @@ function fbSync(interactive){
 <div class="view" id="remView">
   <div id="remScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="remScroll" style="display:flex;gap:8px">
-    <button class="btn yellow" onclick="remAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Herinnering toevoegen</span></button>
+    <button class="btn yellow" onclick="remAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Herinnering toevoegen</span></button>
   </div>
 </div>
 
@@ -3427,7 +3415,7 @@ function fbSync(interactive){
 <div class="view" id="hydView">
   <div id="hydScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="hydScroll" style="display:flex;gap:8px">
-    <button class="btn yellow" onclick="hydNew()" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Nieuwe plant</span></button>
+    <button class="btn yellow" onclick="hydNew()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Nieuwe plant</span></button>
   </div>
 </div>
 
@@ -3435,7 +3423,7 @@ function fbSync(interactive){
 <div class="view" id="hydDetView">
   <div id="hydDetScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="hydDetScroll" style="display:flex;gap:8px">
-    <button class="btn yellow" onclick="hydUpdAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Update toevoegen</span></button>
+    <button class="btn yellow" onclick="hydUpdAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Update toevoegen</span></button>
     <button class="btn dark" onclick="hydDel()" style="flex:none;width:110px;margin-top:0;color:#f87171"><span class="bt">🗑 Plant</span></button>
     <input type="file" id="hydFile" accept="image/*" onchange="hydFilePicked(this)">
     <input type="file" id="hydAiFile" accept="image/*" onchange="hydAiPicked(this)">
@@ -3447,7 +3435,7 @@ function fbSync(interactive){
 <div class="view" id="recView">
   <div id="recScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="recScroll" style="display:flex;gap:8px">
-    <button class="btn yellow" onclick="recNew()" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Nieuw recept</span></button><button id="recDelBtn" onclick="recDelMode()" style="flex:none;width:46px;height:46px;margin-top:0;border:0;border-radius:12px;background:#ef4444;color:#fff;font-size:18px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center">🗑</button>
+    <button class="btn yellow" onclick="recNew()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Nieuw recept</span></button><button id="recDelBtn" onclick="recDelMode()" style="flex:none;width:46px;height:46px;margin-top:0;border:0;border-radius:12px;background:#ef4444;color:#fff;font-size:18px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center">🗑</button>
   </div>
 </div>
 
@@ -3455,7 +3443,7 @@ function fbSync(interactive){
 <div class="view" id="prodView">
   <div id="prodScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="prodScroll" style="display:flex;gap:8px">
-    <button class="btn yellow" onclick="prodAsk()" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>Product zoeken</span></button>
+    <button class="btn yellow" onclick="prodAsk()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">🔎</span>Product zoeken</span></button>
   </div>
 </div>
 
@@ -3465,7 +3453,7 @@ function fbSync(interactive){
   <div class="bottomBar" data-scroll="mistScroll" style="display:flex;gap:8px;align-items:center">
     <input id="mistInp" placeholder="Stel je vraag aan Mistral..." onkeydown="if(event.key==='Enter')mistSend()"
       style="flex:1;min-width:0;padding:12px;border-radius:12px;border:1px solid #1e293b;background:#0f172a;color:#f1f5f9;font-size:15px;margin-top:0">
-    <button class="btn yellow" style="width:auto;margin-top:0;padding:12px 18px" onclick="mistSend()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Verstuur</span></button>
+    <button class="btn yellow" style="width:auto;margin-top:0;padding:12px 18px" onclick="mistSend()"><span class="bt"><span class="bi">➤</span>Verstuur</span></button>
   </div>
 </div>
 
@@ -3479,7 +3467,7 @@ function fbSync(interactive){
 <div class="view" id="cryptoView">
   <div id="cryScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="cryScroll" style="display:flex;gap:8px" id="cryBar">
-    <button class="btn yellow" onclick="cryAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Munt toevoegen</span></button>
+    <button class="btn yellow" onclick="cryAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Munt toevoegen</span></button>
   </div>
 </div>
 
@@ -3495,7 +3483,7 @@ function fbSync(interactive){
 <div class="view" id="dsHistView">
   <div id="dsHistScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="dsHistScroll">
-    <button class="btn dark" onclick="goBackTo('dealView');dsRender()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></span>Terug naar scanner</span></button>
+    <button class="btn dark" onclick="goBackTo('dealView');dsRender()"><span class="bt"><span class="bi">⬅</span>Terug naar scanner</span></button>
   </div>
 </div>
 
@@ -3525,15 +3513,15 @@ function fbSync(interactive){
 <!-- ===== SCAN-DETAIL ===== -->
 <div class="view" id="detailView">
   <div id="detailScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
-  <div class="bottomBar" data-scroll="detailScroll"><button class="btn dark" onclick="goBackTo('historyView')"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></span>Terug naar database</span></button></div>
+  <div class="bottomBar" data-scroll="detailScroll"><button class="btn dark" onclick="goBackTo('historyView')"><span class="bt"><span class="bi">⬅</span>Terug naar database</span></button></div>
 </div>
 
 <!-- ===== HISTORIE & RAPPORT ===== -->
 <div class="view" id="historyView">
   <div id="histScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <div class="bottomBar" data-scroll="histScroll">
-  <button class="btn dark" onclick="exportCSV()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M15 2v5h5"/><path d="M8 13h8M8 17h5"/></svg></span>Exporteren als CSV</span></button>
-  <button class="btn dark" style="margin-top:8px" onclick="clearScans()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg></span>Alles wissen</span></button>
+  <button class="btn dark" onclick="exportCSV()"><span class="bt"><span class="bi">📄</span>Exporteren als CSV</span></button>
+  <button class="btn dark" style="margin-top:8px" onclick="clearScans()"><span class="bt"><span class="bi">🗑</span>Alles wissen</span></button>
   </div>
 </div>
 
@@ -3552,7 +3540,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.222";
+var VERSION="3.223";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5284,11 +5272,11 @@ function runAnalysis(){
     +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>'
     // v2.68: Goed/Fout direct onder de analyse-tekst
     +'<div style="display:flex;gap:8px;margin-top:12px">'
-    +'<button class="btn dark" style="flex:1;margin:0" onclick="rejectScan()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Fout — opnieuw</span></button>'
-    +'<button class="btn yellow" style="flex:1;margin:0" onclick="acceptScan()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Goed — toevoegen</span></button>'
+    +'<button class="btn dark" style="flex:1;margin:0" onclick="rejectScan()"><span class="bt"><span class="bi">❌</span>Fout — opnieuw</span></button>'
+    +'<button class="btn yellow" style="flex:1;margin:0" onclick="acceptScan()"><span class="bt"><span class="bi">✅</span>Goed — toevoegen</span></button>'
     +'</div>'
     +'<div id="lookupResult"></div>'
-    +'<button class="btn dark" style="margin-top:10px" onclick="manualSearchShow()"><span class="bt"><span class="bi"><svg class="ln" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>Kaart handmatig zoeken</span></button>'
+    +'<button class="btn dark" style="margin-top:10px" onclick="manualSearchShow()"><span class="bt"><span class="bi">🔍</span>Kaart handmatig zoeken</span></button>'
     +'<div id="manualBox"></div>'
     +'<div id="cardDiffBox"></div>'
     +'</div>';
@@ -5513,7 +5501,7 @@ rbSync(); // v3.221: bij het opstarten de ververs-knop meteen goed zetten - vó�
 </script>
 </body>
 </html>
-<!--v:3.222-->
+<!--v:3.223-->
 
 
 
