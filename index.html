@@ -210,6 +210,7 @@
   body.pink #cryNewsBox p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.195: nieuws-kop in roze */
   body.pink .cryNewsIt { color:#f9a8d4 !important; } /* v3.195: nieuws-artikelen in roze */
   body.pink #colHistRead b { color:#f472b6 !important; } /* v3.198: grafiek-tik waarde in roze */
+  body.pink #prodScroll [style*="facc15"] { color:#f472b6 !important; } /* v3.210: productzoeker-kop en productnaam in roze */
   body.pink .n span[style*='facc15'] { color:#f472b6 !important; }
   body.pink h1 { color:#f9a8d4; }
   /* v3.40: confetti bij verjaardag in de agenda */
@@ -319,7 +320,7 @@
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.209</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.210</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -349,6 +350,7 @@
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="hydOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🌱</div>Hydrocultuur</button>
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="recOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🍳</div>Recepten</button>
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="ibOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">💡</div>Ideeënbus<span id="ibBadge" class="ibBadge"></span></button>
+    <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="prodOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🛍️</div>Productzoeker</button>
   </div>
   </div>
   <button class="btn yellow" id="homeLogin" onclick="showView('loginView');fbRenderLogin()"><span class="bt"><span class="bi">🔐</span>Inloggen</span></button>
@@ -2884,6 +2886,56 @@ function recEmoji(t){
   for(var i=0;i<M.length;i++){ if(s.indexOf(M[i][0])>-1) return M[i][1]; }
   return '🍳';
 } // v3.176: passende emoji per recept op basis van de naam
+// ===== v3.210: Productzoeker - product intypen, app zet de beste prijssites klaar =====
+var PROD_SRC=[
+  {n:"Google Shopping", e:"🛒", d:"alle webshops bij elkaar, gesorteerd op prijs", u:"https://www.google.com/search?tbm=shop&q="},
+  {n:"AI-onderzoek (Perplexity)", e:"🤖", d:"AI doorzoekt live het internet en zet winkels met prijzen bij elkaar", u:"https://www.perplexity.ai/search?q=", a:1},
+  {n:"Tweakers Pricewatch", e:"🖥", d:"NL-prijsvergelijker, ook zoeken op EAN-code", u:"https://tweakers.net/pricewatch/zoeken/?keyword="},
+  {n:"Bol.com", e:"🎁", d:"Nederlandse webshop", u:"https://www.bol.com/nl/nl/s/?searchtext="},
+  {n:"Amazon.nl", e:"📦", d:"groot aanbod, ook kleine verkopers", u:"https://www.amazon.nl/s?k="},
+  {n:"Marktplaats", e:"📱", d:"nieuw en tweedehands van particulieren", u:"https://www.marktplaats.nl/q/", tail:"/"}
+];
+function prodOpen(){ showView("prodView"); prodRender(); }
+function prodQ(){ try{ return localStorage.getItem("mcProdQ")||""; }catch(e){ return ""; } }
+function prodQs(){ try{ return JSON.parse(localStorage.getItem("mcProdQs")||"[]"); }catch(e){ return []; } }
+function prodAsk(){ // v3.210: nieuw product intypen
+  var q=prompt("Welk product zoek je?\nBijvoorbeeld: De'Longhi Magnifica S ECAM 22.110");
+  if(q===null) return;
+  q=String(q).trim(); if(!q) return;
+  try{ localStorage.setItem("mcProdQ",q); }catch(e){}
+  var qs=prodQs().filter(function(x){ return x!==q; }); qs.unshift(q); // recents voorin, geen dubbels
+  try{ localStorage.setItem("mcProdQs",JSON.stringify(qs.slice(0,6))); }catch(e){}
+  prodRender();
+}
+function prodRe(eq){ // v3.210: recente zoekopdracht weer aanzetten
+  var q=decodeURIComponent(eq); try{ localStorage.setItem("mcProdQ",q); }catch(e){}
+  prodRender();
+}
+function prodGo(i){ // v3.210: site openen met de zoekopdracht er al in
+  var q=prodQ(); if(!q){ prodAsk(); return; }
+  var s=PROD_SRC[i]; if(!s) return;
+  var sq=s.a?("Waar kan ik \""+q+"\" het goedkoopst kopen in Nederland? Geef een overzicht van winkels met prijzen en zeg waar het product het goedkoopst is."):q;
+  window.open(s.u+encodeURIComponent(sq)+(s.tail||""),"_blank");
+}
+function prodRender(){ // v3.210: overzicht met de beste plekken om te kopen
+  var sc=document.getElementById("prodScroll"); if(!sc) return;
+  var q=prodQ(), qs=prodQs(), h="";
+  h+='<h1 style="margin:4px 0 2px">🛍️ Productzoeker</h1><div class="sub">Vul een product in - je krijgt meteen de beste plekken om te kijken waar ie het goedkoopst is</div>';
+  if(!q){ h+='<div class="tip">Tik hieronder op "Product zoeken" en typ bijv. De\'Longhi Magnifica S ECAM 22.110.</div>'; }
+  else{
+    h+='<div class="card"><div style="font-size:15px;font-weight:800;margin:0 0 2px">Zoekresultaten voor: <span style="color:#facc15">'+colEsc(q)+'</span></div><div class="n" style="margin:0 0 10px">Elke knop opent de site met jouw product er al ingevuld - de prijssites staan meteen op prijs gesorteerd, de goedkoopste bovenaan.</div>';
+    for(var i=0;i<PROD_SRC.length;i++){ var s=PROD_SRC[i];
+      h+='<button class="btn '+(i===0?"yellow":"dark")+'" style="margin-top:'+(i===0?"0":"8px")+'" onclick="prodGo('+i+')"><span class="bt"><span class="bi">'+s.e+'</span>'+s.n+' - '+s.d+'</span></button>';
+    }
+    h+='</div>';
+  }
+  if(qs.length){
+    h+='<div class="n" style="margin:12px 0 4px;font-weight:700">Recent gezocht:</div>';
+    qs.forEach(function(qq){ h+='<button class="btn dark" style="margin-top:6px;padding:10px;font-size:13px" onclick="prodRe(\''+encodeURIComponent(qq).replace(/'/g,"%27")+'\')">'+colEsc(qq)+'</button>'; });
+  }
+  sc.innerHTML=h;
+}
+
 function recRender(){
   var a=slLoad("rec"), h="";
   if(!a.length) h+='<div class="tip">Nog geen recepten. Tik hieronder op "Nieuw recept".</div>';
@@ -3208,6 +3260,14 @@ function fbSync(interactive){
   </div>
 </div>
 
+<!-- ===== PRODUCTZOEKER (v3.210) ===== -->
+<div class="view" id="prodView">
+  <div id="prodScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <div class="bottomBar" data-scroll="prodScroll" style="display:flex;gap:8px">
+    <button class="btn yellow" onclick="prodAsk()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">🔎</span>Product zoeken</span></button>
+  </div>
+</div>
+
 <!-- ===== RECEPT-DETAIL (v3.164) ===== -->
 <div class="view" id="recDetView">
   <div id="recDetScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
@@ -3291,7 +3351,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.209";
+var VERSION="3.210";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3315,7 +3375,7 @@ function showView(id, noPush){
 var VIEW_UP={ pokeView:"home", camView:"pokeView", resultView:"pokeView", historyView:"pokeView", detailView:"historyView",
   collectionView:"pokeView", colAddView:"collectionView", colDetailView:"collectionView",
   cryptoView:"home", agendaView:"home", remView:"home", ideaView:"home", ntView:"home", loginView:"home",
-  hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView",
+  hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView", prodView:"home",
   dealView:"pokeView", dealAddView:"dealView", dsHistView:"dealView" };
 // v2.60: terug naar vorige pagina
 function goBack(){ // v3.197: één niveau omhoog in de vaste structuur - binnen een paar tikken altijd op home, geen lussen meer
@@ -5092,7 +5152,7 @@ function exportCSV(){
 </script>
 </body>
 </html>
-<!--v:3.209-->
+<!--v:3.210-->
 
 
 
