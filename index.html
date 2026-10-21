@@ -360,7 +360,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.246</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.247</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -618,7 +618,7 @@ function colRefresh(man){ // v3.175: man=1 bij knop Prijzen verversen (altijd me
   var a=colLoad(); if(!a.length) return;
   var ids=a.map(function(c){ return c.id; }), nCh=0, nErr=0;
   if(man){ try{ var pb0=document.getElementById("pushBanner"); if(pb0){ pb0.textContent="Prijzen ophalen..."; pb0.classList.add("show"); clearTimeout(window._pbT); } }catch(e4){} } // v3.177: direct zichtbaar dat de controle draait
-  function batch(list){
+  function batch(list, att){ // v3.247: att = poging-nummer van deze batch - de prijzendatabase geeft de laatste dagen wisselend een 500/502, dezelfde batch daarom tot 3x proberen
     if(!list.length){ colHistPoint(); colRender();
       if(nCh>0){
         if(FB.ready&&FB.user) fbSync(false); // v3.170: nieuwe prijzen meteen naar de cloud
@@ -638,7 +638,7 @@ function colRefresh(man){ // v3.175: man=1 bij knop Prijzen verversen (altijd me
         a.forEach(function(c){ if(byU[c.id]){ c.pu=byU[c.id].url; c.pd=byU[c.id].updatedAt||c.pd; } if(byC[c.id]&&!c.setC){ c.setC=byC[c.id]; } if(byId[c.id]!==undefined){ var np=byId[c.id]; if(np>0&&!c.manual){ if(Math.abs((c.price||0)-np)>0.005) nCh++; c.price=np; c.priceT=Date.now(); c.manual=false; } } }); // v3.202: vastgezette prijs (c.manual) nooit overschrijven
         colSave(a); batch(rest);
       })
-      .catch(function(){ nErr++; batch(rest); }); // v3.177: fout-teller voor eerlijke melding
+      .catch(function(){ if((att||0)<2){ setTimeout(function(){ batch(list,(att||0)+1); },1500); } else { nErr++; batch(rest); } }); // v3.247: eerst 2x opnieuw proberen (1,5s ertussen) - pas daarna telt het als fout; v3.177: fout-teller voor eerlijke melding
   }
   batch(ids);
 }
@@ -745,7 +745,8 @@ function colDetail(id){
   if(c.rarity) h+='<div class="n">Rarity: '+colEsc(c.rarity)+'</div>';
   h+='<div class="score" style="margin-top:8px"><span>Waarde</span><b>'+fmtE((c.price||0)*(c.qty||1))+'</b></div>';
   h+='<div class="n">(per stuk: '+fmtE(c.price||0)+' - '+(c.manual?'zelf vastgezet':'gemiddelde verkoopprijs op Cardmarket')+')</div>'; // v3.202
-  if(c.pd) h+='<div class="n">Prijs bijgewerkt op: '+colEsc(String(c.pd).split("/").reverse().join("-"))+'</div>'; // v3.185
+  if(c.pd) h+='<div class="n">Prijzendatabase bijgewerkt op: '+colEsc(String(c.pd).split("/").reverse().join("-"))+'</div>'; // v3.185 + v3.247: dit is de datum van de prijzendatabase zelf, niet van de app
+  if(c.priceT){ var pcD=new Date(c.priceT); h+='<div class="n">Prijs gecontroleerd door de app op: '+pcD.getDate()+"-"+(pcD.getMonth()+1)+"-"+pcD.getFullYear()+'</div>'; } // v3.247: de app checkt bij elke start en elk bezoek aan de collectie - hier zie je wanneer dat voor het laatst gelukt is
   if(!(c.price>0)) h+='<div class="n" style="color:#fbbf24">Nog geen Cardmarket-prijs in de database (zeer nieuwe set) - zodra die er is vult de app de waarde automatisch in. Voer anders zelf een waarde in.</div>';
   h+='<button class="btn dark" style="margin-top:8px;font-size:13px" onclick="colSetPrice(\''+c.id+'\')"><span class="bt">Waarde zelf invoeren / aanpassen</span></button>';
   h+='<button class="btn yellow" style="margin-top:8px;font-size:13px" onclick="colMkmLink(\''+c.id+'\')"><span class="bt">🛒 Op Cardmarket zoeken</span></button>'; // v3.196: Cardmarket-pagina met NL-verkopers + Engelse kaarten
@@ -3786,7 +3787,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.246";
+var VERSION="3.247";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5871,7 +5872,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.246-->
+<!--v:3.247-->
 
 
 
