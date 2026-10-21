@@ -361,7 +361,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.252</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.253</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3761,7 +3761,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.252";
+var VERSION="3.253";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4837,6 +4837,7 @@ function autoCardLookup(){
       var inp=document.getElementById("lookupName"); if(inp) inp.value=name;
       numPromise.then(function(num){
         window._ocrNum=num;
+        try{ var rl=document.getElementById("ocrReadLine"); if(rl) rl.innerHTML='Gelezen van de kaart: naam "<b>'+colEsc(name)+'</b>'+(num?' &middot; nummer "<b>'+colEsc(num)+'</b>':''); }catch(e3){} // v3.253
         if(!name){ el.innerHTML='<div class="note">❌ Kaartnaam niet automatisch te lezen.</div>'+manualFieldHTML(""); return; }
         el.innerHTML='<div class="note">🤖 Kaart herkend: <b>'+name+'</b> — gegevens ophalen…</div>';
         autoQuery(name,num);
@@ -4949,7 +4950,11 @@ function autoQuery(name, num){ // v3.252: eerst het GELEZEN NUMMER proberen - de
     if(num){ // v3.252: nummer-match vóór de niet-eenduidig-check
       var hit=pool.filter(function(c){ return normNum(c.localId)===normNum(num); });
       if(!hit.length && exact.length){ hit=list.filter(function(c){ return normNum(c.localId)===normNum(num); }); } // v3.252: naam net niet goed gelezen - nummer toch in de hele lijst zoeken
-      if(hit.length===1){ tcgdexPickByBrief(hit[0]); return; }
+      if(hit.length===1){ // v3.253: bij een niet-exact gelezen naam alleen automatisch kiezen als de namen op elkaar lijken - anders tik-lijst
+        var hn=String(hit[0].name||"").toLowerCase(), nm2=name.toLowerCase();
+        if(exact.length || hn.indexOf(nm2)>=0 || nm2.indexOf(hn)>=0){ tcgdexPickByBrief(hit[0]); return; }
+        showList(hit,'🤖 Kaartnaam niet eenduidig herkend — dit zijn de kaarten met nummer '+num+', tik de juiste aan:'); return;
+      }
       if(hit.length>1){ showList(hit,'🤖 Kaartnaam niet eenduidig herkend — dit zijn de kaarten met nummer '+num+', tik de juiste aan:'); return; }
     }
     if(pool.length===1){ tcgdexPickByBrief(pool[0]); return; }
@@ -5030,6 +5035,38 @@ function cardLooksPokemon(im,q){
   }catch(e){ return true; }
 }
 
+// v3.253: grafisch laten zien waar de scanner leest - groene kader = naam, oranje kader = nummer
+function scanVisHTML(){
+  if(!img||!rect) return "";
+  try{
+    var xs=[rect.tl.x,rect.tr.x,rect.br.x,rect.bl.x], ys=[rect.tl.y,rect.tr.y,rect.br.y,rect.bl.y];
+    var m=30; // wat marge rond de kaart zodat je de kaders goed ziet
+    var bx0=Math.max(0,Math.min.apply(null,xs)-m), by0=Math.max(0,Math.min.apply(null,ys)-m);
+    var bx1=Math.min(img.naturalWidth,Math.max.apply(null,xs)+m), by1=Math.min(img.naturalHeight,Math.max.apply(null,ys)+m);
+    var bw=bx1-bx0, bh=by1-by0;
+    var ohref=img.src;
+    try{ // iOS: HEIC/ruwe data-URL soms niet in SVG - gebied opnieuw coderen als compacte JPEG
+      var k=Math.min(1,1600/bw);
+      var cc=document.createElement("canvas"); cc.width=Math.max(1,Math.round(bw*k)); cc.height=Math.max(1,Math.round(bh*k));
+      var cctx=cc.getContext("2d");
+      if(cctx){ cctx.drawImage(img,bx0,by0,bw,bh,0,0,cc.width,cc.height); var chk=cctx.getImageData(0,0,1,1); if(chk&&chk.data[3]===255){ ohref=cc.toDataURL("image/jpeg",0.85); } }
+    }catch(e2){ ohref=img.src; }
+    function box(r,col){ // OCR-regio (fracties van de kaart) terug op de foto
+      var p1=quadPt(r[0],r[1]), p2=quadPt(r[0]+r[2],r[1]+r[3]);
+      var x=Math.min(p1[0],p2[0])-bx0, y=Math.min(p1[1],p2[1])-by0, w=Math.abs(p2[0]-p1[0]), h=Math.abs(p2[1]-p1[1]);
+      return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="none" stroke="'+col+'" stroke-width="'+Math.max(3,bw/150)+'" rx="6" />';
+    }
+    var poly=(rect.tl.x-bx0)+","+(rect.tl.y-by0)+" "+(rect.tr.x-bx0)+","+(rect.tr.y-by0)+" "+(rect.br.x-bx0)+","+(rect.br.y-by0)+" "+(rect.bl.x-bx0)+","+(rect.bl.y-by0);
+    return '<svg viewBox="0 0 '+bw+' '+bh+'" style="width:100%;display:block;border-radius:10px;background:#020617">'
+      +'<image href="'+ohref+'" x="0" y="0" width="'+bw+'" height="'+bh+'"/>'
+      +'<polygon points="'+poly+'" fill="none" stroke="#facc15" stroke-width="'+Math.max(2,bw/250)+'" />'
+      +box(OCR_NR,"#22c55e")
+      +box(OCR_NUMR,"#f97316")
+      +'</svg>'
+      +'<p class="tip" style="text-align:left;margin:4px 0 0"><span style="color:#22c55e;font-weight:700">Groen</span> = hier leest de scanner de naam, <span style="color:#f97316;font-weight:700">oranje</span> = hier het nummer, geel = gevonden kaartrand. <span id="ocrReadLine"></span></p>';
+  }catch(e){ return ""; }
+}
+
 // v3.251: scanner opnieuw gebouwd - de foto wordt alléén gebruikt om de kaart op
 // naam + nummer te herkennen. Geen AI-keuring, geen scanrapport, niets wordt opgeslagen.
 function recScan(){
@@ -5060,7 +5097,7 @@ function recScan(){
         showView("resultView");
         return;
       }
-      el.innerHTML='<div class="card"><div id="lookupResult"></div>'
+      el.innerHTML='<div class="card"><div id="scanVisBox">'+scanVisHTML()+'</div><div id="lookupResult"></div>'
         +'<div id="manualBox"></div>'
         +'<div style="display:flex;gap:8px;margin-top:12px">'
         +'<button class="btn dark" style="flex:1;margin:0" onclick="rejectScan()">Nieuwe foto</button>'
@@ -5166,7 +5203,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.252-->
+<!--v:3.253-->
 
 
 
