@@ -81,7 +81,7 @@
   .zoomInner svg { display:block; }
   .card { background:#0f172a; border-radius:16px; padding:14px; margin-bottom:8px; }
   /* v2.77: laatste kaart zonder dode ruimte eronder */
-  #resultScroll .card:last-child, #detailScroll .card:last-child { margin-bottom:0; }
+  #resultScroll .card:last-child { margin-bottom:0; }
   input[type=file] { display:none; }
   /* v2.78: eigen camera-scherm met geel kader in kaartverhouding */
   #camView { padding:10px; padding-top:calc(70px + env(safe-area-inset-top)); }
@@ -361,7 +361,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.250</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.251</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -408,7 +408,6 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
         <input type="file" accept="image/*" id="fileInputLib">
   </label>
   <button class="btn dark" style="margin:0;padding:18px 8px;font-size:13px" onclick="renderCollection()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🗂</div>Mijn collectie</button>
-  <button class="btn dark" style="margin:0;padding:18px 8px;font-size:13px" onclick="renderHistory()"><div style="font-size:28px;line-height:1;margin-bottom:6px">📚</div>Scanrapport</button>
   </div>
   <input type="file" accept="image/*" capture="environment" id="fileInput">
   <button class="btn dark" style="margin:10px auto 0;display:block;max-width:340px;padding:14px 8px;font-size:13px" onclick="renderDeals()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🔥</div>Aanbiedingsscanner</button>
@@ -855,7 +854,6 @@ function fbInit(){
       if(u){
         var g=fbGo; fbGo=null;
         if(g==="collectionView") renderCollection();
-        else if(g==="historyView") renderHistory();
         else { var lv=document.getElementById("loginView"); if(lv&&lv.classList.contains("active")) showView("home"); }
         fbSync(false); // v3.07-keuze: verversen bij het openen van de app
         setTimeout(function(){ try{ colRefreshAuto(); }catch(e3){} }, 8000); // v3.170: actuele kaart-prijzen ophalen en aanpassen bij elk app-opstarten
@@ -2236,7 +2234,7 @@ function verChkFin(nv){
   try{ if(navigator.vibrate) navigator.vibrate(120); }catch(e){}
   clearTimeout(window._pbT); window._pbT=setTimeout(function(){ var b2=document.getElementById("pushBanner"); if(b2) b2.classList.remove("show"); },6000); // v3.159: melding bovenin, verdwijnt vanzelf
   var _vv=curView, _vi=null; // v3.212: onthouden op welke pagina je was - na de update kom je daar weer terug
-  if(_vv==="hydDetView") _vi=HYD_DET; else if(_vv==="recDetView") _vi=REC_DET; else if(_vv==="colDetailView") _vi=window._colDetId; else if(_vv==="detailView") _vi=window._detailIdx; else if(_vv==="dsHistView") _vi=dsHistSite; else if(_vv==="cryptoView"&&CRY_DET!==null) _vi=CRY_DET;
+  if(_vv==="hydDetView") _vi=HYD_DET; else if(_vv==="recDetView") _vi=REC_DET; else if(_vv==="colDetailView") _vi=window._colDetId; else if(_vv==="dsHistView") _vi=dsHistSite; else if(_vv==="cryptoView"&&CRY_DET!==null) _vi=CRY_DET;
   try{ localStorage.setItem("mcVerView",JSON.stringify({v:_vv,i:_vi,t:Date.now()})); }catch(e){}
   setTimeout(function(){ location.replace(location.pathname.split("?")[0]+"?v="+encodeURIComponent(nv)+"&t="+Date.now()); },2500); // v3.159: na 2,5s automatisch herladen; &t= = uniek per herlaadbeurt (cache-mixer)
 }
@@ -3595,48 +3593,27 @@ function fbMergeHist(a,b){
   out.sort(function(x,y){ return x.t-y.t; });
   return out.slice(-500);
 }
-function fbMergeScans(local, remote){
-  var out=local.slice(), have={};
-  local.forEach(function(s){ have[s.id]=1; });
-  remote.forEach(function(rs){ if(!have[rs.id]) out.push(rs); });
-  out.sort(function(a,b){ return (b.id||0)-(a.id||0); });
-  if(out.length>200) out=out.slice(0,200);
-  return out;
-}
 
-// ---- sync: pull → merge → push (collectie + waarde-historie + scans) ----
+// ---- sync: pull → merge → push (collectie + waarde-historie) ---- // v3.251: scan-sync is weg met de scanrapporten
 function fbSyncNow(){ if(document.getElementById("menuWrap").classList.contains("open")) toggleMenu(); fbSync(true); } // v3.80: menu netjes dicht na synchroniseren
 function fbSync(interactive){
   if(!FB.ready){ if(interactive) fbStatus("Firebase nog niet gekoppeld."); return; }
   if(!FB.user){ if(interactive) fbStatus("Je bent niet ingelogd."); return; }
   fbStatus("Synchroniseren...");
   var db=FB.db, udoc=db.collection("shared").doc("mccard"); // v3.18: een gedeelde database voor alle accounts
-  Promise.all([ udoc.get(), udoc.collection("scans").get() ]).then(function(rs){
-    var d=rs[0].exists?rs[0].data():{};
+  udoc.get().then(function(rs){ // v3.251: geen scans-subcollectie meer
+    var d=rs.exists?rs.data():{};
     var del=colDelLoad(); (d.colDel||[]).forEach(function(id){ if(del.indexOf(id)<0) del.push(id); }); colDelSave(del); // v3.113: verwijderlijst van beide kanten samenvoegen
     var col=fbMergeCards(colLoad(), d.col||[]).filter(function(c){ return del.indexOf(c.id)<0; }); // v3.113: verwijderde kaarten weghouden
     var lRst=Number(localStorage.getItem("mcHistRst")||0), cRst=Number(d.histRst||0);
     var hist = cRst>lRst ? (localStorage.setItem("mcHistRst",String(cRst)), d.hist||[]) : (lRst>cRst ? colLoadH() : fbMergeHist(colLoadH(), d.hist||[])); // v3.123: grafiek-reset - nieuwste reset wint, oude piek komt niet terug
-    var rScans=[]; rs[1].forEach(function(doc){ rScans.push(doc.data()); });
-    var scans=fbMergeScans(getScans(), rScans);
     colSave(col); colSaveH(hist);
-    try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e){}
-    // terugschrijven naar de cloud (scans zonder de grote foto-blobs)
+    // terugschrijven naar de cloud
     var batch=db.batch();
     batch.set(udoc, { col:col, colDel:colDelLoad(), hist:hist, histRst:Number(localStorage.getItem("mcHistRst")||0), syncT:Date.now() }, { merge:true }); // v3.123: reset-tijdstempel van de grafiek mee-syncen // v3.113: ook de verwijderlijst mee-syncen
-    var have={};
-    scans.forEach(function(sc){
-      have[sc.id]=1;
-      batch.set(udoc.collection("scans").doc(String(sc.id)), { id:sc.id, d:sc.d, g:sc.g,
-        lr:sc.lr, tb:sc.tb, tT:sc.tT, tB:sc.tB, tL:sc.tL, tR:sc.tR, t:sc.t||null,
-        cn:sc.cn||null, cs:sc.cs||null, cno:sc.cno||null, cp:sc.cp||null, ci:sc.ci||null,
-        ai:sc.ai||null }); // v3.190: AI sub-scores syncen
-    });
-    rs[1].forEach(function(doc){ if(!have[doc.id]) batch.delete(doc.ref); });
     return batch.commit().then(function(){
-      fbStatus("✓ Gesynchroniseerd — "+col.length+" kaarten, "+scans.length+" scans");
+      fbStatus("✓ Gesynchroniseerd — "+col.length+" kaarten"); // v3.251
       try{ if(document.getElementById("colScroll")&&document.getElementById("collectionView").classList.contains("active")) colRender(); }catch(e){}
-      try{ if(document.getElementById("histScroll")&&document.querySelector("#histScroll").closest(".view").classList.contains("active")) renderHistory(); }catch(e){}
     });
   }).catch(function(e){ fbStatus("Sync mislukt: "+((e&&e.message)||"")); });
 }
@@ -3767,20 +3744,7 @@ function fbSync(interactive){
   <div id="resultScroll"></div>
 </div>
 
-<!-- ===== SCAN-DETAIL ===== -->
-<div class="view" id="detailView">
-  <div id="detailScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
-  <div class="bottomBar" data-scroll="detailScroll"><button class="btn dark" onclick="goBackTo('historyView')"><span class="bt"><span class="bi">⬅</span>Terug naar database</span></button></div>
-</div>
-
-<!-- ===== HISTORIE & RAPPORT ===== -->
-<div class="view" id="historyView">
-  <div id="histScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
-  <div class="bottomBar" data-scroll="histScroll">
-  <button class="btn dark" onclick="exportCSV()"><span class="bt"><span class="bi">📄</span>Exporteren als CSV</span></button>
-  <button class="btn dark" style="margin-top:8px" onclick="clearScans()"><span class="bt"><span class="bi">🗑</span>Alles wissen</span></button>
-  </div>
-</div>
+<!-- v3.251: scanrapport en scan-detail zijn weg - de scanner herkent de kaart alleen en slaat niets meer op -->
 
 <script>
 "use strict";
@@ -3797,7 +3761,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.250";
+var VERSION="3.251";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3825,7 +3789,7 @@ function showView(id, noPush){
   if(id==="home") cryHomeTick(); // v3.182: bitcoin-prijs op de crypto-tegel bijwerken
 }
 // v3.197: vaste hiërarchie voor de terug-knop - terug = altijd precies één niveau omhoog richting home
-var VIEW_UP={ pokeView:"home", camView:"pokeView", resultView:"pokeView", historyView:"pokeView", detailView:"historyView",
+var VIEW_UP={ pokeView:"home", camView:"pokeView", resultView:"pokeView",
   collectionView:"pokeView", colAddView:"collectionView", colDetailView:"collectionView",
   cryptoView:"home", agendaView:"home", remView:"home", ideaView:"home", ntView:"home", loginView:"home",
   hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView", prodView:"home", mistView:"home",
@@ -3872,8 +3836,6 @@ function refreshBtnTap(){ // v3.211: verversen op élke pagina met data - je bli
   if(id==="recView"){ slPull("rec",function(){ recRender(); done(); }); return; }
   if(id==="recDetView"){ slPull("rec",function(){ recDetRender(); done(); }); return; }
   if(id==="ideaView"){ ibPull(function(){ ibRender(); ibBadge(); done(); }); return; }
-  if(id==="historyView"){ renderHistory(); refSpinHide(); return; }
-  if(id==="detailView"){ showScanDetail(window._detailIdx); refSpinHide(); return; }
   if(id==="remView"){ remRender(); refSpinHide(); return; }
   if(id==="dsHistView"){ dsHistRender(); refSpinHide(); return; }
   refreshHome(); // home: de app zelf vers opnieuw laden - de spinner blijft zichtbaar tot de app opnieuw geladen is
@@ -4123,10 +4085,10 @@ function captureCam(){
   killCam(); // v2.99: stream + element volledig opruimen na de foto
   loadPhoto(c.toDataURL("image/jpeg",0.92));
 }
-function loadPhoto(dataUrl){ // v3.191: foto gaat meteen naar de AI-keuring - het oude centering-scherm is weg
+function loadPhoto(dataUrl){ // v3.251: foto gaat meteen naar de nieuwe scanner - kaart herkennen op naam + nummer
   var ci=new Image();
-  ci.onload=function(){ img=ci; aiRun(); };
-  ci.onerror=function(){ var el=document.getElementById("resultScroll"); if(el){ el.innerHTML='<div class="note">⚠️ Foto kon niet worden geladen - probeer het opnieuw.</div>'; showView("resultView"); } };
+  ci.onload=function(){ img=ci; recScan(); };
+  ci.onerror=function(){ var el=document.getElementById("resultScroll"); if(el){ el.innerHTML='<div class="note">Foto kon niet worden geladen - probeer het opnieuw.</div>'; showView("resultView"); } };
   ci.src=dataUrl;
 }
 
@@ -4640,415 +4602,17 @@ function setupCornerDrag(){
   });
 }
 
-// ---------- Centering: grijze rand meten ----------
-function analyzeCentering(){
-  if(!rect) return null;
-  var W=340, H=Math.round(340*88/63);
-  // minieme inset: meetkader 1% naar binnen zodat achtergrond-slierten buiten de kaart niet mee gemeten worden
-  var q0=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
-  var cx0=(q0[0][0]+q0[1][0]+q0[2][0]+q0[3][0])/4, cy0=(q0[0][1]+q0[1][1]+q0[2][1]+q0[3][1])/4;
-  var quad=q0.map(function(p){ return [p[0]+(cx0-p[0])*0.02, p[1]+(cy0-p[1])*0.02]; });
-  var wp=warpToQuad(quad,W,H);
-  if(!wp){ return { fail:true, help:"warp mislukt (homografie onoplosbaar — kaart te scheef?)",
-    tTop:null,tBot:null,tLeft:null,tRight:null }; }
-  if(wp.canvasFail){ return { fail:true, help:"canvas niet gevuld — foto kon niet gelezen worden (canvasFail)",
-    tTop:null,tBot:null,tLeft:null,tRight:null }; }
-  var data=wp.data, w=W, h=H;
-  function px(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; }
-  var w2=w, h2=h;
-  // v2.4: adaptieve meting — geen vaste drempel, maar per zijde zelf kalibreren
-  // + ruis-onderdrukking via gesmeerde gradient (buren-middeling)
-  function measureSide(fromStart,horizontal){
-    var len=horizontal?h:w, span=horizontal?w:h;
-  var lines=[];
-  var margin=Math.floor(span*0.15);
-  // v2.12: binnenrand zit ALTIJD vlak achter de gele randstrook (~15% van de kaart).
-  // v2.18: fysieke begrenzing — het randvlak van een standaard kaart (buitenrand +
-  // kaderlijn) is nooit meer dan ~8,5% van de kaartbreedte. Metingen dieper dan
-  // dat (zoals de 35px holo-glans op de Primarina) zijn dus per definitie fout
-  // en vallen buiten het zoekvenster.
-  var skip=Math.max(20,Math.floor(len*0.15));
-  skip=Math.min(skip,Math.round(Math.min(w,h)*0.085));
-  // v2.17: donkere-dip-detectie — de kaderlijn rond het artwork-venster is een
-  // DONKERE lijn vlak na de lichte rand. Zoek per meetlijn de EERSTE donkere dip;
-  // holo-glans dieper in het artwork kan die niet afpakken (komt pas later).
-  var dips=[];
-  for(var pos=margin;pos<span-margin;pos++){
-      // lijn inlezen met 1px marge voor smoothing
-      var pts=[], kk, dd;
-      for(kk=0;kk<=skip+2;kk++){
-        dd=fromStart?kk:len-1-kk;
-        pts.push(horizontal?px(pos,dd):px(dd,pos));
-      }
-      // v2.17: eerste donkere dip (kaderlijn) zoeken
-      var lum=function(p){ return 0.299*p[0]+0.587*p[1]+0.114*p[2]; };
-      var runMax=lum(pts[Math.min(6,pts.length-1)]), dipK=-1;
-      for(kk=6;kk<pts.length-1;kk++){
-        var l=lum(pts[kk]);
-        if(l<runMax*0.68&&l<190){ dipK=kk; break; }
-        if(l>runMax) runMax=l;
-      }
-      if(dipK>0) dips.push(dipK);
-      // gesmeerde gradients: verschil tussen 2px-afstand = minder ruisgevoelig
-      var grads=[0,0];
-      for(kk=2;kk<pts.length;kk++){
-        grads.push(Math.abs(pts[kk][0]-pts[kk-2][0])+Math.abs(pts[kk][1]-pts[kk-2][1])+Math.abs(pts[kk][2]-pts[kk-2][2]));
-      }
-      var bestK=-1, bestG=0, cands=[], ki;
-      for(ki=3;ki<Math.min(skip,grads.length-1);ki++){
-        // v2.13: alle kandidaat-overgangen (lokale gradientpieken) bewaren
-        if(grads[ki]>8&&grads[ki]>=grads[ki-1]&&grads[ki]>=grads[ki+1]) cands.push(ki);
-        if(grads[ki]>bestG){ bestG=grads[ki]; bestK=ki; }
-      }
-      lines.push({ pos:pos, bestK:bestK, bestG:bestG, cands:cands });
-    }
-    if(lines.length===0) return null;
-    // v2.17: kaderlijn-meting via dip-steun (histogram, 2px-bins)
-    if(dips.length>0){
-      var bins={}, bi;
-      dips.forEach(function(d){ bi=Math.round(d/2)*2; bins[bi]=(bins[bi]||0)+1; });
-      var bestBin=null, bestCnt=0;
-      for(bi in bins) if(bins[bi]>bestCnt){ bestCnt=bins[bi]; bestBin=+bi; }
-      if(bestCnt>=lines.length*0.35){
-        var sel=dips.filter(function(d){ return Math.abs(d-bestBin)<=2; });
-        var sum=0; sel.forEach(function(d){ sum+=d; });
-        return { v:sum/sel.length, medG:0, maxG:0, skip:skip, lines:lines, method:"dip" };
-      }
-    }
-    // terugval: v2.13-gradient-methode
-    // kalibratie: mediaan van de sterkste pieken bepaalt de drempel
-    var gs=lines.map(function(l){ return l.bestG; }).sort(function(a,b){ return a-b; });
-    var medG=gs[Math.floor(gs.length/2)];
-    var thr=Math.max(10, medG*0.5);
-    var th=[], maxSeen=0;
-    lines.forEach(function(l){
-      if(l.bestG>maxSeen) maxSeen=l.bestG;
-      if(l.bestG>=thr&&l.bestK>0) th.push(l.bestK);
-    });
-    if(th.length===0) return { fail:true, medG:Math.round(medG), maxG:Math.round(maxSeen), skip:skip };
-    th.sort(function(a,b){ return a-b; });
-    var mid=Math.floor(th.length/2);
-    var val=th.length%2===1 ? th[mid] : (th[mid-1]+th[mid])/2;
-    return { v:val, medG:Math.round(medG), maxG:Math.round(maxSeen), skip:skip, lines:lines };
-  }
-  // v2.13 pass 2: herkies per meetlijn de kandidaat-overgang die het dichtst bij
-  // de verwachte randdiepte ligt (mediaan van de vier zijden). De randbreedte is
-  // fysiek op alle zijden nagenoeg gelijk, dus een zijde die te diep meet
-  // (tekst of glans in het artwork die sterker is dan de kaderlijn) wordt gecorrigeerd.
-  function repick(r,target){
-    if(!r||r.fail||!r.lines) return r;
-    var picks=[];
-    r.lines.forEach(function(l){
-      var best=null, bd=1e9;
-      (l.cands||[]).forEach(function(c){ var d2=Math.abs(c-target); if(d2<bd){ bd=d2; best=c; } });
-      picks.push(best!==null?best:l.bestK);
-    });
-    if(picks.length===0) return r;
-    picks.sort(function(a,b){ return a-b; });
-    var m2=Math.floor(picks.length/2);
-    r.v=picks.length%2===1?picks[m2]:(picks[m2-1]+picks[m2])/2;
-    return r;
-  }
-  var rTop=measureSide(true,true), rBot=measureSide(false,true);
-  var rLeft=measureSide(true,false), rRight=measureSide(false,false);
-  // v2.13: pass 2 met kruis-validatie tussen de zijden
-  // (v2.17: alleen voor gradient-metingen; dip-metingen zijn al robuust)
-  var okSides=[rTop,rBot,rLeft,rRight].filter(function(r){ return r&&!r.fail; });
-  if(okSides.length>=2){
-    var expect=okSides.map(function(r){ return r.v; }).sort(function(a,b){ return a-b; });
-    var expMed=expect[Math.floor(expect.length/2)];
-    function guard(r){ return (r&&!r.fail&&r.method!=="dip")?repick(r,expMed):r; }
-    rTop=guard(rTop); rBot=guard(rBot); rLeft=guard(rLeft); rRight=guard(rRight);
-  }
-  if(inner&&inner.user){
-    // v2.42: blauwe binnenrand vast in de foto -> terugrekenen naar diktes op de kaart
-    var tTop,tBot,tLeft,tRight;
-    if(inner.mode==="abs"){
-      var ivTL=invertQuad(inner.tl[0],inner.tl[1]), ivTR=invertQuad(inner.tr[0],inner.tr[1]),
-          ivBL=invertQuad(inner.bl[0],inner.bl[1]), ivBR=invertQuad(inner.br[0],inner.br[1]);
-      var vT=(ivTL[1]+ivTR[1])/2, vB=(ivBL[1]+ivBR[1])/2, uL=(ivTL[0]+ivBL[0])/2, uR=(ivTR[0]+ivBR[0])/2;
-      tTop=Math.max(1,Math.min(H*0.45,vT*H));
-      tBot=Math.max(1,Math.min(H*0.45,(1-vB)*H));
-      tLeft=Math.max(1,Math.min(W*0.45,uL*W));
-      tRight=Math.max(1,Math.min(W*0.45,(1-uR)*W));
-    } else {
-      tTop=Math.min(H*0.45,inner.t*H); tBot=Math.min(H*0.45,inner.b*H);
-      tLeft=Math.min(W*0.45,inner.l*W); tRight=Math.min(W*0.45,inner.r*W);
-    }
-  } else {
-    if(!rTop||!rBot||!rLeft||!rRight||rTop.fail||rBot.fail||rLeft.fail||rRight.fail){
-      return { fail:true, tTop:rTop, tBot:rBot, tLeft:rLeft, tRight:rRight,
-        help:"piek-mediaan per zijde: top "+diag(rTop)+", onder "+diag(rBot)+", links "+diag(rLeft)+", rechts "+diag(rRight) };
-    }
-    var tTop=rTop.v, tBot=rBot.v, tLeft=rLeft.v, tRight=rRight.v;
-  }
-
-  var midTop=tTop/2, midBot=h-tBot/2, midLeft=tLeft/2, midRight=w-tRight/2;
-  var cx=w/2, cy=h/2;
-  var offX=((midRight-cx)-(cx-midLeft));
-  var offY=((midBot-cy)-(cy-midTop));
-  var devLR=Math.abs(offX)/w*100, devTB=Math.abs(offY)/h*100;
-
-  function fmt(p,q){ var t=Math.round(p*10)/10,u=Math.round(q*10)/10; return Math.max(t,u).toFixed(1)+"/"+Math.min(t,u).toFixed(1); }
-  var maxDev=Math.max(devLR,devTB);
-  var grade=10;
-  if(maxDev>6) grade=6; else if(maxDev>4) grade=7; else if(maxDev>2.5) grade=8; else if(maxDev>1.2) grade=9; else if(maxDev>0.4) grade=9.5;
-  // v2.72: korte uitslag - 2 regels resultaat, oordeel komt eronder
-  // v2.75: randdiktes in twee kolommen naast elkaar
-  var notes=[ '<span style="display:inline-block;width:49%">⬆ '+(Math.round(tTop*10)/10)+"px · ⬇ "+(Math.round(tBot*10)/10)+'px</span><span style="display:inline-block;width:49%">⬅ '+(Math.round(tLeft*10)/10)+"px · ➡ "+(Math.round(tRight*10)/10)+'px</span>',
-          "Middenafwijking: LR "+(Math.round(devLR*100)/100)+"% "+(offX>0?"→":"←")+" · TB "+(Math.round(devTB*100)/100)+"% "+(offY>0?"↓":"↑") ];
-  if(grade>=9.5) notes.push("Praktisch perfect gecenterd 🎉");
-  else if(grade>=9) notes.push("Goed gecenterd — scoort doorgaans 9-10 bij grading.");
-  else if(grade>=8) notes.push("Acceptabel gecenterd, kans op 8-9.");
-  else notes.push("Zichtbaar off-center — beïnvloedt de grade flink.");
-
-  var vc=document.createElement("canvas"); vc.width=w; vc.height=h;
-  var vctx=vc.getContext("2d");
-  var id=vctx.createImageData(w,h);
-  for(var ii=0;ii<data.length;ii++) id.data[ii]=data[ii];
-  vctx.putImageData(id,0,0);
-  // v2.14: hi-res warp (2x) alleen voor de weergave -> geen wazige kaart
-  var wpHi=warpToQuad(quad,w*2,h*2), imgHref=null;
-  if(wpHi&&wpHi.data&&!wpHi.canvasFail){
-    var vcHi=document.createElement("canvas"); vcHi.width=w*2; vcHi.height=h*2;
-    var vctxHi=vcHi.getContext("2d"); var idHi=vctxHi.createImageData(w*2,h*2);
-    for(var ij=0;ij<wpHi.data.length;ij++) idHi.data[ij]=wpHi.data[ij];
-    vctxHi.putImageData(idHi,0,0);
-    imgHref=vcHi.toDataURL("image/png");
-  }
-  if(!imgHref) imgHref=vc.toDataURL("image/png");
-  var vis='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;display:block">'
-    +'<image href="'+imgHref+'" x="0" y="0" width="'+w+'" height="'+h+'"/>'
-    +'<rect x="1" y="1" width="'+(w-2)+'" height="'+(h-2)+'" fill="none" stroke="#facc15" stroke-width="2"/>'
-    +'<rect x="'+tLeft+'" y="'+tTop+'" width="'+(w-tLeft-tRight)+'" height="'+(h-tTop-tBot)+'" fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-dasharray="5 4"/>'
-    +'<line x1="'+cx+'" y1="0" x2="'+cx+'" y2="'+h+'" stroke="#f87171" stroke-width="1" stroke-dasharray="3 5"/>'
-    +'<line x1="0" y1="'+cy+'" x2="'+w+'" y2="'+cy+'" stroke="#f87171" stroke-width="1" stroke-dasharray="3 5"/>'
-    +'<circle cx="'+midLeft+'" cy="'+cy+'" r="4" fill="#38bdf8"/>'
-    +'<circle cx="'+midRight+'" cy="'+cy+'" r="4" fill="#38bdf8"/>'
-    +'<circle cx="'+cx+'" cy="'+midTop+'" r="4" fill="#38bdf8"/>'
-    +'<circle cx="'+cx+'" cy="'+midBot+'" r="4" fill="#38bdf8"/>'
-    +'</svg>';
-  var tc=document.createElement("canvas"); tc.width=68; tc.height=Math.round(68*h/w*1);
-  tc.width=68; tc.height=Math.round(68*(h/w));
-  tc.getContext("2d").drawImage(vc,0,0,tc.width,tc.height);
-  var thumb=tc.toDataURL("image/jpeg",0.5);
-  // v2.15: grotere preview voor de detail-weergave (300px breed)
-  var pc=document.createElement("canvas"); pc.width=300; pc.height=Math.round(300*(h/w));
-  pc.getContext("2d").drawImage(vc,0,0,pc.width,pc.height);
-  var big=pc.toDataURL("image/jpeg",0.75);
-  var ai=aiCardAssess(data,w,h,tTop,tBot,tLeft,tRight,devLR,devTB); // v3.190: AI-keuring - totaalbeoordeling i.p.v. alleen centering
-  ai.sp=aiFindSpots(data,w,h,tTop,tBot,tLeft,tRight,ai); // v3.191: markeringen voor op de foto
-  return { grade:ai.tot, notes:notes, vis:vis, thumb:thumb, big:big, devLR:devLR, devTB:devTB,
-           tTop:tTop, tBot:tBot, tLeft:tLeft, tRight:tRight, ai:{cen:ai.cen,cor:ai.cor,edg:ai.edg,sur:ai.sur,tip:ai.tip,v:ai.v,sp:ai.sp} };
-}
-
-function aiCardAssess(data,w,h,tTop,tBot,tLeft,tRight,devLR,devTB){ // v3.190: AI totaal-beoordeling - centering, hoeken, randen en oppervlak uit de foto
-  function lum(x,y){ var i=(y*w+x)*4; return data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114; }
-  var tip=[], maxDev=Math.max(devLR,devTB);
-  var cen=10;
-  if(maxDev>6) cen=6; else if(maxDev>4) cen=7; else if(maxDev>2.5) cen=8; else if(maxDev>1.2) cen=9; else if(maxDev>0.4) cen=9.5;
-  var cw=Math.max(12,Math.round(w*0.07)), chh=Math.max(12,Math.round(h*0.045)), corMin=10;
-  [[0,0],[w-cw,0],[0,h-chh],[w-cw,h-chh]].forEach(function(c){ // hoeken: slijtage = witte vegen of donkere deukjes t.o.v. de omgeving
-    var vals=[];
-    for(var y=c[1];y<c[1]+chh;y++){ for(var x=c[0];x<c[0]+cw;x++){ vals.push(lum(x,y)); } }
-    if(!vals.length) return;
-    vals.sort(function(a,b){ return a-b; });
-    var med=vals[Math.floor(vals.length/2)], bad=0;
-    vals.forEach(function(v){ if(v>med+50||v<med-50) bad++; });
-    var sc=Math.max(0,10-Math.round(bad/vals.length*45));
-    if(sc<corMin) corMin=sc;
-  });
-  function stripScore(x0,y0,x1,y1){ // randstrook tussen kaartrand en binnenrand per zijde
-    var vals=[];
-    for(var y=y0;y<y1;y+=2){ for(var x=x0;x<x1;x+=2){ vals.push(lum(x,y)); } }
-    if(!vals.length) return null;
-    vals.sort(function(a,b){ return a-b; });
-    var med=vals[Math.floor(vals.length/2)], bad=0;
-    vals.forEach(function(v){ if(v>med+52||v<med-52) bad++; });
-    return Math.max(0,10-Math.round(bad/vals.length*55));
-  }
-  var eT=stripScore(6,0,w-6,Math.max(6,Math.min(tTop,h*0.2)));
-  var eB=stripScore(6,h-Math.max(6,Math.min(tBot,h*0.2)),w-6,h);
-  var eL=stripScore(0,6,Math.max(6,Math.min(tLeft,w*0.2)),h-6);
-  var eR=stripScore(w-Math.max(6,Math.min(tRight,w*0.2)),6,w,h-6);
-  var edg=Math.min(eT===null?10:eT, eB===null?10:eB, eL===null?10:eL, eR===null?10:eR);
-  var x0=Math.round(tLeft)+4, x1=w-Math.round(tRight)-4, y0=Math.round(tTop)+4, y1=h-Math.round(tBot)-4, sur=10, glare=0, dark=0;
-  if(x1-x0>20&&y1-y0>20){ // oppervlak: glans (uitgebeten plekken) en donkere vlekjes
-    var vv=[];
-    for(var y2=y0;y2<y1;y2+=2){ for(var x2=x0;x2<x1;x2+=2){ var v2=lum(x2,y2); vv.push(v2); if(v2>=252) glare++; } }
-    vv.sort(function(a,b){ return a-b; });
-    var med2=vv[Math.floor(vv.length/2)];
-    vv.forEach(function(v){ if(v<med2*0.3) dark++; });
-    var frG=glare/vv.length, frD=Math.max(0,dark/vv.length-0.02);
-    sur=Math.max(0,Math.min(10,10-Math.round(frG*60)-Math.round(frD*200)));
-  }
-  var lap=0, ln=0; // scherpte van de foto (Laplacian) - alleen als tip, niet als kaart-score
-  for(var y3=2;y3<h-2;y3+=2){ for(var x3=2;x3<w-2;x3+=2){ var cc=lum(x3,y3); lap+=Math.abs(4*cc-lum(x3-1,y3)-lum(x3+1,y3)-lum(x3,y3-1)-lum(x3,y3+1)); ln++; } }
-  var sharp=ln?lap/ln:0;
-  if(sharp<7) tip.push("De foto is wat wazig - maak eventueel een scherpere foto voor een nauwkeuriger beoordeling.");
-  if(corMin<=7) tip.push("Hoeken vertonen tekenen van slijtage of schaduw - check ze zelf even bij fel licht.");
-  if(edg<=7) tip.push("Randen lijken vlekkig of beschadigd - kan ook schaduw of licht op de foto zijn.");
-  if(sur<=7) tip.push("Oppervlak vertoont glans of vlekken op de foto - fotografeer zonder directe lichtbron voor een betere meting.");
-  if(maxDev>2.5) tip.push("De kaart is zichtbaar off-center - dat drukt de totaalscore flink.");
-  if(!tip.length) tip.push("Kaart ziet er netjes uit op deze foto.");
-  if(tip.length>3) tip=tip.slice(0,3);
-  var tot=Math.max(0,Math.min(10,Math.round((cen*0.4+corMin*0.2+edg*0.2+sur*0.2)*10)/10));
-  var verd=tot>=9?"Uitstekende kaart - zo te zien klaar voor grading.":tot>=8?"Goede kaart - kleine puntjes, nette score.":tot>=7?"Netjes, maar met duidelijke minpunten.":tot>=6?"Redelijke kaart - meerdere punten om naar te kijken.":"Veel slijtage of beschadiging zichtbaar op deze foto.";
-  return { cen:cen, cor:corMin, edg:edg, sur:sur, tot:tot, v:verd, tip:tip };
-}
-function aiSubRow(nm,sc,sub2){ // v3.190: sub-score regel van de AI-keuring
-  sc=Math.max(0,Math.min(10,sc||0));
-  return '<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><div class="n" style="margin:0;width:80px">'+nm+'</div><div class="bar" style="flex:1;height:6px;margin:0"><div style="width:'+(sc*10)+'%;background:'+gradeColor(sc)+'"></div></div><b class="aiV" style="margin:0;width:30px;text-align:right;font-size:13px;color:'+gradeColor(sc)+'">'+(Math.round(sc*10)/10)+'</b></div>'+(sub2?'<p class="n" style="margin:1px 0 4px 88px;color:#64748b">'+sub2+'</p>':'');
-}
-function aiFindSpots(data,w,h,tTop,tBot,tLeft,tRight,ai){ // v3.191: plekken op de kaart waar de AI iets opmerkt
-  function lum(x,y){ var i=(y*w+x)*4; return data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114; }
-  var sp=[];
-  var cw=Math.max(12,Math.round(w*0.07)), chh=Math.max(12,Math.round(h*0.045));
-  if(ai.cor<=8){ // zwakste hoek markeren
-    var worst=-1, wx=0, wy=0;
-    [[0,0],[w-cw,0],[0,h-chh],[w-cw,h-chh]].forEach(function(c){
-      var vals=[];
-      for(var y=c[1];y<c[1]+chh;y++){ for(var x=c[0];x<c[0]+cw;x++){ vals.push(lum(x,y)); } }
-      if(!vals.length) return;
-      vals.sort(function(a,b){ return a-b; });
-      var med=vals[Math.floor(vals.length/2)], bad=0;
-      vals.forEach(function(v){ if(v>med+50||v<med-50) bad++; });
-      var sc=Math.max(0,10-Math.round(bad/vals.length*45));
-      if(sc>worst){ worst=sc; wx=c[0]+cw/2; wy=c[1]+chh/2; }
-    });
-    if(worst>=0) sp.push({x:wx,y:wy,lb:"Hoek "+worst+"/10"});
-  }
-  function edgeSpot(x0,y0,x1,y1,lb){ // slechtste plek langs een randstrook
-    var vals=[];
-    for(var y=y0;y<y1;y+=2){ for(var x=x0;x<x1;x+=2){ vals.push([x,y,lum(x,y)]); } }
-    if(!vals.length) return;
-    vals.sort(function(a,b){ return a[2]-b[2]; });
-    var med=vals[Math.floor(vals.length/2)][2];
-    var bad=vals.filter(function(v){ return v[2]>med+52||v[2]<med-52; });
-    if(!bad.length) return;
-    var sc=Math.max(0,10-Math.round(bad.length/vals.length*55));
-    if(sc>8) return;
-    var sx=0, sy=0;
-    bad.forEach(function(v){ sx+=v[0]; sy+=v[1]; });
-    sp.push({x:sx/bad.length,y:sy/bad.length,lb:lb+" "+sc+"/10"});
-  }
-  edgeSpot(6,0,w-6,Math.max(6,Math.min(tTop,h*0.2)),"Rand boven");
-  edgeSpot(6,h-Math.max(6,Math.min(tBot,h*0.2)),w-6,h,"Rand onder");
-  edgeSpot(0,6,Math.max(6,Math.min(tLeft,w*0.2)),h-6,"Rand links");
-  edgeSpot(w-Math.max(6,Math.min(tRight,w*0.2)),6,w,h-6,"Rand rechts");
-  if(ai.sur<=8){ // middelpunt van glans- of vlekplekken in het oppervlak
-    var x0=Math.round(tLeft)+4, x1=w-Math.round(tRight)-4, y0=Math.round(tTop)+4, y1=h-Math.round(tBot)-4;
-    if(x1-x0>20&&y1-y0>20){
-      var vv=[];
-      for(var y2=y0;y2<y1;y2+=2){ for(var x2=x0;x2<x1;x2+=2){ vv.push([x2,y2,lum(x2,y2)]); } }
-      vv.sort(function(a,b){ return a[2]-b[2]; });
-      var med2=vv[Math.floor(vv.length/2)][2];
-      var bad2=vv.filter(function(v){ return v[2]>=252||v[2]<med2*0.3; });
-      if(bad2.length){
-        var sx2=0, sy2=0;
-        bad2.forEach(function(v){ sx2+=v[0]; sy2+=v[1]; });
-        sp.push({x:sx2/bad2.length,y:sy2/bad2.length,lb:"Oppervlak "+ai.sur+"/10"});
-      }
-    }
-  }
-  if(sp.length>4) sp=sp.slice(0,4); // maximaal 4 markeringen, anders wordt het druk
-  return sp;
-}
-function gradeColor(g){ return g>=9.5?"#22c55e":g>=9?"#84cc16":g>=8?"#eab308":"#f97316"; }
-
 // ---------- v2.25: kaart opzoeken via de officiële Pokémon TCG API ----------
 // ===== v3.211: kaart altijd handmatig kunnen zoeken + jouw foto vergelijken met het origineel =====
 function manualSearchShow(){ // v3.211: handmatig zoeken kan nu altijd, ook als de AI de kaart al herkende
   var mb=document.getElementById("manualBox"); if(!mb) return;
   var ex=document.getElementById("lookupName");
   if(ex){ try{ ex.focus(); }catch(e){} return; } // stond al op het scherm (herkennen mislukt) - gewoon erheen
-  mb.innerHTML='<p class="n" style="margin:8px 0 4px;color:#94a3b8">Zoek de kaart handmatig - naam + nummer erachter, bijv. "Fomantis 13". Daarna vergelijkt de app jouw foto met het origineel:</p>'
+  mb.innerHTML='<p class="n" style="margin:8px 0 4px;color:#94a3b8">Zoek de kaart handmatig - naam + nummer erachter, bijv. "Fomantis 13". Daarna zie je meteen de kaartgegevens en de marktprijs:</p>'
     +'<div style="display:flex;gap:8px;margin-bottom:6px">'
     +'<input id="lookupName" placeholder="kaartnaam + nummer, bijv. Fomantis 13" value="" style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:14px">' // v3.219: handmatig zoeken begint leeg - de OCR-gok staat niet meer in het veld
     +'<button class="btn dark" style="margin:0;padding:8px 12px" onclick="lookupCard()">Zoek</button>'
     +'</div>';
-}
-function cardDiffShow(c){ // v3.211: jouw kaartfoto naast het origineel uit de database, verschillen rood omkaderd
-  var el=document.getElementById("cardDiffBox"); if(!el) return;
-  var off=(c&&c.images&&c.images.large)||"";
-  if(!off){ el.innerHTML=""; return; }
-  el.innerHTML='<div class="note" style="margin-top:10px">⏳ Jouw foto wordt vergeleken met het origineel...</div>';
-  var CW=300, CH=Math.round(300*88/63), mine=document.createElement("canvas"), ok=false, edgeTip=""; // v3.219: edgeTip = melding als de kaart de rand van de foto raakt
-  mine.width=CW; mine.height=CH;
-  try{
-    if(img&&rect){
-      var q=[[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]];
-      try{ // v3.219: eerlijke melding als de kaart de rand van de foto raakt - dan kan de vergelijking nooit volledig zijn
-        var nwq=img.naturalWidth, nhq=img.naturalHeight, qT=false;
-        q.forEach(function(p){ if(p[0]<=nwq*0.01||p[0]>=nwq*0.99||p[1]<=nhq*0.01||p[1]>=nhq*0.99) qT=true; });
-        if(qT) edgeTip="De kaart raakt de rand van je foto - maak de volgende foto met wat meer ruimte rond de kaart, dan is de vergelijking volledig.";
-      }catch(eT){}
-      var mCx=(q[0][0]+q[1][0]+q[2][0]+q[3][0])/4, mCy=(q[0][1]+q[1][1]+q[2][1]+q[3][1])/4;
-      q=q.map(function(p){ return [p[0]+(p[0]-mCx)*0.02, p[1]+(p[1]-mCy)*0.02]; }); // v3.219: 2% buiten de kaartrand - de vergelijking laat de hele kaartrand zien, ook als de detectie een haar binnen de kaart zat
-      var wp=warpToQuad(q,CW,CH); // v3.211: jouw foto recht op de kaart-rand gezet, precies zoals het origineel staat
-      if(wp&&wp.data&&!wp.canvasFail){
-        var mctx=mine.getContext("2d"), mid=mctx.createImageData(CW,CH);
-        for(var i=0;i<wp.data.length;i++) mid.data[i]=wp.data[i];
-        mctx.putImageData(mid,0,0); ok=true;
-      }
-    }
-  }catch(e){ ok=false; }
-  function head(){ return '<div style="margin-top:12px"><div class="n" style="font-weight:800;color:#e2e8f0;margin:2px 0 4px">🔍 Vergelijking met het origineel</div>'+(edgeTip?'<div class="tip" style="text-align:left;margin:2px 0 4px">'+edgeTip+'</div>':''); } // v3.219: fotorand-tip boven de vergelijking
-  function start(oim){
-    var mURL=ok?mine.toDataURL("image/jpeg",0.85):((img&&img.src)||off);
-    if(!ok||!oim){ // geen rechte kaart uit de foto of origineel niet leesbaar: alleen naast elkaar
-      el.innerHTML=head()+'<div style="display:flex;gap:6px">'
-        +'<div style="flex:1"><img src="'+mURL+'" style="width:100%;border-radius:8px;display:block"><div class="tip" style="margin:2px 0 0">Jouw kaart</div></div>'
-        +'<div style="flex:1"><img src="'+off+'" style="width:100%;border-radius:8px;display:block"><div class="tip" style="margin:2px 0 0">Origineel</div></div>'
-        +'</div>'
-        +(!ok?'<div class="tip" style="margin:6px 0 0">De app kon jouw kaart niet recht uit de foto halen - maak eventueel een nieuwe foto met de hele kaart in beeld.</div>':'<div class="tip" style="margin:6px 0 0">Het origineel kon niet worden gelezen voor de pixel-vergelijking - ze staan nu alleen naast elkaar.</div>')
-        +'</div>';
-      return;
-    }
-    try{ diff(oim); }catch(e){ start(null); }
-  }
-  function diff(oim){
-    var oc=document.createElement("canvas"); oc.width=CW; oc.height=CH;
-    var octx=oc.getContext("2d"); octx.drawImage(oim,0,0,CW,CH);
-    var md=mine.getContext("2d").getImageData(0,0,CW,CH).data, od=octx.getImageData(0,0,CW,CH).data;
-    var CS=20, gw=Math.floor(CW/CS), gh=Math.floor(CH/CS), cells=[], all=[];
-    for(var gy=0;gy<gh;gy++){ for(var gx=0;gx<gw;gx++){
-      var s=0;
-      for(var y=0;y<CS;y++){ var base=((gy*CS+y)*CW+(gx*CS))*4;
-        s+=Math.abs((md[base]*0.299+md[base+1]*0.587+md[base+2]*0.114)-(od[base]*0.299+od[base+1]*0.587+od[base+2]*0.114));
-      }
-      var mv=s/(CS*CS); cells.push({gx:gx,gy:gy,v:mv}); all.push(mv);
-    } }
-    all.sort(function(a,b){ return a-b; });
-    var med=all[Math.floor(all.length/2)]||0, thr=Math.max(16,med*2.6), hot=cells.filter(function(cl){ return cl.v>=thr; });
-    var ov=document.createElement("canvas"); ov.width=CW; ov.height=CH;
-    var ovc=ov.getContext("2d"); ovc.drawImage(mine,0,0);
-    ovc.fillStyle="rgba(248,113,113,.2)"; ovc.strokeStyle="#f87171"; ovc.lineWidth=2;
-    hot.forEach(function(cl){ ovc.fillRect(cl.gx*CS,cl.gy*CS,CS,CS); ovc.strokeRect(cl.gx*CS,cl.gy*CS,CS,CS); });
-    var pct=Math.round(hot.length/cells.length*100);
-    var verd=(hot.length===0)?"✅ Geen opvallende verschillen - jouw kaart lijkt sprekend op het origineel."
-      :(pct<15)?"⚠️ "+hot.length+" gebieden wijken af (rood omkaderd) - meestal licht of foto-kwaliteit, check ze even zelf."
-      :"⚠️ Veel verschillen met het origineel ("+pct+"% van de kaart) - kijk even na of dit echt dezelfde kaart en versie is.";
-    el.innerHTML=head()
-      +'<div style="display:flex;gap:6px">'
-      +'<div style="flex:1"><img src="'+mine.toDataURL("image/jpeg",0.85)+'" style="width:100%;border-radius:8px;display:block"><div class="tip" style="margin:2px 0 0">Jouw kaart</div></div>'
-      +'<div style="flex:1"><img src="'+oc.toDataURL("image/jpeg",0.85)+'" style="width:100%;border-radius:8px;display:block"><div class="tip" style="margin:2px 0 0">Origineel</div></div>'
-      +'</div>'
-      +'<div class="n" style="margin:6px 0 2px;font-weight:700;color:#e2e8f0">Verschillen</div>'
-      +'<img src="'+ov.toDataURL("image/jpeg",0.85)+'" style="width:100%;border-radius:8px;display:block">'
-      +'<p class="n" style="margin:6px 0 0">'+verd+'</p>'
-      +'<p class="n" style="margin:2px 0 0;color:#64748b">Rood omkaderd = afwijkende gebieden. Een foto is nooit identiek aan de database-scan: licht, schaduw en glans geven kleine afwijkingen.</p>'
-      +'</div>';
-  }
-  var im=new Image(); im.crossOrigin="anonymous";
-  im.onload=function(){ start(im); };
-  im.onerror=function(){ // v3.211: sommige servers weigeren directe pixel-toegang - dan nog 1x via de proxy
-    var im2=new Image(); im2.crossOrigin="anonymous";
-    im2.onload=function(){ start(im2); };
-    im2.onerror=function(){ start(null); };
-    im2.src="https://api.allorigins.win/raw?url="+encodeURIComponent(off);
-  };
-  im.src=off;
 }
 
 function lookupCard(){
@@ -5100,7 +4664,7 @@ function lookupCard(){
       if(!document.getElementById("lookupName")) el.innerHTML+=manualFieldHTML(q); // v3.219: zoekveld mét de getypte naam terug na een mislukte zoekopdracht
     });
 }
-function pickCard(i){
+function pickCard(i){ // v3.251: gekozen kaart tonen met foto, naam, set, nummer en prijs - niets wordt opgeslagen
   var c=(window._lookupCards||[])[i];
   if(!c) return;
   var el=document.getElementById("lookupResult");
@@ -5109,36 +4673,14 @@ function pickCard(i){
   if(c.tcgplayer&&c.tcgplayer.prices){
     for(var k in c.tcgplayer.prices){ if(c.tcgplayer.prices[k].market){ price=c.tcgplayer.prices[k].market; break; } }
   }
-  // v2.66: gekozen kaart op de nog-niet-opgeslagen analyse zetten (na prijsberekening),
-  // zodat de "Goed"-knop de kaartinfo incl. prijs meeneemt
-  if(window._lastRes){
-    window._lastRes.cn=c.name||""; window._lastRes.cs=(c.set&&c.set.name)||"";
-    window._lastRes.cno=c.number||""; window._lastRes.cp=price;
-    window._lastRes.ci=(c.images&&c.images.small)||"";
-  }
-  var tps=(typeof c.types==="string")?c.types:((c.types&&c.types.join)?c.types.join(" · "):""); // v3.194: schone kaartinfo - naam, set, nummer, HP/type en prijs, geen ruwe OCR-tekst meer
+  var tps=(typeof c.types==="string")?c.types:((c.types&&c.types.join)?c.types.join(" · "):"");
   el.innerHTML='<div class="lookupPick">'
     +(c.images&&c.images.large?'<img src="'+c.images.large+'" alt="'+(c.name||"")+'">':'')
-    +'<div><b style="color:#e2e8f0">'+(c.name||"")+'</b>'
-    +'<div class="sd">'+((c.set&&c.set.name)||"")+' · '+(c.number||"?")+(c.rarity?' · '+c.rarity:'')+'</div>'
-    +((c.hp||tps)?'<div class="sd">'+(c.hp?'HP '+c.hp:'')+((c.hp&&tps)?' · ':'')+tps+'</div>':'')
-+(price?'<div class="sd" style="color:#84cc16">marktprijs ≈ $'
-+price+'</div>':'')
-    +'</div></div>';
-  // gevonden kaart bij de scan opslaan
-  try{
-    var scans=getScans();
-    for(var s2=0;s2<scans.length;s2++){
-      if(scans[s2].id===currentScanId){
-        scans[s2].cn=c.name||""; scans[s2].cs=(c.set&&c.set.name)||"";
-        scans[s2].cno=c.number||""; scans[s2].cp=price;
-        scans[s2].ci=(c.images&&c.images.small)||"";
-        localStorage.setItem("mcScans", JSON.stringify(scans));
-        break;
-      }
-    }
-  }catch(e){}
-  cardDiffShow(c); // v3.211: jouw kaartfoto meteen vergelijken met het origineel uit de database
+    +'<div><b style="color:#e2e8f0">'+(c.name||"")+"</b>"
+    +'<div class="sd">'+((c.set&&c.set.name)||"")+" · "+(c.number||"?")+(c.rarity?" · "+c.rarity:"")+"</div>"
+    +((c.hp||tps)?'<div class="sd">'+(c.hp?"HP "+c.hp:"")+((c.hp&&tps)?" · ":"")+tps+"</div>":"")
+    +(price?'<div class="sd" style="color:#84cc16">marktprijs ≈ $'+price+"</div>":'<div class="sd">geen prijs bekend</div>')
+    +"</div></div>";
 }
 
 // ---------- v2.28: automatische kaartherkenning via OCR (Tesseract.js) ----------
@@ -5488,309 +5030,57 @@ function cardLooksPokemon(im,q){
     return (brt/n2>0.15 && col/n2>0.08); // twijfel = geen kaart, dan de gebruiker een nieuwe foto laten maken
   }catch(e){ return true; }
 }
-function aiRun(){ // v3.191: volledig AI - foto maken en de AI keurt meteen, geen handmatig bijstellen meer
+
+// v3.251: scanner opnieuw gebouwd - de foto wordt alléén gebruikt om de kaart op
+// naam + nummer te herkennen. Geen AI-keuring, geen scanrapport, niets wordt opgeslagen.
+function recScan(){
   if(!img) return;
   var el0=document.getElementById("resultScroll");
-  if(el0) el0.innerHTML='<div class="note">🤖 AI keurt je kaart...</div>';
+  if(el0) el0.innerHTML='<div class="note">Kaart lezen...</div>';
   showView("resultView");
   setTimeout(function(){
     try{
       dims={ w:img.naturalWidth, h:img.naturalHeight };
       var q=detectCard(img);
       var notCard=false;
-      if(q && !cardLooksPokemon(img,q)){ q=null; notCard=true; } // v3.224: geen Pokemon-kaart op de foto (bijv. een toetsenbord) -> geen onzinnige AI-analyse
+      if(q && !cardLooksPokemon(img,q)){ q=null; notCard=true; } // v3.224: geen Pokemon-kaart op de foto - dan niet proberen te herkennen
       if(q){
         rect={ tl:{x:q.quad[0][0],y:q.quad[0][1]}, tr:{x:q.quad[1][0],y:q.quad[1][1]}, br:{x:q.quad[2][0],y:q.quad[2][1]}, bl:{x:q.quad[3][0],y:q.quad[3][1]} };
         rect.edge=q.edge; rect.nPts=q.nPts;
       } else { rect=null; }
       inner=null; window._numHitBox=null;
+      var el=document.getElementById("resultScroll");
+      if(!el) return;
       if(!rect){
-        var el1=document.getElementById("resultScroll");
-        if(el1) el1.innerHTML='<div class="note">'+(notCard?'⚠️ Geen Pokemon-kaart gevonden op de foto - de AI keurt alleen echte Pokemon-kaarten. Maak een nieuwe foto met de kaart goed in beeld en bij goed licht.':'⚠️ AI kon de kaart niet vinden. Maak een nieuwe foto met de hele kaart scherp in beeld, op een rustige ondergrond en bij goed licht.')+'</div>'
-          +'<button class="btn yellow" style="margin-top:10px" onclick="rejectScan()">📷 Nieuwe foto maken</button>';
+        el.innerHTML='<div class="card"><div id="lookupResult"><div class="note">'+(notCard?'Geen Pokemon-kaart gevonden op de foto. Maak een nieuwe foto met de kaart goed in beeld.':'Kaart niet gevonden op de foto. Maak een nieuwe foto met de hele kaart scherp in beeld, op een rustige ondergrond en bij goed licht.')+'</div></div>'
+          +'<div id="manualBox"></div>'
+          +'<div style="display:flex;gap:8px;margin-top:12px">'
+          +'<button class="btn yellow" style="flex:1;margin:0" onclick="rejectScan()">Nieuwe foto</button>'
+          +'<button class="btn dark" style="flex:1;margin:0" onclick="manualSearchShow()">Handmatig zoeken</button>'
+          +'</div></div>';
+        showView("resultView");
         return;
       }
-      runAnalysis();
+      el.innerHTML='<div class="card"><div id="lookupResult"></div>'
+        +'<div id="manualBox"></div>'
+        +'<div style="display:flex;gap:8px;margin-top:12px">'
+        +'<button class="btn dark" style="flex:1;margin:0" onclick="rejectScan()">Nieuwe foto</button>'
+        +'<button class="btn yellow" style="flex:1;margin:0" onclick="manualSearchShow()">Andere kaart zoeken</button>'
+        +'</div></div>';
+      showView("resultView");
+      autoCardLookup();
     }catch(e){
       var el2=document.getElementById("resultScroll");
-      if(el2) el2.innerHTML='<div class="note">⚠️ Er ging iets mis bij het keuren: '+((e&&e.message)||e)+'</div>'
-        +'<button class="btn yellow" style="margin-top:10px" onclick="rejectScan()">📷 Nieuwe foto maken</button>';
+      if(el2) el2.innerHTML='<div class="note">Er ging iets mis bij het lezen: '+((e&&e.message)||e)+'</div>'
+        +'<button class="btn yellow" style="margin-top:10px" onclick="rejectScan()">Nieuwe foto</button>';
+      showView("resultView");
     }
   },60);
 }
-function runAnalysis(){
-  if(!img||!rect) return;
-  try{ // v2.45: interne fouten tonen i.p.v. een leeg scherm
-  var res=analyzeCentering();
-  var el=document.getElementById("resultScroll");
-  if(!res||res.canvasFail){ el.innerHTML='<div class="note">Analyse mislukt — '+((res&&res.help)||"onbekende fout")+'. Probeer de foto opnieuw te selecteren uit de bibliotheek.</div>'; showView("resultView"); return; }
-  if(res.fail){ el.innerHTML='<div class="note">⚠️ AI kon de kaart niet goed genoeg meten. Maak een nieuwe foto met de kaart helemaal in beeld en goed in het licht.</div><button class="btn yellow" style="margin-top:10px" onclick="rejectScan()">📷 Nieuwe foto maken</button>'; showView("resultView"); return; } // v3.191
-  // v2.72: legenda-regel verwijderd
-  // v2.21: ÉÉN weergave — originele foto bijgesneden tot 50px rondom de kaart,
-  // met de gele detectielijn erop. Zo zie je exact wat de detectie heeft gedaan.
-  var vis="";
-  if(img&&rect){
-    try{
-      var xs=[rect.tl.x,rect.tr.x,rect.br.x,rect.bl.x], ys=[rect.tl.y,rect.tr.y,rect.br.y,rect.bl.y];
-      // v2.23: marge 3x zo groot (150px) zodat je ruim buiten de kaart kunt controleren
-      var bx0=Math.max(0,Math.min.apply(null,xs)-150), by0=Math.max(0,Math.min.apply(null,ys)-150);
-      var bx1=Math.min(img.naturalWidth,Math.max.apply(null,xs)+150), by1=Math.min(img.naturalHeight,Math.max.apply(null,ys)+150);
-      var bw=bx1-bx0, bh=by1-by0;
-      // v2.45 FIX: iOS rendert een ruwe mega-byte data-URL (of HEIC) in SVG <image> soms niet ->
-      // het bijgesneden gebied via canvas als compacte JPEG (max 1800px breed) opnieuw coderen.
-      var ohref=img.src;
-      try{
-        var k=Math.min(1,1800/bw);
-        var cc=document.createElement("canvas");
-        cc.width=Math.max(1,Math.round(bw*k)); cc.height=Math.max(1,Math.round(bh*k));
-        var cctx=cc.getContext("2d");
-        if(cctx){
-          cctx.drawImage(img,bx0,by0,bw,bh,0,0,cc.width,cc.height);
-          var chk=cctx.getImageData(0,0,1,1); // faalt expliciet als de foto niet getekend is
-          if(chk&&chk.data[3]===255){ ohref=cc.toDataURL("image/jpeg",0.87); }
-        }
-      }catch(e2){ ohref=img.src; }
-      // v2.23: lijndiktes gehalveerd
-      var sw2=Math.max(1,img.naturalWidth/560);
-      var poly2=(rect.tl.x-bx0)+","+(rect.tl.y-by0)+" "+(rect.tr.x-bx0)+","+(rect.tr.y-by0)+" "+(rect.br.x-bx0)+","+(rect.br.y-by0)+" "+(rect.bl.x-bx0)+","+(rect.bl.y-by0);
-      // v2.22: binnenrand + middenkruis + stippen via homografie terug op de foto mappen
-      var CW=340, CH=Math.round(340*88/63);
-      var hh2=homography([[rect.tl.x,rect.tl.y],[rect.tr.x,rect.tr.y],[rect.br.x,rect.br.y],[rect.bl.x,rect.bl.y]],CW,CH);
-      function mapPt(u,v){
-        var d=u*hh2[6]+v*hh2[7]+1;
-        return [(u*hh2[0]+v*hh2[1]+hh2[2])/d-bx0,(u*hh2[3]+v*hh2[4]+hh2[5])/d-by0];
-      }
-      var sw3=Math.max(0.75,img.naturalWidth/800);
-      var spots=(res.ai&&res.ai.sp)||[]; // v3.191: de AI markeert zelf op de foto waar imperfecties zitten
-      var marks="", mr=Math.max(sw2*7,Math.min(bw,bh)*0.055), fs=Math.max(14,bw*0.03);
-      spots.forEach(function(sp){
-        var p=mapPt(sp.x,sp.y);
-        marks+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+mr+'" fill="rgba(248,113,113,.16)" stroke="#f87171" stroke-width="'+(sw3*2.2)+'"/>'
-          +'<line x1="'+(p[0]-mr*0.55)+'" y1="'+(p[1]-mr*0.55)+'" x2="'+(p[0]+mr*0.55)+'" y2="'+(p[1]+mr*0.55)+'" stroke="#f87171" stroke-width="'+sw3+'"/>'
-          +'<line x1="'+(p[0]-mr*0.55)+'" y1="'+(p[1]+mr*0.55)+'" x2="'+(p[0]+mr*0.55)+'" y2="'+(p[1]-mr*0.55)+'" stroke="#f87171" stroke-width="'+sw3+'"/>'
-          +'<text x="'+(p[0]+mr*1.2)+'" y="'+(p[1]-mr*0.5)+'" font-size="'+fs+'" font-weight="700" fill="#f87171" stroke="#020617" stroke-width="'+(fs*0.18)+'" paint-order="stroke">'+sp.lb+'</text>';
-      });
-      vis='<svg viewBox="0 0 '+bw+' '+bh+'" style="width:100%;display:block;border-radius:10px;background:#020617">'
-        +'<image href="'+ohref+'" x="0" y="0" width="'+bw+'" height="'+bh+'"/>'
-        +marks
-        +'</svg>'; // v3.191: alleen de foto met AI-markeringen - geen gele/blauwe meetlijnen meer
-    }catch(e){ vis=res.vis; }
-  } else { vis=res.vis; }
-  res.vs=vis;
-  // v2.75: cijfer en balk op één regel
-  el.innerHTML='<div class="card"><div class="score"><span>🤖 AI-keuring</span><b style="color:'+gradeColor(res.grade)+'">'+res.grade+'</b></div>'
-    +'<div class="bar"><div style="width:'+(res.grade*10)+'%;background:'+gradeColor(res.grade)+'"></div></div>'
-    +'<p class="n" style="font-weight:700;color:#e2e8f0;margin:2px 0 8px">'+res.ai.v+'</p>'
-    +aiSubRow('Centering',res.ai.cen,'afw LR '+(Math.round(res.devLR*100)/100)+'% · TB '+(Math.round(res.devTB*100)/100)+'%')
-    +aiSubRow('Hoeken',res.ai.cor,'')
-    +aiSubRow('Randen',res.ai.edg,'')
-    +aiSubRow('Oppervlak',res.ai.sur,'')
-    +(res.ai.tip.length?'<div style="margin-top:6px">'+res.ai.tip.map(function(t){ return '<p class="n" style="margin:3px 0">• '+t+'</p>'; }).join("")+'</div>':'')
-    +'<div class="zoomWrap" id="zoomWrap"><div class="zoomInner" id="zoomInner">'+vis+'</div></div>'
-    // v2.68: Goed/Fout direct onder de analyse-tekst
-    +'<div style="display:flex;gap:8px;margin-top:12px">'
-    +'<button class="btn dark" style="flex:1;margin:0" onclick="rejectScan()"><span class="bt"><span class="bi">❌</span>Fout — opnieuw</span></button>'
-    +'<button class="btn yellow" style="flex:1;margin:0" onclick="acceptScan()"><span class="bt"><span class="bi">✅</span>Goed — toevoegen</span></button>'
-    +'</div>'
-    +'<div id="lookupResult"></div>'
-    +'<button class="btn dark" style="margin-top:10px" onclick="manualSearchShow()"><span class="bt"><span class="bi">🔍</span>Kaart handmatig zoeken</span></button>'
-    +'<div id="manualBox"></div>'
-    +'<div id="cardDiffBox"></div>'
-    +'</div>';
-  attachZoom();
-  window._lastRes=res; // v2.64: niet automatisch opslaan - pas na "Goed"
-  showView("resultView");
-  autoCardLookup();
-  }catch(e){ // v2.45
-    var elE=document.getElementById("resultScroll");
-    if(elE) elE.innerHTML='<div class="note">⚠️ Interne fout bij het analyseren: '+((e&&e.message)||e)+' — kopieer deze regel en stuur hem in de chat (v'+VERSION+').</div>';
-    showView("resultView");
-  }
-}
+function rejectScan(){ showView("pokeView", true); } // v3.251: terug naar het Pokemon-scherm voor een nieuwe foto
+// v3.251: de scanner slaat niets meer op - de oude scan-database één keer weghalen
+try{ localStorage.removeItem("mcScans"); }catch(e){}
 
-// ---------- Zoom op de analyse-visualisatie ----------
-var zs=1;
-// v2.90: zelfde zoom-methode als de scan-pagina - transform met origin linksboven
-// en pan via offsets. Het kader scrollt niet meer; het ankerpunt (knijpgebare/
-// dubbel-tik) blijft nu exact op zijn plek i.p.v. vanaf rechtsboven te ankeren.
-var ztx=0, zty=0; // v2.90: pan-offsets
-function setZoom(s, ax, ay){
-  var wrap=document.getElementById("zoomWrap"), inner=document.getElementById("zoomInner");
-  if(!wrap||!inner) return;
-  if(ax===undefined||ax===null){ ax=wrap.clientWidth/2; ay=wrap.clientHeight/2; }
-  var px=(ax-ztx)/zs, py=(ay-zty)/zs; // inhoudpunt onder het anker
-  zs=Math.min(6,Math.max(0.5,s));
-  ztx=ax-px*zs; zty=ay-py*zs;
-  // v2.92: volledig uitzoomen = exact de beginstand: beeldvullend, geen verschuiving
-  if(zs<=1){ zs=1; ztx=0; zty=0; }
-  inner.style.width="100%";
-  inner.style.transform="translate("+ztx+"px,"+zty+"px) scale("+zs+")";
-  wrap.style.touchAction=(zs>1)?"none":"pan-y"; // v3.219: op zoom 1 scrolt de pagina gewoon mee als je op de kaart veegt - de kaart zelf blijft staan; ingezoomd blijft de kaart volledig vast
-}
-function attachZoom(){
-  var wrap=document.getElementById("zoomWrap"); if(!wrap) return;
-  var pts={}, lastDist=0, lastPan=null, lastTap=0;
-  wrap.onpointerdown=function(e){
-    e.preventDefault();
-    pts[e.pointerId]=[e.clientX,e.clientY];
-    try{ wrap.setPointerCapture(e.pointerId); }catch(err){}
-    if(Object.keys(pts).length===1){
-      var now=Date.now();
-      if(now-lastTap<300){
-        // v2.76: dubbel-tik zoomt naar het MIDDEN van de kaart (geen anchor = midden)
-        setZoom(zs>1.4?1:2.5);
-      }
-      lastTap=now;
-      lastPan=[e.clientX,e.clientY];
-    }
-  };
-  wrap.onpointermove=function(e){
-    if(!(e.pointerId in pts)) return;
-    pts[e.pointerId]=[e.clientX,e.clientY];
-    var ids=Object.keys(pts);
-    if(ids.length===2){
-      var wr1=wrap.getBoundingClientRect();
-      var mx=(pts[ids[0]][0]+pts[ids[1]][0])/2, my=(pts[ids[0]][1]+pts[ids[1]][1])/2;
-      var d=Math.hypot(pts[ids[0]][0]-pts[ids[1]][0], pts[ids[0]][1]-pts[ids[1]][1]);
-      if(lastDist>0) setZoom(zs*d/lastDist, mx-wr1.left, my-wr1.top);
-      lastDist=d;
-      lastPan=null;
-    } else if(lastPan){
-      if(zs<=1){ lastPan=null; return; } // v3.213: de kaartfoto staat vast op zoom 1 - per ongeluk schuiven tijdens het scrollen verplaatst de kaart niet meer
-      // v2.98: FIX omgekeerde sleeprichting - offset OPTELLEN zodat de foto met de vinger meebeweegt
-      ztx+=(e.clientX-lastPan[0]); zty+=(e.clientY-lastPan[1]);
-      var zi=document.getElementById("zoomInner");
-      if(zi) zi.style.transform="translate("+ztx+"px,"+zty+"px) scale("+zs+")";
-      lastPan=[e.clientX,e.clientY];
-    }
-  };
-  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
-    wrap.addEventListener(ev,function(e){
-      delete pts[e.pointerId];
-      if(Object.keys(pts).length<2) lastDist=0;
-      lastPan=null;
-    });
-  });
-  ztx=0; zty=0; setZoom(1); // v2.90: reset bij nieuwe analyse
-}
-
-// ---------- Scan-database (lokaal opgeslagen op deze iPhone) ----------
-function getScans(){
-  try{ return JSON.parse(localStorage.getItem("mcScans")||"[]"); }catch(e){ return []; }
-}
-// v2.64: Goed-knop - analyse opslaan in de database en database tonen
-function acceptScan(){ if(!window._lastRes) return; saveScan(window._lastRes); window._lastRes=null; renderHistory(); }
-// v2.64: Fout-knop - terug naar de scan-pagina om de centering handmatig bij te stellen
-function rejectScan(){ window._lastRes=null; showView("pokeView", true); } // v3.191: terug naar het Pokemon-scherm voor een nieuwe foto
-function saveScan(res){
-  try{
-    var scans=getScans();
-    var id=Date.now();
-    scans.unshift({ id:id, d:new Date().toLocaleString("nl-NL"), g:res.grade,
-      lr:Math.round(res.devLR*100)/100, tb:Math.round(res.devTB*100)/100,
-      tT:Math.round(res.tTop*10)/10, tB:Math.round(res.tBot*10)/10,
-      tL:Math.round(res.tLeft*10)/10, tR:Math.round(res.tRight*10)/10,
-      t:res.thumb, b:res.big||null, vs:res.vs||null,
-      cn:res.cn||null, cs:res.cs||null, cno:res.cno||null, cp:res.cp||null, ci:res.ci||null,
-      ai:(res.ai?{c:res.ai.cen,co:res.ai.cor,e:res.ai.edg,s:res.ai.sur,tp:res.ai.tip,v:res.ai.v}:null) }); // v3.190: AI sub-scores meebewaren
-    if(scans.length>200) scans=scans.slice(0,200);
-    try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }
-    catch(e2){
-      // opslag vol: opnieuw zonder de grote visuals
-      scans=scans.map(function(s){ return { id:s.id, d:s.d, g:s.g, lr:s.lr, tb:s.tb, tT:s.tT, tB:s.tB, tL:s.tL, tR:s.tR, ai:s.ai||null, t:s.t }; });
-      try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e3){}
-    }
-    currentScanId=id;
-  }catch(e){}
-}
-var currentScanId=null;
-function delScan(i){
-  var scans=getScans(); scans.splice(i,1);
-  try{ localStorage.setItem("mcScans", JSON.stringify(scans)); }catch(e){}
-  renderHistory();
-  viewStack=viewStack.filter(function(v){ return v!=="detailView"; }); // v3.112: detail van de verwijderde scan niet meer in de geschiedenis
-}
-function clearScans(){
-  if(!confirm("Alle opgeslagen scans wissen?")) return;
-  try{ localStorage.removeItem("mcScans"); }catch(e){}
-  renderHistory();
-}
-function renderHistory(){
-  if(FB.ready&&!FB.user){ fbGo="historyView"; showView("loginView"); var m=document.getElementById("logMsg"); if(m) m.textContent="Log in om de gescande kaarten te bekijken."; return; }
-  var scans=getScans(), el=document.getElementById("histScroll"), html="";
-  if(scans.length===0){
-    html='<div class="note" style="margin-top:16px">Nog geen gescande kaarten. Maak een foto en analyseer hem — daarna verschijnt hij hier automatisch in je collectie.</div>';
-  } else {
-    var sum=0, best=scans[0], worst=scans[0];
-    scans.forEach(function(s){ sum+=s.g; if(s.g>best.g) best=s; if(s.g<worst.g) worst=s; });
-    var avg=Math.round(sum/scans.length*10)/10;
-    var val=0, nP=0; scans.forEach(function(s){ if(s.cp){ val+=s.cp; nP++; } });
-    function gColor(g){ return gradeColor(g); }
-    html+='<div class="card"><div class="score"><span>Rapport — '+scans.length+' kaart'+(scans.length===1?"":"en")+'</span></div>'
-      +'<div class="bar"><div style="width:'+(avg*10)+'%;background:'+gColor(avg)+'"></div></div>'
-      +'<p class="n">📊 Gemiddelde AI-score: <b style="color:'+gColor(avg)+'">'+avg+'</b></p>'
-      +'<p class="n">🏆 Beste: '+best.g+' ('+best.d+')</p>'
-      +'<p class="n">⚠️ Slechtste: '+worst.g+' ('+worst.d+')</p>'+(nP>0?'<p class="n">💰 Bekende marktprijs samen: &#36;'+(Math.round(val*100)/100)+' — '+nP+' kaart'+(nP===1?'':'en')+' met prijs</p>':'')+'</div>';
-    scans.forEach(function(s,i){
-      html+='<div class="scanItem" onclick="showScanDetail('+i+')">'
-        +'<img src="'+(s.t||"")+'" alt="scan">'
-        +'<div class="si"><div class="sd">'+s.d+'</div>'
-        +'<div class="sg" style="color:'+gColor(s.g)+'">'+s.g+'</div>'
-        +'<div class="sd">afw. LR '+s.lr+'% · TB '+s.tb+'%</div></div>'
-        +'<button onclick="event.stopPropagation();delScan('+i+')">✕</button></div>';
-    });
-  }
-  el.innerHTML=html;
-  showView("historyView");
-}
-// v2.15: detailweergave van één scan
-function showScanDetail(i){
-  window._detailIdx=i; // v2.63: index onthouden voor de ververs-knop
-  var s=getScans()[i];
-  if(!s) return;
-  var el=document.getElementById("detailScroll");
-  var html='<div class="card">'
-    +'<div class="score"><span>'+s.d+'</span><b style="color:'+gradeColor(s.g)+'">'+s.g+'</b></div>'
-    +((s.cn)?'<p class="n" style="font-size:15px;color:#e2e8f0;font-weight:700;margin:2px 0 2px">🃏 '+s.cn+((s.cs)?' — '+s.cs:'')+((s.cno)?' #'+s.cno:'')+'</p>'
-      +(s.cp?'<p class="n" style="margin:2px 0 6px;color:#84cc16">marktprijs: &#36;'+s.cp+'</p>':''):'');
-  if(s.vs){
-    html+=s.vs;
-  } else if(s.b){
-    html+='<img src="'+s.b+'" alt="kaart" style="width:100%;border-radius:10px;margin:8px 0;display:block">';
-  } else {
-    html+='<div class="note">Weergave niet opgeslagen bij deze scan (gemaakt vóór v2.22) — scan opnieuw voor de visualisatie.</div>';
-  }
-  if(s.ai){ // v3.190: AI totaalbeoordeling met sub-scores
-    html+='<p class="n" style="font-weight:700;color:#e2e8f0;margin:2px 0 6px">'+(s.ai.v||'')+'</p>'
-      +aiSubRow('Centering',s.ai.c,'afw LR '+(+s.lr||0).toFixed(2)+'% · TB '+(+s.tb||0).toFixed(2)+'%')
-      +aiSubRow('Hoeken',s.ai.co,'')
-      +aiSubRow('Randen',s.ai.e,'')
-      +aiSubRow('Oppervlak',s.ai.s,'');
-    (s.ai.tp||[]).forEach(function(t){ html+='<p class="n" style="margin:2px 0">• '+t+'</p>'; });
-  } else {
-  html+='<p class="n">Randdikte boven: '+s.tT+'px &nbsp;·&nbsp; onder: '+s.tB+'px</p>'
-    +'<p class="n">Randdikte links: '+s.tL+'px &nbsp;·&nbsp; rechts: '+s.tR+'px</p>'
-    +'<p class="n">Middenafwijking links-rechts: '+s.lr+'%</p>'
-    +'<p class="n">Middenafwijking boven-onder: '+s.tb+'%</p>';
-  if(s.g>=9.5) html+='<p class="n">Praktisch perfect gecenterd 🎉</p>';
-  else if(s.g>=9) html+='<p class="n">Goed gecenterd — scoort doorgaans 9-10 bij grading.</p>';
-  else if(s.g>=8) html+='<p class="n">Acceptabel gecenterd, kans op 8-9.</p>';
-  else html+='<p class="n">Zichtbaar off-center — beïnvloedt de grade flink.</p>';
-  }
-  html+='</div>';
-  el.innerHTML=html;
-  showView("detailView");
-}
-function exportCSV(){
-  var scans=getScans();
-  if(scans.length===0){ alert("Nog geen scans om te exporteren."); return; }
-  var csv="datum;tijd;score;afwijking_LR_%;afwijking_TB_%;rand_boven_px;rand_onder_px;rand_links_px;rand_rechts_px\n";
-  scans.forEach(function(s){
-    var dt=s.d.split(", ");
-    csv+=[dt[0]||s.d, dt[1]||"", s.g, s.lr, s.tb, s.tT, s.tB, s.tL, s.tR].join(";")+"\n";
-  });
-  window.open("data:text/csv;charset=utf-8,"+encodeURIComponent(csv));
-}
 // ===== v3.212: na een automatische update terug naar de pagina waar je was =====
 try{
   var _rv=null; try{ _rv=JSON.parse(localStorage.getItem("mcVerView")||"null"); }catch(e9){} try{ localStorage.removeItem("mcVerView"); }catch(e8){}
@@ -5799,7 +5089,6 @@ try{
     if(_vd==="hydDetView"&&_vi){ hydDet(_vi); }
     else if(_vd==="recDetView"&&_vi){ recDet(_vi); }
     else if(_vd==="colDetailView"&&_vi){ colDetail(_vi); }
-    else if(_vd==="detailView"&&_vi!==null){ showScanDetail(_vi); }
     else if(_vd==="dsHistView"&&_vi){ dsHistView(_vi); }
     else if(_vd==="cryptoView"){ CRY_DET=(_vi!==null)?_vi:null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,30000); } cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ if(CRY_DET===null) cryRender(); else cryDetRender(); }); }
     else if(_vd==="agendaView"){ renderAgenda(); }
@@ -5811,7 +5100,6 @@ try{
     else if(_vd==="ntView"){ showView("ntView"); ntRender(); }
     else if(_vd==="collectionView"){ renderCollection(); }
     else if(_vd==="dealView"){ renderDeals(); }
-    else if(_vd==="historyView"){ renderHistory(); }
   }
 }catch(e7){}
 rbSync(); // v3.221: bij het opstarten de ververs-knop meteen goed zetten - vóór deze fix bleef hij na een herlaad op display:none staan tot de eerste showView-aanroep
@@ -5823,7 +5111,6 @@ function swipeDetId(v){
   if(v==="hydDetView") return HYD_DET;
   if(v==="recDetView") return REC_DET;
   if(v==="colDetailView") return window._colDetId;
-  if(v==="detailView") return window._detailIdx;
   if(v==="dsHistView") return (typeof dsHistSite!=="undefined")?dsHistSite:null;
   if(v==="cryptoView") return (typeof CRY_DET!=="undefined")?CRY_DET:null;
   return null;
@@ -5832,7 +5119,6 @@ function swipeOpenView(v,vi){ // zelfde open-routes als de v3.212-herstelcode na
   if(v==="hydDetView"&&vi){ hydDet(vi); }
   else if(v==="recDetView"&&vi){ recDet(vi); }
   else if(v==="colDetailView"&&vi){ colDetail(vi); }
-  else if(v==="detailView"&&vi!==null&&vi!==undefined){ showScanDetail(vi); }
   else if(v==="dsHistView"&&vi){ dsHistView(vi); }
   else if(v==="cryptoView"){ CRY_DET=(vi!==null&&vi!==undefined)?vi:null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,30000); } cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ if(CRY_DET===null) cryRender(); else cryDetRender(); }); }
   else if(v==="agendaView"){ renderAgenda(); }
@@ -5844,7 +5130,6 @@ function swipeOpenView(v,vi){ // zelfde open-routes als de v3.212-herstelcode na
   else if(v==="ntView"){ showView("ntView"); ntRender(); }
   else if(v==="collectionView"){ renderCollection(); }
   else if(v==="dealView"){ renderDeals(); }
-  else if(v==="historyView"){ renderHistory(); }
   else if(document.getElementById(v)){ showView(v, true); }
 }
 var swipeStart=null;
@@ -5882,7 +5167,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.250-->
+<!--v:3.251-->
 
 
 
