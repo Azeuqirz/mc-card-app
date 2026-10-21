@@ -361,7 +361,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.253</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.254</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3761,7 +3761,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.253";
+var VERSION="3.254";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4181,7 +4181,19 @@ function detectCard(im){
   var x1=c1.getContext("2d"); if(!x1) return null;
   x1.drawImage(im,0,0,w,h);
   var d; try{ d=x1.getImageData(0,0,w,h).data; }catch(e){ return null; }
-  function px(x,y){ var i=(y*w+x)*4; return [d[i],d[i+1],d[i+2]]; }
+  // v3.254: korrel/foto-ruis dempen met een 3x3-doorgaansgemiddelde - de kaart-tafel-overgang
+  // blijft, maar een korrelige ondergrond (hout, stof) lijkt niet meer op "kaart". Getest:
+  // zonder demping koos de detector op korrelige foto's vaak de FOTORAND i.p.v. de kaart.
+  var sm=new Array(w*h*3), sy, sx;
+  for(sy=0;sy<h;sy++) for(sx=0;sx<w;sx++){
+    var r=0,g2=0,b2=0,n3=0,dy,dx,ii3;
+    for(dy=-1;dy<=1;dy++) for(dx=-1;dx<=1;dx++){
+      var y3=sy+dy, x3=sx+dx; if(y3<0||y3>=h||x3<0||x3>=w) continue;
+      ii3=(y3*w+x3)*4; r+=d[ii3]; g2+=d[ii3+1]; b2+=d[ii3+2]; n3++;
+    }
+    ii3=(sy*w+sx)*3; sm[ii3]=r/n3; sm[ii3+1]=g2/n3; sm[ii3+2]=b2/n3;
+  }
+  function px(x,y){ var i=(y*w+x)*3; return [sm[i],sm[i+1],sm[i+2]]; } // v3.254: gelezen uit het gedempte beeld
   var mrg=Math.max(2,Math.round(Math.min(w,h)*0.025)), samp=[], xx, yy;
   for(xx=0;xx<w;xx+=2){ samp.push(px(xx,Math.floor(mrg/2))); samp.push(px(xx,h-1-Math.floor(mrg/2))); }
   for(yy=0;yy<h;yy+=2){ samp.push(px(Math.floor(mrg/2),yy)); samp.push(px(w-1-Math.floor(mrg/2),yy)); }
@@ -4202,8 +4214,8 @@ function detectCard(im){
     var rowF=[], colF=[], y, x;
     for(y=0;y<h;y++){ var n=0; for(x=0;x<w;x++) if(isCard(x,y)) n++; rowF.push(n/w); }
     for(x=0;x<w;x++){ var m=0; for(y=0;y<h;y++) if(isCard(x,y)) m++; colF.push(m/h); }
-    function fl(f){ var a=-1,b=-1; for(var i=0;i<f.length;i++) if(f[i]>0.4){ if(a<0)a=i; b=i; } return (a>=0&&b>a)?[a,b]:null; }
-    var rows=fl(rowF), cols=fl(colF); if(!rows||!cols) return null;
+    function fl(f,thr){ var a=-1,b=-1; for(var i=0;i<f.length;i++) if(f[i]>thr){ if(a<0)a=i; b=i; } return (a>=0&&b>a)?[a,b]:null; }
+    var rows=fl(rowF,0.4)||fl(rowF,0.22), cols=fl(colF,0.4)||fl(colF,0.22); if(!rows||!cols) return null; // v3.254: ruimere maat als vangnet zodat ook kleinere kaarten midden in beeld gevonden worden
     var run=3, lx=new Array(h).fill(null), rx=new Array(h).fill(null);
     for(y=rows[0];y<=rows[1];y++){
       for(x=cols[0];x<=cols[1]-run;x++){ var ok=true; for(var k1=0;k1<run;k1++) if(!isCard(x+k1,y)){ ok=false; break; } if(ok){ lx[y]=x; break; } }
@@ -4245,9 +4257,15 @@ function detectCard(im){
     }
     fill/=tries;
     var areaScore=(area/(w*h)>=0.05&&area/(w*h)<=0.9)?1:0.4;
+    // v3.254: een kandidaat die (vrijwel) de HELE foto beslaat is meestal de fotorand, niet de kaart -
+    // de kaart ligt bijna nooit rand-aan-rand in beeld. Zo'n kandidaat krijgt een halve score,
+    // zodat de echte kaart ergens midden in beeld altijd wint.
+    var mnX=Math.min(TL[0],TR[0],BR[0],BL[0]), mxX=Math.max(TL[0],TR[0],BR[0],BL[0]);
+    var mnY=Math.min(TL[1],TR[1],BR[1],BL[1]), mxY=Math.max(TL[1],TR[1],BR[1],BL[1]);
+    var framePen=((mxX-mnX)>0.96*w && (mxY-mnY)>0.96*h && area>0.85*w*h)?0.5:1;
     return { quad:[TL,TR,BR,BL], lines:{L:L,R:R,T:T,B:B}, rows:rows, cols:cols,
              nPts:leftPts.length+rightPts.length+topPts.length+botPts.length,
-             score:0.55*fill+0.35*ratioScore+0.10*areaScore };
+             score:framePen*(0.55*fill+0.35*ratioScore+0.10*areaScore) };
   }
 
   var cands = vary<40?[45,70,110,150]:[70,110,150,45];
@@ -5203,7 +5221,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.253-->
+<!--v:3.254-->
 
 
 
