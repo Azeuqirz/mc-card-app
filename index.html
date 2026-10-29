@@ -361,7 +361,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.256</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.257</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2982,21 +2982,20 @@ function cryNewsUpd(){ // v3.195: actueel Nieuws-knop + v3.235: alle nieuws-dien
   var coin=(cx.stk&&cx.n)?cx.n:cx.g.replace(/-/g," "), cached=CRY_NEWS[cx.g]; // v3.255: aandelen-nieuws zoekt op de bedrijfsnaam
   if(cached&&Date.now()-cached.t<300000){ cryNewsShow(box,cached.items,coin); return; } // v3.195: 5 minuten cache
   box.innerHTML='<div class="note">⏳ Nieuws over '+colEsc(coin)+' zoeken…</div>';
-  cryNewsPull(coin,false).then(function(its){ CRY_NEWS[cx.g]={t:Date.now(),items:its.slice(0,6)}; cryNewsShow(box,CRY_NEWS[cx.g].items,coin); }) // v3.235: 5 minuten cache
+  cryNewsPull(coin,false).then(function(its){ CRY_NEWS[cx.g]={t:Date.now(),items:its.slice(0,8)}; cryNewsShow(box,CRY_NEWS[cx.g].items,coin); }) // v3.257: iets meer recente artikelen tonen // v3.235: 5 minuten cache
     .catch(function(){ box.innerHTML='<div class="note">❌ Geen nieuws gevonden — geen verbinding of de nieuws-diensten zijn tijdelijk onbereikbaar. Probeer het zo meteen opnieuw.</div>'; });
 }
-function cryNewsPull(coin,isRetry){ // v3.235: de nieuws-diensten zijn om en om onbereikbaar - daarom alles parallel proberen en één keer opnieuw
-  var feed='https://news.google.com/rss/search?q='+encodeURIComponent(coin+' when:14d')+'&hl=nl&gl=NL&ceid=NL:nl';
-  var xml=function(u){ return fetch(u).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(x){ var a=cryNewsParseXml(x); if(!a.length) throw 0; return a; }); };
-  var routes=[ // v3.235: alle routes gaan tegelijk open - wie eerst goed nieuws teruggeeft wint
-    fetch('https://api.allorigins.win/get?url='+encodeURIComponent(feed)).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ var a=cryNewsParseXml(j&&j.contents||""); if(!a.length) throw 0; return a; }), // v3.235: allorigins als JSON
-    xml('https://api.allorigins.win/raw?url='+encodeURIComponent(feed)), // v3.195: allorigins als tekst-reserve
-    xml('https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(feed)), // v3.195: codetabs geeft de RSS als tekst
-    fetch('https://api.cors.lol/?url='+encodeURIComponent(feed)).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(x){ var a=cryNewsParseXml(x); if(!a.length) throw 0; return a; }), // v3.235: cors.lol als extra route
-    fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(feed)).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ if(!j||j.status!=="ok"||!j.items||!j.items.length) throw 0; return j.items.map(function(it){ return {t:it.title||"",u:it.link||"",d:it.pubDate||""}; }); }), // v3.195: rss2json geeft JSON
-    fetch('https://api.gdeltproject.org/api/v2/doc/doc?query='+encodeURIComponent(coin)+'&mode=ArtList&format=json&maxrecords=10&sort=DateDesc').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ var a=(j&&j.articles)||[]; if(!a.length) throw 0; return a.map(function(x){ var d=String(x.seendate||""), m=d.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/); if(m) d=m[1]+"-"+m[2]+"-"+m[3]+"T"+m[4]+":"+m[5]+":"+m[6]+"Z"; return {t:x.title||"",u:x.url||"",d:d,s:x.domain||""}; }); }) // v3.235: GDELT zoekt zelf in het wereld-nieuws - geen proxy nodig
+function cryNewsPull(coin,isRetry){ // v3.257: nieuws via Yahoo-zoeknieuws (zelfde race als de aandelen-koersen) - de Google-Nieuws-proxy's zijn allemaal dood
+  var q=encodeURIComponent(coin);
+  var routes=[ // v3.257: alle routes tegelijk open - wie eerst goed nieuws teruggeeft wint
+    stkFetchTxt("https://query1.finance.yahoo.com/v1/finance/search?q="+q+"&quotesCount=0&newsCount=12").then(function(j){ // v3.257: Yahoo geeft recente artikelen met bron en tijd
+      var a=(j&&j.news)||[];
+      if(!a.length) throw 0;
+      return a.map(function(n){ return {t:String(n.title||""), u:String(n.link||""), s:String(n.publisher||""), d:(n.providerPublishTime?new Date(n.providerPublishTime*1000).toISOString():""), ts:(n.providerPublishTime||0)}; }).sort(function(x,y){ return (y.ts||0)-(x.ts||0); }); // v3.257: nieuwste bovenaan
+    }),
+    fetch("https://api.gdeltproject.org/api/v2/doc/doc?query="+q+"&mode=ArtList&format=json&maxrecords=10&sort=DateDesc").then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ var a=(j&&j.articles)||[]; if(!a.length) throw 0; return a.map(function(x){ var d=String(x.seendate||""), m=d.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/); if(m) d=m[1]+"-"+m[2]+"-"+m[3]+"T"+m[4]+":"+m[5]+":"+m[6]+"Z"; return {t:x.title||"",u:x.url||"",d:d,s:x.domain||""}; }); }) // v3.257: GDELT als reserve - geen proxy nodig
   ];
-  return Promise.any(routes).catch(function(){ if(isRetry) throw 0; return new Promise(function(res){ setTimeout(function(){ res(cryNewsPull(coin,true)); },1500); }); }); // v3.235: alles onbereikbaar? na anderhalve seconde nog één keer proberen
+  return Promise.any(routes).catch(function(){ if(isRetry) throw 0; return new Promise(function(res){ setTimeout(function(){ res(cryNewsPull(coin,true)); },1500); }); }); // v3.257: alles onbereikbaar? na anderhalve seconde nog één keer proberen
 }
 function cryNewsParseXml(txt){ // v3.195: Google Nieuws-RSS omzetten naar artikelen
   try{
@@ -3868,7 +3867,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.256";
+var VERSION="3.257";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5328,7 +5327,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.256-->
+<!--v:3.257-->
 
 
 
