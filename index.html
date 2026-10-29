@@ -361,7 +361,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.257</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.258</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2982,8 +2982,30 @@ function cryNewsUpd(){ // v3.195: actueel Nieuws-knop + v3.235: alle nieuws-dien
   var coin=(cx.stk&&cx.n)?cx.n:cx.g.replace(/-/g," "), cached=CRY_NEWS[cx.g]; // v3.255: aandelen-nieuws zoekt op de bedrijfsnaam
   if(cached&&Date.now()-cached.t<300000){ cryNewsShow(box,cached.items,coin); return; } // v3.195: 5 minuten cache
   box.innerHTML='<div class="note">⏳ Nieuws over '+colEsc(coin)+' zoeken…</div>';
-  cryNewsPull(coin,false).then(function(its){ CRY_NEWS[cx.g]={t:Date.now(),items:its.slice(0,8)}; cryNewsShow(box,CRY_NEWS[cx.g].items,coin); }) // v3.257: iets meer recente artikelen tonen // v3.235: 5 minuten cache
-    .catch(function(){ box.innerHTML='<div class="note">❌ Geen nieuws gevonden — geen verbinding of de nieuws-diensten zijn tijdelijk onbereikbaar. Probeer het zo meteen opnieuw.</div>'; });
+  Promise.all([ cryNewsNl(coin), cryNewsPull(coin,false).catch(function(){ return []; }) ]).then(function(rr){ // v3.258: Nederlandse sites en Yahoo tegelijk - NL bovenaan
+    var items=[], seen={};
+    rr[0].concat(rr[1]).forEach(function(it){ var k=String(it.t||"").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,50); if(!it.t||seen[k]) return; seen[k]=1; items.push(it); }); // v3.258: NL eerst, Yahoo vult aan, geen dubbele titels
+    if(!items.length){ box.innerHTML='<div class="note">❌ Geen nieuws gevonden — geen verbinding of er is even niets over '+colEsc(coin)+' te vinden. Probeer het zo meteen opnieuw.</div>'; return; }
+    CRY_NEWS[cx.g]={t:Date.now(),items:items.slice(0,10)}; // v3.258: tot 10 artikelen, NL bovenaan
+    cryNewsShow(box,CRY_NEWS[cx.g].items,coin);
+  });
+}
+function cryNewsNl(coin){ // v3.258: nieuws van Nederlandse sites - NU.nl- en NOS-feeds via r.jina.ai met de publicatie-tijden erbij
+  var words=String(coin||"").toLowerCase().split(/[^a-z0-9.]+/).filter(function(w){ return w.length>=4; }).slice(0,4); // v3.258: zoek-woorden uit de naam van de munt of het bedrijf
+  if(!words.length){ var w2=String(coin||"").toLowerCase().replace(/[^a-z0-9]/g,""); if(w2) words=[w2]; }
+  if(!words.length) return Promise.resolve([]);
+  var feeds=[["https://www.nu.nl/rss/Economie","NU.nl"],["https://www.nu.nl/rss/Tech","NU.nl"],["https://www.nu.nl/rss/Algemeen","NU.nl"],["https://feeds.nos.nl/nosnieuwsalgemeen","NOS"]]; // v3.258: economie + tech dekken crypto en aandelen
+  var gets=feeds.map(function(f){
+    return fetch("https://r.jina.ai/"+f[0],{headers:{"X-Return-Format":"html"}}).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(x){ // v3.258: jina geeft de ruwe RSS terug (CORS + XML)
+      var a=cryNewsParseXml(x); if(!a.length) throw 0;
+      return a.filter(function(it){ var t=String(it.t||"").toLowerCase(); for(var i=0;i<words.length;i++){ if(t.indexOf(words[i])>=0) return true; } return false; }).map(function(it){ return {t:it.t,u:it.u,d:it.d,s:f[1]}; }); // v3.258: alleen artikelen over deze munt of dit aandeel
+    }).catch(function(){ return []; }); // v3.258: een storing op één feed prikt er niet doorheen
+  });
+  return Promise.all(gets).then(function(rr){
+    var out=[]; rr.forEach(function(a){ out=out.concat(a); });
+    out.sort(function(x,y){ return (new Date(y.d||0)).getTime()-(new Date(x.d||0)).getTime(); }); // v3.258: nieuwste eerst
+    return out.slice(0,4);
+  });
 }
 function cryNewsPull(coin,isRetry){ // v3.257: nieuws via Yahoo-zoeknieuws (zelfde race als de aandelen-koersen) - de Google-Nieuws-proxy's zijn allemaal dood
   var q=encodeURIComponent(coin);
@@ -3010,10 +3032,10 @@ function cryNewsShow(box,items,coin){ // v3.195: de nieuws-lijst tonen
     var ttl=String(it.t||""), src=String(it.s||""), ix=ttl.lastIndexOf(" - ");
     if(!src&&ix>25){ src=ttl.slice(ix+3); ttl=ttl.slice(0,ix); } // v3.195: Google Nieuws plakt de bron achter de titel + v3.235: GDELT geeft de bron er los bij
     var dd="", ago=new Date(it.d||0);
-    if(!isNaN(ago.getTime())){ var ds=Math.floor((Date.now()-ago.getTime())/86400000); dd=ds<1?"vandaag":(ds===1?"gisteren":ds+" dagen geleden"); }
+    if(!isNaN(ago.getTime())){ var mn=Math.floor((Date.now()-ago.getTime())/60000); dd=mn<5?"zojuist":(mn<60?mn+" minuten geleden":(mn<1440?Math.floor(mn/60)+" uur geleden":(mn<2880?"gisteren":Math.floor(mn/1440)+" dagen geleden"))); } // v3.258: precies hoe lang geleden, van minuten tot dagen
     html+='<a href="'+it.u+'" target="_blank" rel="noopener" class="cryNewsIt">'+colEsc(ttl)+'<span>'+(src?colEsc(src)+" · ":"")+dd+'</span></a>';
   });
-  html+='<p class="n" style="margin:6px 0 0;color:#64748b">Recente nieuws-artikelen · tik erop om ze te openen.</p></div>'; // v3.235: de bron kan Google Nieuws of GDELT zijn
+  html+='<p class="n" style="margin:6px 0 0;color:#64748b">Nederlandse sites bovenaan · tik op een artikel om het te openen.</p></div>'; // v3.258: NU.nl en NOS eerst, daarna internationaal nieuws
   box.innerHTML=html;
 }
 function cryTrim(a){ // v3.189: alleen het laatste deel van de geschiedenis tonen; v3.228: na het inzoomen ook opzij schuifbaar met slepen
@@ -3867,7 +3889,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.257";
+var VERSION="3.258";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5327,7 +5349,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.257-->
+<!--v:3.258-->
 
 
 
