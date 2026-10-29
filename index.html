@@ -361,7 +361,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.254</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.255</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -384,7 +384,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   <!-- v3.22: actie-knoppen alleen zichtbaar als je ingelogd bent -->
   <div id="homeActions" style="display:none">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:340px;margin:0 auto">
-  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="cryOpen()"><div id="cryBtcTile" style="font-size:17px;line-height:1.1;margin:8px 0 9px;font-weight:800">₿ ...</div>Crypto</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="cryOpen()"><div id="cryBtcTile" style="font-size:17px;line-height:1.1;margin:8px 0 9px;font-weight:800">₿ ...</div>Munten</button>
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="showView('pokeView')"><div style="font-size:28px;line-height:1;margin-bottom:6px">⚡</div>Pokemon</button>
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="renderAgenda()"><div style="font-size:28px;line-height:1;margin-bottom:6px">📅</div>Gedeelde agenda<span id="agBadge" class="ibBadge"></span></button>
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="remOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🔔</div>Herinneringen</button>
@@ -2287,7 +2287,7 @@ function slPush(k){
   if(!FB.ready||!FB.user) return;
   try{
     var dm={}; slDelLoad(k).forEach(function(d){ if(d&&d.id) dm[d.id]=1; });
-    var out=slLoad(k).filter(function(e){ return !dm[e.id]; }).map(function(e){ var it={id:e.id,t:e.t,by:e.by,ts:e.ts,m:e.m}; if(e.r) it.r=e.r; if(e.imgs) it.imgs=e.imgs; if(e.p) it.p=e.p; if(e.u) it.u=e.u; if(e.c) it.c=e.c; if(e.o) it.o=e.o; if(e.ai) it.ai=e.ai; return it; }); // v3.164: r = recept-details; v3.165: p/u = plant-info + updates; v3.178: c = crypto-munt (gecko-id + symbool)
+    var out=slLoad(k).filter(function(e){ return !dm[e.id]; }).map(function(e){ var it={id:e.id,t:e.t,by:e.by,ts:e.ts,m:e.m}; if(e.r) it.r=e.r; if(e.imgs) it.imgs=e.imgs; if(e.p) it.p=e.p; if(e.u) it.u=e.u; if(e.c) it.c=e.c; if(e.o) it.o=e.o; if(e.ai) it.ai=e.ai; if(e.k) it.k=e.k; if(e.cur) it.cur=e.cur; return it; }); // v3.255: k/cur = aandeel-marker + valuta; v3.164: r = recept-details; v3.165: p/u = plant-info + updates; v3.178: c = crypto-munt (gecko-id + symbool)
     var s=JSON.stringify(out);
     while(s.length>700000){ // v3.165: foto's van de oudste plant/updates eerst strippen uit de push-copy
       var done=false;
@@ -2608,8 +2608,8 @@ function cryBarUpd(){
   var b=document.getElementById("cryBar"); if(!b) return;
   b.style.display=(typeof CRY_FS==="number"&&CRY_FS===1)?"none":"flex"; // v3.239: op het volledige scherm hoort de terug-naar-munten-knop niet in beeld
   b.innerHTML = CRY_DET!==null
-    ? '<button class="btn dark" onclick="cryBack()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">⬅</span>Terug naar munten</span></button>'
-    : '<button class="btn yellow" onclick="cryAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Munt toevoegen</span></button>';
+    ? '<button class="btn dark" onclick="cryBack()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">⬅</span>'+(cryDetIsStk()?"Terug naar aandelen":"Terug naar munten")+'</span></button>' // v3.255: terug-knop past bij wat je open hebt
+    : '<button class="btn yellow" onclick="cryAdd()" style="flex:1;margin-top:0"><span class="bt"><span class="bi">➕</span>Munt toevoegen</span></button><button class="btn dark" onclick="stkAdd()" style="flex:1;margin-top:0"><span class="bt">Aandeel toevoegen</span></button>'; // v3.255: aandelen in hetzelfde overzicht
 }
 function cryAdd(){
   var q=prompt("Welke munt wil je toevoegen? (bijvoorbeeld Bitcoin of BTC)");
@@ -2630,6 +2630,95 @@ function cryAdd(){
     })
     .catch(function(){ sc.innerHTML='<div class="note">Zoeken mislukt - geen verbinding of tijdelijke API-limiet.</div>'; });
 }
+// ===== v3.255: aandelen in het munten-overzicht - koersen en grafieken via Yahoo Finance =====
+function stkFetchTxt(url){ // v3.255: alle routes tegelijk openen - de eerste met geldige JSON wint
+  var u=encodeURIComponent(url), parse=function(t){ var s=String(t); try{ return JSON.parse(s); }catch(e){} var i=s.indexOf("{"); if(i>0){ try{ return JSON.parse(s.slice(i)); }catch(e2){} } return null; };
+  function ok(t){ var j=parse(t); if(!j) throw 0; return j; }
+  return Promise.any([
+    fetch(url).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(ok),
+    fetch("https://r.jina.ai/"+url).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(t){ var i=String(t).indexOf("Markdown Content:"); return ok(i>=0?String(t).slice(i+17):t); }), // v3.255: jina levert de Yahoo-JSON als tekst
+    fetch("https://api.allorigins.win/raw?url="+u).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(ok)
+  ]);
+}
+function stkFetch(url,cb){ stkFetchTxt(url).then(function(j){ cb(j); }).catch(function(){ cb(null); }); } // v3.255: cb(null) = alle routes stuk
+function stkFmt(v){ if(!isFinite(v)) return "..."; try{ return Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }catch(e){ return String(Math.round(v*100)/100); } } // v3.255: aandelenkoers met centen
+function stkCurSign(cur){ return cur==="EUR"?"€ ":(cur==="GBP"?"£ ":(cur==="GBp"?"p ":"$ ")); } // v3.255: valuta-teken bij de koers
+function stkQuotes(syms,cb){ // v3.255: koersen van alle aandelen in één verzoek + cache bij storing
+  var cache=null; try{ cache=JSON.parse(localStorage.getItem("mcStkQ")||"null"); }catch(e){}
+  stkFetch("https://query1.finance.yahoo.com/v8/finance/spark?symbols="+encodeURIComponent(syms)+"&range=1d&interval=1d", function(j){
+    var q={};
+    if(j){ for(var k in j){ var sy=j[k]; if(sy&&typeof sy.fulldayPrice==="number"){ var pc=(typeof sy.chartPreviousClose==="number")?sy.chartPreviousClose:null; q[k]={p:sy.fulldayPrice, ch:(typeof sy.fulldayChangePercent==="number")?sy.fulldayChangePercent:(pc?((sy.fulldayPrice-pc)/pc*100):null)}; } } }
+      var nq=0; for(var k2 in q){ nq++; }
+      if(nq){ try{ localStorage.setItem("mcStkQ", JSON.stringify({t:Date.now(),q:q})); }catch(e2){} cb(q); return; }
+    cb((cache&&cache.q&&Date.now()-(cache.t||0)<1800000)?cache.q:null); // v3.255: bij storing de laatste bekende koersen (max 30 min oud)
+  });
+}
+function stkAdd(){ // v3.255: aandeel toevoegen - zoeken op naam of ticker
+  var q=prompt("Welk aandeel wil je toevoegen? (bijvoorbeeld Apple, ASML of AAPL)");
+  if(q===null) return;
+  q=String(q).trim(); if(!q) return;
+  var sc=document.getElementById("cryScroll"); if(!sc) return;
+  sc.innerHTML='<div class="tip">Zoeken naar '+colEsc(q)+'...</div>';
+  stkFetch("https://query1.finance.yahoo.com/v1/finance/search?q="+encodeURIComponent(q)+"&quotesCount=10", function(j){
+    var list=[], seen={};
+    var src=(j&&j.quotes)||[];
+    for(var i=0;i<src.length;i++){ var c=src[i]; if(!c||!c.symbol) continue; if(c.quoteType!=="EQUITY"&&c.quoteType!=="ETF") continue; if(seen[c.symbol]) continue; seen[c.symbol]=1; list.push({symbol:String(c.symbol), name:String(c.longname||c.shortname||c.symbol), ex:String(c.exchDisp||"")}); } // v3.255: alleen aandelen en ETF's
+    window._stkS=list;
+    if(!list.length){ sc.innerHTML='<div class="note">Geen aandelen gevonden voor '+colEsc(q)+'.</div>'; return; }
+    var h='<div class="tip">Gevonden aandelen - tik op een aandeel om hem toe te voegen:</div>';
+    list.forEach(function(c,i){ h+='<div class="lookupItem" onclick="stkPick('+i+')"><div class="si"><div class="sd">'+colEsc(c.symbol)+'</div><div style="font-size:14px;font-weight:700">'+colEsc(c.name)+'</div><div style="font-size:11px;color:#64748b">'+colEsc(c.ex)+'</div></div><div style="font-size:20px">➕</div></div>'; });
+    sc.innerHTML=h;
+  });
+}
+function stkPick(i){ // v3.255: aandeel valideren (Yahoo kent het symbool + de valuta) en toevoegen
+  var c=(window._stkS||[])[i]; if(!c) return;
+  if(!FB.user){ showView("loginView"); return; }
+  var a=slLoad("cry");
+  for(var k=0;k<a.length;k++){ if(a[k].c&&a[k].c.g===c.symbol){ alert("Dit aandeel staat al in je lijst."); return; } }
+  var sc=document.getElementById("cryScroll"); if(sc) sc.innerHTML='<div class="tip">'+colEsc(c.name)+' controleren...</div>';
+  stkFetch("https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(c.symbol)+"?interval=1d&range=1d", function(j){
+    var m=(j&&j.chart&&j.chart.result&&j.chart.result[0]&&j.chart.result[0].meta)||null;
+    if(!m||!m.regularMarketPrice){ alert("Kan dit aandeel nu niet controleren - geen verbinding of onbekend symbool. Probeer het zo meteen opnieuw."); return; }
+    var nm=String(m.longName||m.shortName||c.name), cur=String(m.currency||"USD");
+    var mnO=0; for(var k2=0;k2<a.length;k2++){ if(typeof a[k2].o==="number"&&a[k2].o<mnO) mnO=a[k2].o; } // v3.255: bovenaan de handmatige volgorde
+    var disp=c.symbol.indexOf(".")>0?c.symbol.split(".")[0]:c.symbol;
+    a.unshift({id:Date.now(),t:nm,c:{g:c.symbol,s:disp},k:"stk",cur:cur,o:mnO-1,by:String(FB.user.email).toLowerCase(),ts:Date.now(),m:Date.now()}); // v3.255: k="stk" + cur markeren het aandeel
+    a.sort(function(x,y){ return y.id-x.id; });
+    slSave("cry",a); slPush("cry");
+    cryRender();
+  });
+}
+function cryDetIsStk(){ if(CRY_DET===null) return false; var e=null; slLoad("cry").forEach(function(x){ if(x.id===CRY_DET) e=x; }); return !!(e&&e.k==="stk"); } // v3.255: terug-knop en labels per type
+function stkChartLoad(it, tok){ // v3.255: grafiek van een aandeel via Yahoo - zelfde teken-pipeline als munten
+  var g=it.c.g;
+  window._CRY_CTX={g:g,s:it.c.s,stk:1,n:it.t}; // v3.255: context voor de geschiedenis-schuifbalk, AI-update en nieuws
+  var cnd=(CRY_KIND==="candle");
+  var key=g+"|"+(cnd?CRY_IV:CRY_RANGE)+"|"+CRY_KIND, cached=CRY_CH[key], ttl=(cnd||CRY_RANGE===1?10000:60000);
+  if(window._CRY_PKEY!==key){ CRY_PAN_F=0; window._CRY_PKEY=key; }
+  var upd=function(pm){ if(!pm||!pm.p) return; var pe=document.getElementById("cryPrice"), ce=document.getElementById("cryCh"); // v3.255: kop-koers uit de chart-meta
+    if(pe) pe.textContent=stkCurSign(it.cur)+stkFmt(pm.p);
+    if(ce&&pm.pc){ var ch2=(pm.p-pm.pc)/pm.pc*100; ce.textContent="dag: "+(ch2>=0?"+":"")+ch2.toFixed(2)+"%"; ce.style.color=ch2>=0?"#4ade80":"#f87171"; } };
+  if(cached&&Date.now()-cached.t<ttl){ upd(cached.pm); var cl=cached.p[cached.p.length-1]; if(cl) CRY_CUR=cnd?cl[4]:cl; // v3.255: uit de cache tekenen
+    var dpc=cryTrim(cached.p), b2=document.getElementById("cryChartBox"); if(b2){ b2.innerHTML=(cnd?cryChartCandle(dpc):cryChartSvg(dpc,cached.ts?cryTrim(cached.ts):null)); cryHovAttach(dpc); } return; }
+  var iv=(cnd?{"1m":["1d","1m"],"5m":["1d","5m"],"15m":["5d","15m"],"1h":["1mo","1h"],"1d":["1y","1d"]}[CRY_IV]:{1:["1d","5m"],7:["5d","15m"],30:["1mo","1d"],90:["3mo","1d"],180:["6mo","1d"],365:["1y","1d"]}[CRY_RANGE])||["1mo","1d"]; // v3.255: periode-knoppen naar Yahoo-range + interval
+  stkFetch("https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(g)+"?interval="+iv[1]+"&range="+iv[0], function(j){
+    if(tok!==CRY_TOK) return;
+    var rs=(j&&j.chart&&j.chart.result&&j.chart.result[0])||null;
+    if(!rs||!rs.meta||!rs.timestamp||!rs.indicators||!rs.indicators.quote||!rs.indicators.quote[0]){ var b6=document.getElementById("cryChartBox"); if(b6) b6.innerHTML='<div class="note">Aandelen-grafiek kon niet worden geladen - geen verbinding of tijdelijke API-limiet.</div>'; cryFsBtns(); return; }
+    var m=rs.meta, q=rs.indicators.quote[0], T=rs.timestamp, pts=[], ts=[], rows=[];
+    for(var i=0;i<T.length;i++){ var c=q.close?q.close[i]:null; if(c===null||c===undefined) continue; // v3.255: buiten beursuren zitten er gaten in de rij
+      pts.push(c); ts.push(T[i]*1000); // v3.255: Yahoo telt seconden, de tijdbalk milliseconden
+      var o=q.open?q.open[i]:c, hh=q.high?q.high[i]:c, lo=q.low?q.low[i]:c;
+      rows.push([T[i]*1000,(o===null||o===undefined)?c:o,(hh===null||hh===undefined)?c:hh,(lo===null||lo===undefined)?c:lo,c]); }
+    var pm={p:m.regularMarketPrice,pc:(m.chartPreviousClose||m.previousClose)}; // v3.255: actuele koers en de slotkoers van gisteren
+    if(pts.length>140){ var st=pts.length/140, ds=[], dts=[]; for(var i2=0;i2<140;i2++){ var ix=Math.floor(i2*st); ds.push(pts[ix]); dts.push(ts[ix]); } ds.push(pts[pts.length-1]); dts.push(ts[ts.length-1]); pts=ds; ts=dts; } // v3.255: lange grafieken dunner sampling
+    var dpc2=cnd?rows:pts;
+    CRY_CH[key]={t:Date.now(),p:dpc2,ts:ts,pm:pm};
+    if(dpc2.length) CRY_CUR=cnd?dpc2[dpc2.length-1][4]:dpc2[dpc2.length-1];
+    upd(pm);
+    var dp=cryTrim(dpc2), b3=document.getElementById("cryChartBox"); if(b3){ b3.innerHTML=(cnd?cryChartCandle(dp):cryChartSvg(dp,cryTrim(ts))); cryHovAttach(dp); }
+  });
+}
 function cryPick(i){
   var c=(window._cryS||[])[i]; if(!c) return;
   if(!FB.user){ showView("loginView"); return; }
@@ -2642,7 +2731,7 @@ function cryPick(i){
   cryRender();
 }
 function cryDel(id){
-  if(!confirm("Deze munt verwijderen?")) return;
+  var dit=null; slLoad("cry").forEach(function(x){ if(x.id===id) dit=x; }); if(!confirm(dit&&dit.k==="stk"?"Dit aandeel verwijderen?":"Deze munt verwijderen?")) return; // v3.255: passende tekst bij aandelen
   var del=slDelLoad("cry").filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()});
   slSaveDel("cry",del); slSave("cry",slLoad("cry").filter(function(e){ return e.id!==id; })); slPush("cry");
   if(CRY_DET===id) CRY_DET=null;
@@ -2653,23 +2742,27 @@ function cryRender(){
   if(CRY_DET!==null){ cryDetRender(); return; }
   cryBarUpd();
   var a=slLoad("cry");
-  if(!a.length){ sc.innerHTML='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Nog geen munten. Tik hieronder op "Munt toevoegen" en zoek bijvoorbeeld op Bitcoin.</div>'; return; }
-  sc.innerHTML='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Tik op een munt voor de grafiek - sleep aan ☰ om de volgorde te veranderen.</div>';
-  var ids=a.map(function(e){ return e.c?e.c.g:""; }).filter(Boolean).join(",");
-  if(!ids) return;
-  fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(ids)+"&vs_currencies=usd&include_24hr_change=true")
-    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
-    .then(function(pr){ if(CRY_DET===null) cryDrawList(a,pr); })
-    .catch(function(){ if(CRY_DET===null) cryDrawList(a,null); });
+  if(!a.length){ sc.innerHTML='<h1 style="margin:4px 0 2px">Munten &amp; aandelen</h1><div class="sub">Prijsgrafieken van je munten en aandelen</div><div class="tip">Nog geen munten of aandelen. Tik hieronder op "Munt toevoegen" of "Aandeel toevoegen".</div>'; return; } // v3.255: aandelen erbij
+  sc.innerHTML='<h1 style="margin:4px 0 2px">Munten &amp; aandelen</h1><div class="sub">Prijsgrafieken van je munten en aandelen</div><div class="tip">Tik op een munt of aandeel voor de grafiek - sleep aan ☰ om de volgorde te veranderen.</div>';
+  var ids=a.filter(function(e){ return e.k!=="stk"; }).map(function(e){ return e.c?e.c.g:""; }).filter(Boolean).join(","); // v3.255: alleen munten naar CoinGecko
+  var syms=a.filter(function(e){ return e.k==="stk"&&e.c&&e.c.g; }).map(function(e){ return e.c.g; }).join(","); // v3.255: aandelen naar Yahoo
+  var pc=new Promise(function(res){ if(!ids){ res(null); return; } fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(ids)+"&vs_currencies=usd&include_24hr_change=true")
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }).then(function(pr){ res(pr||null); }).catch(function(){ res(null); }); }); // v3.255: munten-koersen
+  var ps=new Promise(function(res){ if(!syms){ res(null); return; } stkQuotes(syms,function(q){ res(q); }); }); // v3.255: aandelen-koersen
+  Promise.all([pc,ps]).then(function(rr){ if(CRY_DET===null) cryDrawList(a,rr[0],rr[1]); }); // v3.255: beide in één overzicht
 }
-function cryDrawList(a,pr){
+function cryDrawList(a,pr,sq){ // v3.255: sq = aandelen-koersen
   var sc=document.getElementById("cryScroll"); if(!sc||CRY_DET!==null) return;
   a=crySorted(a); // v3.181: handmatige volgorde (sleep-handvat)
-  var h='<h1 style="margin:4px 0 2px">Crypto</h1><div class="sub">Prijsgrafieken van je munten</div><div class="tip">Tik op een munt voor de grafiek - sleep aan ☰ om de volgorde te veranderen.</div>';
+  var h='<h1 style="margin:4px 0 2px">Munten &amp; aandelen</h1><div class="sub">Prijsgrafieken van je munten en aandelen</div><div class="tip">Tik op een munt of aandeel voor de grafiek - sleep aan ☰ om de volgorde te veranderen.</div>';
   a.forEach(function(e){
     var g=e.c?e.c.g:"", s=e.c?e.c.s:"";
-    var o=(pr&&pr[g])||null, p=o?o.usd:null, ch=(o&&o.usd_24h_change!==undefined)?o.usd_24h_change:null;
-    h+='<div class="lookupItem" data-cid="'+e.id+'" onclick="cryDet('+e.id+')"><span class="cryDrag" onpointerdown="cryDragStart('+e.id+',event)">☰</span><div class="si"><div class="sd">'+colEsc(s)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(e.t)+'</div></div><div style="text-align:right"><div id="cryP'+e.id+'" style="font-size:15px;font-weight:800">'+(p===null?"...":cryFmt(p))+'</div><div id="cryC'+e.id+'" style="font-size:11px;font-weight:700;color:'+(ch===null?"#64748b":(ch>=0?"#4ade80":"#f87171"))+'">'+(ch===null?"24u: ...":("24u: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"))+'</div></div><button style="background:#1e293b;border:0;color:#f87171;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700" onclick="event.stopPropagation();cryDel('+e.id+')">✕</button></div>';
+    if(e.k==="stk"){ // v3.255: aandeel-rij met valuta-teken en dag-wijziging
+      var q2=(sq&&sq[g])||null, p=q2?q2.p:null, ch=(q2&&typeof q2.ch==="number")?q2.ch:null;
+      h+='<div class="lookupItem" data-cid="'+e.id+'" onclick="cryDet('+e.id+')"><span class="cryDrag" onpointerdown="cryDragStart('+e.id+',event)">☰</span><div class="si"><div class="sd">'+colEsc(s)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(e.t)+'</div></div><div style="text-align:right"><div id="cryP'+e.id+'" style="font-size:15px;font-weight:800">'+(p===null?"...":(stkCurSign(e.cur)+stkFmt(p)))+'</div><div id="cryC'+e.id+'" style="font-size:11px;font-weight:700;color:'+(ch===null?"#64748b":(ch>=0?"#4ade80":"#f87171"))+'">'+(ch===null?"dag: ...":("dag: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"))+'</div></div><button style="background:#1e293b;border:0;color:#f87171;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700" onclick="event.stopPropagation();cryDel('+e.id+')">✕</button></div>';
+      return; }
+    var o=(pr&&pr[g])||null, p2=o?o.usd:null, ch2=(o&&o.usd_24h_change!==undefined)?o.usd_24h_change:null;
+    h+='<div class="lookupItem" data-cid="'+e.id+'" onclick="cryDet('+e.id+')"><span class="cryDrag" onpointerdown="cryDragStart('+e.id+',event)">☰</span><div class="si"><div class="sd">'+colEsc(s)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(e.t)+'</div></div><div style="text-align:right"><div id="cryP'+e.id+'" style="font-size:15px;font-weight:800">'+(p2===null?"...":cryFmt(p2))+'</div><div id="cryC'+e.id+'" style="font-size:11px;font-weight:700;color:'+(ch2===null?"#64748b":(ch2>=0?"#4ade80":"#f87171"))+'">'+(ch2===null?"24u: ...":("24u: "+(ch2>=0?"+":"")+ch2.toFixed(2)+"%"))+'</div></div><button style="background:#1e293b;border:0;color:#f87171;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700" onclick="event.stopPropagation();cryDel('+e.id+')">✕</button></div>';
   });
   sc.innerHTML=h;
 }
@@ -2735,7 +2828,9 @@ function cryTick(){ // v3.181: elke 30s live verversen zolang het crypto-scherm 
   if(curView!=="cryptoView") return;
   if(CRY_DET!==null){ cryDetLive(); return; }
   var a=slLoad("cry");
-  var ids=a.map(function(e){ return e.c?e.c.g:""; }).filter(Boolean).join(",");
+  var ids=a.filter(function(e){ return e.k!=="stk"; }).map(function(e){ return e.c?e.c.g:""; }).filter(Boolean).join(","); // v3.255: aandelen horen niet in de CoinGecko-vraag
+  var syms=a.filter(function(e){ return e.k==="stk"&&e.c&&e.c.g; }).map(function(e){ return e.c.g; }).join(","); // v3.255: aandelen-koersen apart ophalen
+  if(syms){ stkQuotes(syms,function(q){ if(!q) return; a.forEach(function(e){ if(e.k!=="stk"||!e.c) return; var o=q[e.c.g]; if(!o) return; var pe=document.getElementById("cryP"+e.id), ce=document.getElementById("cryC"+e.id); if(pe&&typeof o.p==="number") pe.textContent=stkCurSign(e.cur)+stkFmt(o.p); if(ce&&typeof o.ch==="number"){ ce.textContent="dag: "+(o.ch>=0?"+":"")+o.ch.toFixed(2)+"%"; ce.style.color=o.ch>=0?"#4ade80":"#f87171"; } }); }); } // v3.255: ook aandelen elke 30s live
   if(!ids) return;
   fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(ids)+"&vs_currencies=usd&include_24hr_change=true")
     .then(function(r){ if(!r.ok) throw 0; return r.json(); })
@@ -2754,6 +2849,7 @@ function cryDetLive(){
   var id=CRY_DET, e=null; slLoad("cry").forEach(function(x){ if(x.id===id) e=x; });
   if(!e||!e.c) return;
   var g=e.c.g;
+  if(e.k==="stk"){ cryChartLoad(g, e.c.s, CRY_TOK); return; } // v3.255: aandelen verversen via de chart-meta - geen CoinGecko
   fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(g)+"&vs_currencies=usd&include_24hr_change=true")
     .then(function(r){ if(!r.ok) throw 0; return r.json(); })
     .then(function(pr){
@@ -2783,7 +2879,7 @@ function cryDetRender(){
   var ivRow='<div class="tip" style="text-align:left;margin:0 0 6px">Kaars-grootte</div><div id="crySetRow" style="display:flex;gap:6px;margin-bottom:10px">'+bi("1m","1m")+bi("5m","5m")+bi("15m","15m")+bi("1h","1u")+bi("1d","24u")+'</div>'; // v3.183: 1 min t/m 24 uur per kaars + v3.234: id voor de instel-knopen op het volledige scherm
   var modeRow=(CRY_KIND==="candle")?ivRow:rgRow; // v3.183: bij candles kies je de kaars-grootte, bij de lijn het tijdvak
   sc.innerHTML='<div class="card"><div class="score"><span>'+colEsc(e.t)+' ('+colEsc(s)+')</span><span id="cryPrice" style="font-size:20px;font-weight:800;color:#e2e8f0">...</span></div>'
-    +'<div id="cryCh" style="font-size:12px;color:#64748b;margin:2px 0 10px">24u: ...</div>'
+    +(e.k==="stk"?'<div id="cryCh" style="font-size:12px;color:#64748b;margin:2px 0 10px">dag: ...</div>':'<div id="cryCh" style="font-size:12px;color:#64748b;margin:2px 0 10px">24u: ...</div>') // v3.255: aandelen tonen dag-wijziging
     +'<div style="display:flex;gap:6px;margin:0 0 8px"><button id="cryAiBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryAiUpd()">🤖 AI update</button><button id="cryNewsBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryNewsUpd()">📰 Nieuws</button></div><div id="cryAiBox"></div><div id="cryNewsBox"></div>' // v3.192: korte marktupdate van de AI + v3.195: nieuws-knop ernaast
     +'<div id="cryFsArea">'+modeRow // v3.183: tijdvak-knoppen (lijn) of kaars-grootte-knoppen (candles) + v3.234: op het volledige scherm draaien de instel-knopen mee met de chart
     +'<div id="cryKindRow" style="display:flex;gap:8px;margin-bottom:10px"><button class="btn '+(CRY_KIND==="line"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(0)">📈 Lijn</button><button class="btn '+(CRY_KIND==="candle"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(1)">🕯 Candles</button><button id="cryFsBtn" class="btn dark" style="width:auto;flex:none;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryFsToggle(event)">&#128421;&#65039;</button></div>' // v3.180: kiezen tussen lijn en candlesticks + v3.231: knop voor de chart op het hele scherm + v3.234: id voor de instel-knopen op het volledige scherm
@@ -2793,15 +2889,19 @@ function cryDetRender(){
   if(CRY_FS===1){ var fb=document.getElementById("cryFsArea"); if(fb){ fb.classList.add("cryFS"); cryFsRot(); } } // v3.245: een tik op een instel-knop (Dag/Week, kaars-grootte, Lijn/Candles) herbouwt de pagina - op het volledige scherm krijgt de nieuwe pagina meteen de volledige-scherm-stand terug zodat je er niet uit valt
   var tok=++CRY_TOK;
   if(!g) return;
-  fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(g)+"&vs_currencies=usd&include_24hr_change=true")
-    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-    .then(function(pr){ if(tok!==CRY_TOK) return; var o=pr&&pr[g]; var pe=document.getElementById("cryPrice"), ce=document.getElementById("cryCh");
-      if(o&&o.usd&&pe) pe.textContent=cryFmt(o.usd);
-      if(ce){ var ch=(o&&o.usd_24h_change!==undefined)?o.usd_24h_change:0; ce.textContent="24u: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"; ce.style.color=ch>=0?"#4ade80":"#f87171"; } })
-    .catch(function(){});
+  if(e.k!=="stk"){ // v3.255: aandelen halen hun koers uit de chart-meta (Yahoo)
+    fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(g)+"&vs_currencies=usd&include_24hr_change=true")
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(pr){ if(tok!==CRY_TOK) return; var o=pr&&pr[g]; var pe=document.getElementById("cryPrice"), ce=document.getElementById("cryCh");
+        if(o&&o.usd&&pe) pe.textContent=cryFmt(o.usd);
+        if(ce){ var ch=(o&&o.usd_24h_change!==undefined)?o.usd_24h_change:0; ce.textContent="24u: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"; ce.style.color=ch>=0?"#4ade80":"#f87171"; } })
+      .catch(function(){});
+  }
   cryChartLoad(g, s, tok);
 }
 function cryChartLoad(g, s, tok){ // v3.183: s = symbool voor Binance-candles; v3.179: losgemaakt van cryDetRender zodat de ticker de grafiek ook kan verversen
+  var stkIt=null; try{ slLoad("cry").forEach(function(x){ if(x.k==="stk"&&x.c&&x.c.g===g) stkIt=x; }); }catch(e){} // v3.255: aandelen gaan via Yahoo i.p.v. CoinGecko/Binance
+  if(stkIt){ stkChartLoad(stkIt, tok); return; }
   window._CRY_CTX={g:g,s:s}; // v3.189: context voor de geschiedenis-schuifbalk
   var key=g+"|"+(CRY_KIND==="candle"?CRY_IV:CRY_RANGE)+"|"+CRY_KIND, cached=CRY_CH[key], ttl=(CRY_KIND==="candle"||CRY_RANGE===1?10000:60000); // v3.183: cache ook per kaars-grootte; Dag/candles elke 10s, Week/Maand via 60s
   if(window._CRY_PKEY!==key){ CRY_PAN_F=0; window._CRY_PKEY=key; } // v3.228: andere munt, periode of soort = weer beginnen bij de nieuwste; een live-tick met dezelfde grafiek laat je plek staan
@@ -2872,7 +2972,7 @@ function cryNewsUpd(){ // v3.195: actueel Nieuws-knop + v3.235: alle nieuws-dien
   var cx=window._CRY_CTX, box=document.getElementById("cryNewsBox");
   if(!box) return;
   if(!cx||!cx.g){ box.innerHTML='<div class="note">Kies eerst een munt.</div>'; return; }
-  var coin=cx.g.replace(/-/g," "), cached=CRY_NEWS[cx.g];
+  var coin=(cx.stk&&cx.n)?cx.n:cx.g.replace(/-/g," "), cached=CRY_NEWS[cx.g]; // v3.255: aandelen-nieuws zoekt op de bedrijfsnaam
   if(cached&&Date.now()-cached.t<300000){ cryNewsShow(box,cached.items,coin); return; } // v3.195: 5 minuten cache
   box.innerHTML='<div class="note">⏳ Nieuws over '+colEsc(coin)+' zoeken…</div>';
   cryNewsPull(coin,false).then(function(its){ CRY_NEWS[cx.g]={t:Date.now(),items:its.slice(0,6)}; cryNewsShow(box,CRY_NEWS[cx.g].items,coin); }) // v3.235: 5 minuten cache
@@ -3761,7 +3861,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.254";
+var VERSION="3.255";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5221,7 +5321,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.254-->
+<!--v:3.255-->
 
 
 
