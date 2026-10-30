@@ -247,6 +247,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   body.pink #cryAiBox p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.192: AI-update koppen in roze */
   body.pink #cryNewsBox p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.195: nieuws-kop in roze */
   body.pink #crySumBox p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.260: samenvatting-kop in roze */
+  body.pink #crySumImgBox img { border:2px solid #f9a8d4 !important; } /* v3.264: het AI-plaatje met een roze randje */
   body.pink .cryAiX { color:#f472b6 !important; } /* v3.235: roze variant van de sluit-knop van de AI-update */
   body.pink .cryNewsIt { color:#f9a8d4 !important; } /* v3.195: nieuws-artikelen in roze */
   body.pink #colHistRead b { color:#f472b6 !important; } /* v3.198: grafiek-tik waarde in roze */
@@ -362,7 +363,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.263</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.264</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3031,13 +3032,13 @@ function cryNewsShow(box,items,coin,sub){ // v3.195: de nieuws-lijst tonen + v3.
   html+='<p class="n" style="margin:6px 0 0;color:#64748b">Nederlandse nieuws-sites · tik op een artikel om het te openen.</p></div>'; // v3.259: alle bronnen zijn Nederlands
   box.innerHTML=html;
 }
-var CRY_SUM=(function(){ try{ var k=localStorage.getItem("mcSumKey"); if(k&&localStorage.getItem("mcSumTxt")) return {k:k,t:Number(localStorage.getItem("mcSumT"))||0,x:localStorage.getItem("mcSumTxt")}; }catch(e){} return null; })(); // v3.260: bewaarde samenvatting na heropenen + v3.263: per munt of aandeel (k = dag|symbool)
+var CRY_SUM=(function(){ try{ var k=localStorage.getItem("mcSumKey"); if(k&&localStorage.getItem("mcSumTxt")) return {k:k,t:Number(localStorage.getItem("mcSumT"))||0,x:localStorage.getItem("mcSumTxt"),img:localStorage.getItem("mcSumImg")||""}; }catch(e){} return null; })(); // v3.260: bewaarde samenvatting na heropenen + v3.263: per munt of aandeel (k = dag|symbool) + v3.264: met bewaard plaatje
 function crySumUpd(){ // v3.260: AI-samenvatting + v3.263: alléén over de munt of het aandeel waar je nu op zit
   var cx=window._CRY_CTX, box=document.getElementById("crySumBox"); if(!box) return;
   if(!cx||!cx.g){ box.innerHTML='<div class="note">Kies eerst een munt.</div>'; return; } // v3.263: zonder munt of aandeel geen samenvatting
   if(!mistKey()){ box.innerHTML='<div class="card" style="padding:12px;margin:0 0 10px"><p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">AI-samenvatting</p><p class="n" style="margin:0 0 8px">Voor de AI-samenvatting heb je een gratis Mistral API-key nodig - die blijft op je eigen toestel. Maak hem aan op console.mistral.ai.</p><button class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="mistKeyAsk()">API-key invoeren</button></div>'; return; } // v3.260: dezelfde key als de Mistral-chat in de app
   var coin=(cx.stk&&cx.n)?cx.n:cx.g.replace(/-/g," "), key=new Date().toDateString()+"|"+cx.g; // v3.263: de samenvatting is per munt of aandeel
-  if(CRY_SUM&&CRY_SUM.k===key&&Date.now()-CRY_SUM.t<900000&&CRY_SUM.x){ crySumShow(box,CRY_SUM.x,coin); return; } // v3.260: 15 minuten cache + v3.263: per munt
+  if(CRY_SUM&&CRY_SUM.k===key&&Date.now()-CRY_SUM.t<900000&&CRY_SUM.x){ crySumShow(box,CRY_SUM.x,coin,CRY_SUM.img||""); return; } // v3.260: 15 minuten cache + v3.263: per munt + v3.264: het bewaarde plaatje meteen mee
   box.innerHTML='<div class="note">⏳ Nederlandse nieuws-sites lezen - de AI maakt de samenvatting over '+colEsc(coin)+'…</div>'; // v3.263
   cryNewsNl(coin,!!(cx&&cx.stk)).then(function(r){ // v3.263: dezelfde artikelen over deze munt of dit aandeel als bij de nieuws-knop
     var its=(r&&r.its)||[];
@@ -3055,9 +3056,10 @@ function crySumUpd(){ // v3.260: AI-samenvatting + v3.263: alléén over de munt
     }).then(function(j){
       var a=(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"";
       if(!a) throw new Error("leeg");
-      CRY_SUM={k:key,t:Date.now(),x:a}; // v3.260: samenvatting bewaren voor de cache + v3.263: per munt of aandeel
-      try{ localStorage.setItem("mcSumKey",key); localStorage.setItem("mcSumTxt",a); localStorage.setItem("mcSumT",String(Date.now())); localStorage.removeItem("mcSumDay"); }catch(e2){} // v3.263: heropenen = meteen de samenvatting van deze munt zien
-      crySumShow(box,a,coin);
+      var img=crySumImgUrl(a,coin); // v3.264: bij elke samenvatting hoort een leuk AI-plaatje
+      CRY_SUM={k:key,t:Date.now(),x:a,img:img}; // v3.260: samenvatting bewaren voor de cache + v3.263: per munt of aandeel + v3.264: met plaatje
+      try{ localStorage.setItem("mcSumKey",key); localStorage.setItem("mcSumTxt",a); localStorage.setItem("mcSumT",String(Date.now())); localStorage.setItem("mcSumImg",img); localStorage.removeItem("mcSumDay"); }catch(e2){} // v3.263: heropenen = meteen de samenvatting met plaatje zien
+      crySumShow(box,a,coin,img);
     });
   }).catch(function(e){
     var w=(e&&e.message==="key")?" - je API-key wordt niet geaccepteerd, voer hem opnieuw in.":" - geen verbinding met de nieuws-sites of Mistral."; // v3.263: "geen nieuws" is geen fout meer maar een gewone melding
@@ -3065,10 +3067,16 @@ function crySumUpd(){ // v3.260: AI-samenvatting + v3.263: alléén over de munt
   });
 }
 // v3.263: crySumItems is verwijderd - de samenvatting gebruikt dezelfde munt-artikelen als de nieuws-knop (cryNewsNl)
-function crySumShow(box,txt,coin){ // v3.260: de AI-samenvatting tonen + v3.263: over déze munt of dit aandeel
+function crySumImgUrl(txt,coin){ // v3.264: leuk AI-plaatje dat bij de samenvatting past - gratis via Pollinations (Flux), geen API-key nodig
+  var pr=encodeURIComponent("a fun colorful cartoon illustration about "+coin+" crypto and market news: "+String(txt||"").replace(/[-\n\r]/g," ").slice(0,220)); // v3.264: de samenvatting zelf is het onderwerp van het plaatje
+  var sd=0, s=String(txt||""); for(var i=0;i<s.length;i++){ sd=(sd*31+s.charCodeAt(i))%999983; } // v3.264: vaste seed uit de samenvatting - dezelfde samenvatting geeft hetzelfde plaatje terug
+  return "https://image.pollinations.ai/prompt/"+pr+"?width=640&height=640&nologo=true&seed="+sd; // v3.264: als gewone img-bron - geen fetch of CORS nodig, faalt hij dan verdwijnt hij vanzelf
+}
+function crySumShow(box,txt,coin,img){ // v3.260: de AI-samenvatting tonen + v3.263: over déze munt of dit aandeel + v3.264: met AI-plaatje
   box.innerHTML='<div class="card" style="padding:12px;margin:0 0 10px;position:relative">'
     +'<div class="cryAiX" onclick="crySumClose()" style="position:absolute;top:6px;right:8px;color:#f87171;font-size:12px;font-weight:700;padding:2px 7px;border-radius:8px;cursor:pointer">&#10005;</div>' // v3.260: sluiten net als de AI-update
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px;padding-right:26px">Samenvatting over '+colEsc(coin||"")+'</p>' // v3.263: de naam van de munt of het aandeel in de kop'
+    +((img)?'<div id="crySumImgBox" style="margin:0 0 8px"><img src="'+img+'" alt="AI-plaatje bij de samenvatting" style="width:100%;border-radius:10px;min-height:60px;background:#1e293b" onerror="this.parentNode.innerHTML=\'\'"/></div>':"") // v3.264: het AI-plaatje bij de samenvatting
     +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(txt)+'</p>'
     +'<p class="n" style="margin:0;color:#64748b">AI-samenvatting van de Nederlandse nieuws-sites · de losse artikelen staan bij de nieuws-knop.</p></div>';
 }
@@ -3932,7 +3940,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.263";
+var VERSION="3.264";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5392,7 +5400,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.263-->
+<!--v:3.264-->
 
 
 
