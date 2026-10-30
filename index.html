@@ -246,6 +246,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   body.pink .aiV { color:#f472b6 !important; } /* v3.190 */
   body.pink #cryAiBox p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.192: AI-update koppen in roze */
   body.pink #cryNewsBox p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.195: nieuws-kop in roze */
+  body.pink #crySumBox p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.260: samenvatting-kop in roze */
   body.pink .cryAiX { color:#f472b6 !important; } /* v3.235: roze variant van de sluit-knop van de AI-update */
   body.pink .cryNewsIt { color:#f9a8d4 !important; } /* v3.195: nieuws-artikelen in roze */
   body.pink #colHistRead b { color:#f472b6 !important; } /* v3.198: grafiek-tik waarde in roze */
@@ -361,7 +362,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.259</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.260</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2887,7 +2888,7 @@ function cryDetRender(){
   var modeRow=(CRY_KIND==="candle")?ivRow:rgRow; // v3.183: bij candles kies je de kaars-grootte, bij de lijn het tijdvak
   sc.innerHTML='<div class="card"><div class="score"><span>'+colEsc(e.t)+' ('+colEsc(s)+')</span><span id="cryPrice" style="font-size:20px;font-weight:800;color:#e2e8f0">...</span></div>'
     +(e.k==="stk"?'<div id="cryCh" style="font-size:12px;color:#64748b;margin:2px 0 10px">dag: ...</div>':'<div id="cryCh" style="font-size:12px;color:#64748b;margin:2px 0 10px">24u: ...</div>') // v3.255: aandelen tonen dag-wijziging
-    +'<div style="display:flex;gap:6px;margin:0 0 8px"><button id="cryAiBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryAiUpd()">🤖 AI update</button><button id="cryNewsBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryNewsUpd()">📰 Nieuws</button></div><div id="cryAiBox"></div><div id="cryNewsBox"></div>' // v3.192: korte marktupdate van de AI + v3.195: nieuws-knop ernaast
+    +'<div style="display:flex;gap:6px;margin:0 0 8px"><button id="cryAiBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryAiUpd()">🤖 AI update</button><button id="cryNewsBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryNewsUpd()">📰 Nieuws</button><button id="crySumBtn" class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="crySumUpd()">Samenvatting</button></div><div id="cryAiBox"></div><div id="cryNewsBox"></div><div id="crySumBox"></div>' // v3.192: korte marktupdate van de AI + v3.195: nieuws-knop ernaast + v3.260: AI-samenvatting van al het nieuws van de dag
     +'<div id="cryFsArea">'+modeRow // v3.183: tijdvak-knoppen (lijn) of kaars-grootte-knoppen (candles) + v3.234: op het volledige scherm draaien de instel-knopen mee met de chart
     +'<div id="cryKindRow" style="display:flex;gap:8px;margin-bottom:10px"><button class="btn '+(CRY_KIND==="line"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(0)">📈 Lijn</button><button class="btn '+(CRY_KIND==="candle"?"yellow":"dark")+'" style="flex:1;margin:0" onclick="cryKindSet(1)">🕯 Candles</button><button id="cryFsBtn" class="btn dark" style="width:auto;flex:none;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="cryFsToggle(event)">&#128421;&#65039;</button></div>' // v3.180: kiezen tussen lijn en candlesticks + v3.231: knop voor de chart op het hele scherm + v3.234: id voor de instel-knopen op het volledige scherm
     +'<div id="cryChartBox" style="margin:0 -24px"><div class="tip">Grafiek laden...</div></div>' // v3.183: grafiek over de volle breedte van het scherm
@@ -3034,6 +3035,61 @@ function cryNewsShow(box,items,coin,sub){ // v3.195: de nieuws-lijst tonen + v3.
   });
   html+='<p class="n" style="margin:6px 0 0;color:#64748b">Nederlandse nieuws-sites · tik op een artikel om het te openen.</p></div>'; // v3.259: alle bronnen zijn Nederlands
   box.innerHTML=html;
+}
+var CRY_SUM=(function(){ try{ if(localStorage.getItem("mcSumDay")===new Date().toDateString()&&localStorage.getItem("mcSumTxt")) return {d:localStorage.getItem("mcSumDay"),t:Number(localStorage.getItem("mcSumT"))||0,x:localStorage.getItem("mcSumTxt")}; }catch(e){} return null; })(); // v3.260: cache + bewaarde samenvatting van vandaag na heropenen
+function crySumUpd(){ // v3.260: AI-samenvatting van al het Nederlandse nieuws van vandaag
+  var box=document.getElementById("crySumBox"); if(!box) return;
+  if(!mistKey()){ box.innerHTML='<div class="card" style="padding:12px;margin:0 0 10px"><p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Samenvatting van de dag</p><p class="n" style="margin:0 0 8px">Voor de AI-samenvatting heb je een gratis Mistral API-key nodig - die blijft op je eigen toestel. Maak hem aan op console.mistral.ai.</p><button class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="mistKeyAsk()">API-key invoeren</button></div>'; return; } // v3.260: dezelfde key als de Mistral-chat in de app
+  var day=new Date().toDateString();
+  if(CRY_SUM&&CRY_SUM.d===day&&Date.now()-CRY_SUM.t<900000&&CRY_SUM.x){ crySumShow(box,CRY_SUM.x); return; } // v3.260: 15 minuten cache, daarna vers nieuws
+  box.innerHTML='<div class="note">⏳ Nederlandse nieuws-sites lezen - de AI maakt de samenvatting…</div>';
+  crySumItems().then(function(its){
+    if(!its.length) throw new Error("feeds");
+    var list=its.slice(0,25).map(function(it){ return "- ["+it.s+"] "+it.t+" ("+it.h+")"; }).join("\n"); // v3.260: de 25 nieuwste artikelen van vandaag meegeven
+    return fetch("https://api.mistral.ai/v1/chat/completions",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+mistKey(), "Accept":"application/json" },
+      body:JSON.stringify({ model:"mistral-small-latest",
+        messages:[{role:"system",content:"Je bent de nieuwsredacteur van een Nederlandse app. Maak van de artikelen een korte samenvatting in het Nederlands van maximaal 6 punten. Gebruik ALLEEN de genoemde artikelen - verzin niets zelf en voeg geen eigen kennis toe. Elk punt begint met een streepje en is één korte zin. Artikelen over hetzelfde onderwerp groepeer je in één punt. Noem alleen een bron als dat echt nodig is om het te begrijpen."},{role:"user",content:"Dit zijn de nieuwste Nederlandse nieuwsartikelen van nu:\n"+list+"\n\nMaak hiervan de korte samenvatting."}] })
+    }).then(function(r){
+      if(r.status===401||r.status===403){ try{ localStorage.removeItem("mcMistKey"); }catch(e2){} throw new Error("key"); } // v3.260: key ongeldig - opnieuw vragen zoals bij de chat
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      return r.json();
+    }).then(function(j){
+      var a=(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"";
+      if(!a) throw new Error("leeg");
+      CRY_SUM={d:day,t:Date.now(),x:a}; // v3.260: samenvatting bewaren voor de cache
+      try{ localStorage.setItem("mcSumDay",day); localStorage.setItem("mcSumTxt",a); localStorage.setItem("mcSumT",String(Date.now())); }catch(e2){} // v3.260: heropenen = meteen de samenvatting van vandaag zien
+      crySumShow(box,a);
+    });
+  }).catch(function(e){
+    var w=(e&&e.message==="key")?" - je API-key wordt niet geaccepteerd, voer hem opnieuw in.":((e&&e.message==="feeds")?" - geen nieuws gevonden op de Nederlandse sites.":" - geen verbinding.");
+    box.innerHTML='<div class="note">❌ Samenvatting mislukt'+w+' Probeer het zo meteen opnieuw.</div>'; // v3.260: eerlijke fout-melding
+  });
+}
+function crySumItems(){ // v3.260: alle Nederlandse feeds lezen en de artikelen van de laatste 24 uur bewaren
+  var feeds=[["https://bitcoinmagazine.nl/feed/","Bitcoin Magazine NL"],["https://crypto-insiders.nl/feed/","Crypto Insiders"],["https://www.iex.nl/rss/nieuws","IEX"],["https://www.nu.nl/rss/Economie","NU.nl"],["https://www.nu.nl/rss/Tech","NU.nl"],["https://feeds.nos.nl/nosnieuwsalgemeen","NOS"]]; // v3.260: dezelfde Nederlandse sites als de nieuws-knop
+  return Promise.all(feeds.map(function(f){ return fetch("https://r.jina.ai/"+f[0],{headers:{"X-Return-Format":"html"}}).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(x){ return cryNewsParseXml(x).map(function(it){ it.s=f[1]; return it; }); }).catch(function(){ return []; }); })).then(function(all){
+    var out=[], ks={}, now=Date.now();
+    all.forEach(function(its){ its.forEach(function(it){
+      var dt=new Date(it.d||0); if(isNaN(dt.getTime())||now-dt.getTime()>86400000) return; // v3.260: alleen artikelen van de laatste 24 uur
+      var k=String(it.t||"").slice(0,60); if(ks[k]) return; ks[k]=1;
+      var hh=("0"+dt.getHours()).slice(-2)+":"+("0"+dt.getMinutes()).slice(-2); // v3.260: publicatie-tijd in eigen klok
+      out.push({t:it.t,u:it.u,s:it.s,h:hh,ts:dt.getTime()});
+    }); });
+    out.sort(function(a,b){ return (b.ts||0)-(a.ts||0); }); // v3.260: nieuwste eerst
+    return out;
+  });
+}
+function crySumShow(box,txt){ // v3.260: de AI-samenvatting tonen
+  box.innerHTML='<div class="card" style="padding:12px;margin:0 0 10px;position:relative">'
+    +'<div class="cryAiX" onclick="crySumClose()" style="position:absolute;top:6px;right:8px;color:#f87171;font-size:12px;font-weight:700;padding:2px 7px;border-radius:8px;cursor:pointer">&#10005;</div>' // v3.260: sluiten net als de AI-update
+    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px;padding-right:26px">Samenvatting van de dag</p>'
+    +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(txt)+'</p>'
+    +'<p class="n" style="margin:0;color:#64748b">AI-samenvatting van de Nederlandse nieuws-sites · de losse artikelen staan bij de nieuws-knop.</p></div>';
+}
+function crySumClose(){ // v3.260: het samenvatting-kaartje sluiten
+  var b=document.getElementById("crySumBox"); if(b) b.innerHTML="";
 }
 function cryTrim(a){ // v3.189: alleen het laatste deel van de geschiedenis tonen; v3.228: na het inzoomen ook opzij schuifbaar met slepen
   if(!a||a.length<3) return a||[];
@@ -3886,7 +3942,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.259";
+var VERSION="3.260";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5346,7 +5402,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.259-->
+<!--v:3.260-->
 
 
 
