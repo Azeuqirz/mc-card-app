@@ -362,7 +362,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.262</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.263</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2981,22 +2981,20 @@ function cryNewsUpd(){ // v3.195: actueel Nieuws-knop + v3.259: alléén Nederla
   if(!box) return;
   if(!cx||!cx.g){ box.innerHTML='<div class="note">Kies eerst een munt.</div>'; return; }
   var coin=(cx.stk&&cx.n)?cx.n:cx.g.replace(/-/g," "), cached=CRY_NEWS[cx.g]; // v3.255: aandelen-nieuws zoekt op de bedrijfsnaam
-  if(cached&&Date.now()-cached.t<300000){ cryNewsShow(box,cached.items,coin,cached.sub||""); return; } // v3.195: 5 minuten cache + v3.259: uitleg-regel mee-cachen
+  if(cached&&Date.now()-cached.t<300000){ if(!cached.items.length){ box.innerHTML='<div class="note">Nog geen Nederlands nieuws over '+colEsc(coin)+' gevonden - de Nederlandse sites schrijven (nog) niet over deze munt of dit aandeel. Probeer het later opnieuw.</div>'; return; } cryNewsShow(box,cached.items,coin,""); return; } // v3.195: 5 minuten cache + v3.263: ook "geen nieuws" even onthouden, geen aanvulling met ander nieuws
   box.innerHTML='<div class="note">⏳ Nederlandse nieuws-sites lezen…</div>';
-  cryNewsNl(coin,!!(cx&&cx.stk)).then(function(r){ // v3.259: Bitcoin Magazine NL, Crypto Insiders, IEX, NU.nl en NOS
+  cryNewsNl(coin,!!(cx&&cx.stk)).then(function(r){ // v3.259: Bitcoin Magazine NL, Crypto Insiders, IEX, NU.nl en NOS + v3.263: alléén nieuws over deze munt of dit aandeel
     var items=(r&&r.its)||[];
-    if(!items.length){ box.innerHTML='<div class="note">❌ Geen nieuws gevonden — geen verbinding of de Nederlandse nieuws-sites zijn tijdelijk onbereikbaar. Probeer het zo meteen opnieuw.</div>'; return; }
-    var sub=(r.nhits>0)?"":("Nog geen Nederlands artikel over "+coin+" gevonden - dit is het laatste nieuws van Nederlandse sites:"); // v3.259: eerlijk zeggen als de munt of het bedrijf zelf nog niet in het NL-nieuws staat
-    CRY_NEWS[cx.g]={t:Date.now(),items:items,sub:sub}; // v3.259: alléén Nederlands nieuws
-    cryNewsShow(box,items,coin,sub);
+    CRY_NEWS[cx.g]={t:Date.now(),items:items}; // v3.263: ook "geen nieuws" even onthouden
+    if(!items.length){ box.innerHTML='<div class="note">Nog geen Nederlands nieuws over '+colEsc(coin)+' gevonden - de Nederlandse sites schrijven (nog) niet over deze munt of dit aandeel. Probeer het later opnieuw.</div>'; return; } // v3.263: eerlijk zeggen in plaats van ander nieuws tonen
+    cryNewsShow(box,items,coin,""); // v3.263: geen uitleg-regel meer - alles in de lijst gaat over deze munt of dit aandeel
   }).catch(function(){ box.innerHTML='<div class="note">❌ Geen nieuws gevonden — geen verbinding. Probeer het zo meteen opnieuw.</div>'; });
 }
-function cryNewsNl(coin,stk){ // v3.259: alléén Nederlands nieuws - Bitcoin Magazine NL, Crypto Insiders, IEX, NU.nl en NOS via r.jina.ai
+function cryNewsNl(coin,stk){ // v3.259: alléén Nederlands nieuws - Bitcoin Magazine NL, Crypto Insiders, IEX, NU.nl en NOS via r.jina.ai + v3.263: alléén artikelen over déze munt of dit aandeel - geen aanvulling met ander nieuws
   var words=String(coin||"").toLowerCase().split(/[^a-z0-9.]+/).filter(function(w){ return w.length>=4; }).slice(0,4); // v3.259: zoek-woorden uit de naam van de munt of het bedrijf
   if(!words.length){ var w2=String(coin||"").toLowerCase().replace(/[^a-z0-9]/g,""); if(w2) words=[w2]; }
   if(!words.length) return Promise.resolve({its:[],nhits:0});
   var feeds=[["https://bitcoinmagazine.nl/feed/","Bitcoin Magazine NL"],["https://crypto-insiders.nl/feed/","Crypto Insiders"],["https://www.iex.nl/rss/nieuws","IEX"],["https://www.nu.nl/rss/Economie","NU.nl"],["https://www.nu.nl/rss/Tech","NU.nl"],["https://feeds.nos.nl/nosnieuwsalgemeen","NOS"]]; // v3.259: Nederlandse sites - crypto, beurs en algemeen nieuws
-  var fb=stk?2:0; // v3.259: geen artikel over dit aandeel of deze munt? dan het nieuwste NL-beursnieuws (IEX) of cryptoniews (Bitcoin Magazine NL)
   var gets=feeds.map(function(f){
     return fetch("https://r.jina.ai/"+f[0],{headers:{"X-Return-Format":"html"}}).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(x){ // v3.259: jina geeft de ruwe RSS terug (CORS + XML met publicatie-tijden)
       var a=cryNewsParseXml(x); if(!a.length) throw 0;
@@ -3004,15 +3002,12 @@ function cryNewsNl(coin,stk){ // v3.259: alléén Nederlands nieuws - Bitcoin Ma
     }).catch(function(){ return []; }); // v3.259: een storing op één site prikt er niet doorheen
   });
   return Promise.all(gets).then(function(rr){
-    var hits=[], latest=[], ts=function(x){ var t=(new Date(x.d||0)).getTime(); return isNaN(t)?0:t; };
-    rr.forEach(function(a,fi){ a.forEach(function(it){ var t=String(it.t||"").toLowerCase(), hit=false;
+    var hits=[], ks={}, ts=function(x){ var t=(new Date(x.d||0)).getTime(); return isNaN(t)?0:t; };
+    rr.forEach(function(a){ a.forEach(function(it){ var t=String(it.t||"").toLowerCase(), hit=false;
       for(var i=0;i<words.length;i++){ if(t.indexOf(words[i])>=0){ hit=true; break; } }
-      if(hit) hits.push(it); else if(fi===fb) latest.push(it); }); }); // v3.259: artikelen over de coin zelf apart van het NL-marktnieuws
-    hits.sort(function(x,y){ return ts(y)-ts(x); });
-    latest.sort(function(x,y){ return ts(y)-ts(x); });
-    var out=hits.slice(0,10), ks={}; hits.forEach(function(it){ ks[String(it.t||"").slice(0,60)]=1; }); // v3.259: artikelen over de coin staan altijd bovenaan
-    latest.forEach(function(it){ var k=String(it.t||"").slice(0,60); if(out.length<10&&!ks[k]){ ks[k]=1; out.push(it); } }); // v3.259: aanvullen met het laatste Nederlandse nieuws
-    return {its:out, nhits:hits.length};
+      if(hit){ var k=String(it.t||"").slice(0,60); if(!ks[k]){ ks[k]=1; hits.push(it); } } }); }); // v3.263: alléén artikelen over deze munt of dit aandeel, dubbele titels eruit
+    hits.sort(function(x,y){ return ts(y)-ts(x); }); // v3.259: nieuwste eerst
+    return {its:hits.slice(0,12), nhits:hits.length}; // v3.263: geen aanvulling met ander nieuws meer - maximaal 12 artikelen over déze munt
   });
 }
 // v3.259: de Engelse nieuws-route (Yahoo) is verwijderd - de nieuws-knop toont alléén nog Nederlandse sites
@@ -3036,21 +3031,23 @@ function cryNewsShow(box,items,coin,sub){ // v3.195: de nieuws-lijst tonen + v3.
   html+='<p class="n" style="margin:6px 0 0;color:#64748b">Nederlandse nieuws-sites · tik op een artikel om het te openen.</p></div>'; // v3.259: alle bronnen zijn Nederlands
   box.innerHTML=html;
 }
-var CRY_SUM=(function(){ try{ if(localStorage.getItem("mcSumDay")===new Date().toDateString()&&localStorage.getItem("mcSumTxt")) return {d:localStorage.getItem("mcSumDay"),t:Number(localStorage.getItem("mcSumT"))||0,x:localStorage.getItem("mcSumTxt")}; }catch(e){} return null; })(); // v3.260: cache + bewaarde samenvatting van vandaag na heropenen
-function crySumUpd(){ // v3.260: AI-samenvatting van al het Nederlandse nieuws van vandaag
-  var box=document.getElementById("crySumBox"); if(!box) return;
-  if(!mistKey()){ box.innerHTML='<div class="card" style="padding:12px;margin:0 0 10px"><p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Samenvatting van de dag</p><p class="n" style="margin:0 0 8px">Voor de AI-samenvatting heb je een gratis Mistral API-key nodig - die blijft op je eigen toestel. Maak hem aan op console.mistral.ai.</p><button class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="mistKeyAsk()">API-key invoeren</button></div>'; return; } // v3.260: dezelfde key als de Mistral-chat in de app
-  var day=new Date().toDateString();
-  if(CRY_SUM&&CRY_SUM.d===day&&Date.now()-CRY_SUM.t<900000&&CRY_SUM.x){ crySumShow(box,CRY_SUM.x); return; } // v3.260: 15 minuten cache, daarna vers nieuws
-  box.innerHTML='<div class="note">⏳ Nederlandse nieuws-sites lezen - de AI maakt de samenvatting…</div>';
-  crySumItems().then(function(its){
-    if(!its.length) throw new Error("feeds");
-    var list=its.slice(0,25).map(function(it){ return "- ["+it.s+"] "+it.t+" ("+it.h+")"; }).join("\n"); // v3.260: de 25 nieuwste artikelen van vandaag meegeven
+var CRY_SUM=(function(){ try{ var k=localStorage.getItem("mcSumKey"); if(k&&localStorage.getItem("mcSumTxt")) return {k:k,t:Number(localStorage.getItem("mcSumT"))||0,x:localStorage.getItem("mcSumTxt")}; }catch(e){} return null; })(); // v3.260: bewaarde samenvatting na heropenen + v3.263: per munt of aandeel (k = dag|symbool)
+function crySumUpd(){ // v3.260: AI-samenvatting + v3.263: alléén over de munt of het aandeel waar je nu op zit
+  var cx=window._CRY_CTX, box=document.getElementById("crySumBox"); if(!box) return;
+  if(!cx||!cx.g){ box.innerHTML='<div class="note">Kies eerst een munt.</div>'; return; } // v3.263: zonder munt of aandeel geen samenvatting
+  if(!mistKey()){ box.innerHTML='<div class="card" style="padding:12px;margin:0 0 10px"><p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">AI-samenvatting</p><p class="n" style="margin:0 0 8px">Voor de AI-samenvatting heb je een gratis Mistral API-key nodig - die blijft op je eigen toestel. Maak hem aan op console.mistral.ai.</p><button class="btn dark" style="width:auto;margin:0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="mistKeyAsk()">API-key invoeren</button></div>'; return; } // v3.260: dezelfde key als de Mistral-chat in de app
+  var coin=(cx.stk&&cx.n)?cx.n:cx.g.replace(/-/g," "), key=new Date().toDateString()+"|"+cx.g; // v3.263: de samenvatting is per munt of aandeel
+  if(CRY_SUM&&CRY_SUM.k===key&&Date.now()-CRY_SUM.t<900000&&CRY_SUM.x){ crySumShow(box,CRY_SUM.x,coin); return; } // v3.260: 15 minuten cache + v3.263: per munt
+  box.innerHTML='<div class="note">⏳ Nederlandse nieuws-sites lezen - de AI maakt de samenvatting over '+colEsc(coin)+'…</div>'; // v3.263
+  cryNewsNl(coin,!!(cx&&cx.stk)).then(function(r){ // v3.263: dezelfde artikelen over deze munt of dit aandeel als bij de nieuws-knop
+    var its=(r&&r.its)||[];
+    if(!its.length){ box.innerHTML='<div class="note">Nog geen Nederlands artikel over '+colEsc(coin)+' gevonden vandaag - de AI kan dan geen samenvatting maken. Zodra er iets verschijnt, staat het bij de nieuws-knop.</div>'; return; } // v3.263: eerlijk, geen nieuws over andere munten
+    var list=its.slice(0,25).map(function(it){ var dt=new Date(it.d||0), hh=isNaN(dt.getTime())?"":(" om "+("0"+dt.getHours()).slice(-2)+":"+("0"+dt.getMinutes()).slice(-2)); return "- ["+it.s+"] "+it.t+hh; }).join("\n"); // v3.263: alleen de artikelen over deze munt meegeven
     return fetch("https://api.mistral.ai/v1/chat/completions",{
       method:"POST",
       headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+mistKey(), "Accept":"application/json" },
       body:JSON.stringify({ model:"mistral-small-latest",
-        messages:[{role:"system",content:"Je bent de nieuwsredacteur van een Nederlandse app. Maak van de artikelen een korte samenvatting in het Nederlands van maximaal 6 punten. Gebruik ALLEEN de genoemde artikelen - verzin niets zelf en voeg geen eigen kennis toe. Elk punt begint met een streepje en is één korte zin. Artikelen over hetzelfde onderwerp groepeer je in één punt. Noem alleen een bron als dat echt nodig is om het te begrijpen."},{role:"user",content:"Dit zijn de nieuwste Nederlandse nieuwsartikelen van nu:\n"+list+"\n\nMaak hiervan de korte samenvatting."}] })
+        messages:[{role:"system",content:"Je bent de nieuwsredacteur van een Nederlandse app. Maak van de artikelen een korte samenvatting in het Nederlands van maximaal 6 punten over "+coin+". Gebruik ALLEEN de genoemde artikelen - verzin niets zelf en voeg geen eigen kennis toe. Elk punt begint met een streepje en is één korte zin. Artikelen over hetzelfde onderwerp groepeer je in één punt. Noem alleen een bron als dat echt nodig is om het te begrijpen."},{role:"user",content:"Dit zijn de nieuwste Nederlandse nieuwsartikelen over "+coin+":\n"+list+"\n\nMaak hiervan de korte samenvatting."}] }) // v3.263: de samenvatting gaat alléén over deze munt of dit aandeel
     }).then(function(r){
       if(r.status===401||r.status===403){ try{ localStorage.removeItem("mcMistKey"); }catch(e2){} throw new Error("key"); } // v3.260: key ongeldig - opnieuw vragen zoals bij de chat
       if(!r.ok) throw new Error("HTTP "+r.status);
@@ -3058,33 +3055,20 @@ function crySumUpd(){ // v3.260: AI-samenvatting van al het Nederlandse nieuws v
     }).then(function(j){
       var a=(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"";
       if(!a) throw new Error("leeg");
-      CRY_SUM={d:day,t:Date.now(),x:a}; // v3.260: samenvatting bewaren voor de cache
-      try{ localStorage.setItem("mcSumDay",day); localStorage.setItem("mcSumTxt",a); localStorage.setItem("mcSumT",String(Date.now())); }catch(e2){} // v3.260: heropenen = meteen de samenvatting van vandaag zien
-      crySumShow(box,a);
+      CRY_SUM={k:key,t:Date.now(),x:a}; // v3.260: samenvatting bewaren voor de cache + v3.263: per munt of aandeel
+      try{ localStorage.setItem("mcSumKey",key); localStorage.setItem("mcSumTxt",a); localStorage.setItem("mcSumT",String(Date.now())); localStorage.removeItem("mcSumDay"); }catch(e2){} // v3.263: heropenen = meteen de samenvatting van deze munt zien
+      crySumShow(box,a,coin);
     });
   }).catch(function(e){
-    var w=(e&&e.message==="key")?" - je API-key wordt niet geaccepteerd, voer hem opnieuw in.":((e&&e.message==="feeds")?" - geen nieuws gevonden op de Nederlandse sites.":" - geen verbinding.");
+    var w=(e&&e.message==="key")?" - je API-key wordt niet geaccepteerd, voer hem opnieuw in.":" - geen verbinding met de nieuws-sites of Mistral."; // v3.263: "geen nieuws" is geen fout meer maar een gewone melding
     box.innerHTML='<div class="note">❌ Samenvatting mislukt'+w+' Probeer het zo meteen opnieuw.</div>'; // v3.260: eerlijke fout-melding
   });
 }
-function crySumItems(){ // v3.260: alle Nederlandse feeds lezen en de artikelen van de laatste 24 uur bewaren
-  var feeds=[["https://bitcoinmagazine.nl/feed/","Bitcoin Magazine NL"],["https://crypto-insiders.nl/feed/","Crypto Insiders"],["https://www.iex.nl/rss/nieuws","IEX"],["https://www.nu.nl/rss/Economie","NU.nl"],["https://www.nu.nl/rss/Tech","NU.nl"],["https://feeds.nos.nl/nosnieuwsalgemeen","NOS"]]; // v3.260: dezelfde Nederlandse sites als de nieuws-knop
-  return Promise.all(feeds.map(function(f){ return fetch("https://r.jina.ai/"+f[0],{headers:{"X-Return-Format":"html"}}).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(x){ return cryNewsParseXml(x).map(function(it){ it.s=f[1]; return it; }); }).catch(function(){ return []; }); })).then(function(all){
-    var out=[], ks={}, now=Date.now();
-    all.forEach(function(its){ its.forEach(function(it){
-      var dt=new Date(it.d||0); if(isNaN(dt.getTime())||now-dt.getTime()>86400000) return; // v3.260: alleen artikelen van de laatste 24 uur
-      var k=String(it.t||"").slice(0,60); if(ks[k]) return; ks[k]=1;
-      var hh=("0"+dt.getHours()).slice(-2)+":"+("0"+dt.getMinutes()).slice(-2); // v3.260: publicatie-tijd in eigen klok
-      out.push({t:it.t,u:it.u,s:it.s,h:hh,ts:dt.getTime()});
-    }); });
-    out.sort(function(a,b){ return (b.ts||0)-(a.ts||0); }); // v3.260: nieuwste eerst
-    return out;
-  });
-}
-function crySumShow(box,txt){ // v3.260: de AI-samenvatting tonen
+// v3.263: crySumItems is verwijderd - de samenvatting gebruikt dezelfde munt-artikelen als de nieuws-knop (cryNewsNl)
+function crySumShow(box,txt,coin){ // v3.260: de AI-samenvatting tonen + v3.263: over déze munt of dit aandeel
   box.innerHTML='<div class="card" style="padding:12px;margin:0 0 10px;position:relative">'
     +'<div class="cryAiX" onclick="crySumClose()" style="position:absolute;top:6px;right:8px;color:#f87171;font-size:12px;font-weight:700;padding:2px 7px;border-radius:8px;cursor:pointer">&#10005;</div>' // v3.260: sluiten net als de AI-update
-    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px;padding-right:26px">Samenvatting van de dag</p>'
+    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px;padding-right:26px">Samenvatting over '+colEsc(coin||"")+'</p>' // v3.263: de naam van de munt of het aandeel in de kop'
     +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(txt)+'</p>'
     +'<p class="n" style="margin:0;color:#64748b">AI-samenvatting van de Nederlandse nieuws-sites · de losse artikelen staan bij de nieuws-knop.</p></div>';
 }
@@ -3948,7 +3932,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.262";
+var VERSION="3.263";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5408,7 +5392,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.262-->
+<!--v:3.263-->
 
 
 
