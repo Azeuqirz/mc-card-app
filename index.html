@@ -241,6 +241,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   body.pink #colScroll polyline { stroke:#f472b6 !important; }
   body.pink #colScroll .score b { color:#f472b6; }
   body.pink .lookupItem > div[style*="facc15"] { color:#f472b6 !important; }
+  body.pink #crySortSel { background:#1e293b !important; border-color:#f9a8d4 !important; color:#f9a8d4 !important; } /* v3.270: sorteer-dropdown in het roze thema */
   body.pink .n[style*="fbbf24"] { color:#f472b6 !important; }
   /* v3.35: roze accenten - het logo blijft overal gewoon geel */
   body.pink #refreshBtn { border-color:rgba(236,72,153,.6); color:#f472b6; }
@@ -368,7 +369,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.269</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.270</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2610,6 +2611,7 @@ try{ var _cr=parseInt(localStorage.getItem("mcCryRange")||"",10); if([1,7,30,90,
 var CRY_HIST=100; try{ var _hp=parseInt(localStorage.getItem("mcCryHist")||"",10); if(_hp>=10&&_hp<=100) CRY_HIST=_hp; }catch(e3){} // v3.189: hoeveel geschiedenis de grafiek toont
 var CRY_PAN_F=0; // v3.228: hoe ver de grafiek met slepen opzij is geschoven (0 = de nieuwste candles rechts)
 var CRY_CUR=0; // v3.229: de nieuwste prijs van de geladen grafiek - hier loopt de horizontale prijs-lijn op
+var CRY_SORT="man"; try{ var _cs=localStorage.getItem("mcCrySort"); if(["man","up","dn","cap"].indexOf(_cs)>=0) CRY_SORT=_cs; }catch(e){} // v3.270: bewaarde sorteer-keuze terugladen
 function cryOpen(){ CRY_DET=null; if(!CRY_TICK){ CRY_TICK=setInterval(cryTick,30000); } cryBarUpd(); showView("cryptoView"); slPull("cry",function(){ cryRender(); }); } // v3.181: elke 30s live prijzen zolang het crypto-scherm open is
 function cryBarUpd(){
   var b=document.getElementById("cryBar"); if(!b) return;
@@ -2795,6 +2797,50 @@ function topSPick(i){ // v3.269: aandeel uit de top 10 toevoegen via de bewezen 
   if(!FB.user){ showView("loginView"); return; }
   window._stkS=[c]; stkPick(0);
 }
+// ===== v3.270: sorteren van het eigen overzicht - stijgers, dalers of grootte =====
+function crySortSelHtml(){ // v3.270: dropdown met sorteer-keuzes bovenaan het overzicht
+  return '<div style="text-align:center;margin:2px 0 4px"><select id="crySortSel" onchange="crySortSet(this.value)" style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:700;max-width:88%"><option value="man"'+(CRY_SORT==="man"?" selected":"")+'>Handmatige volgorde</option><option value="up"'+(CRY_SORT==="up"?" selected":"")+'>Stijgers bovenaan</option><option value="dn"'+(CRY_SORT==="dn"?" selected":"")+'>Dalers bovenaan</option><option value="cap"'+(CRY_SORT==="cap"?" selected":"")+'>Grootte (marktwaarde)</option></select></div>';
+}
+function crySortTip(){ // v3.270: tip-regel past bij de sorteer-keuze
+  return CRY_SORT==="man"?'Tik op een munt of aandeel voor de grafiek - sleep aan ☰ om de volgorde te veranderen.':'Tik op een munt of aandeel voor de grafiek - kies Handmatige volgorde om zelf te slepen.';
+}
+function crySortSet(v){ // v3.270: sorteer-keuze bewaren en het overzicht opnieuw tekenen
+  if(["man","up","dn","cap"].indexOf(v)<0) v="man";
+  CRY_SORT=v; try{ localStorage.setItem("mcCrySort",v); }catch(e){}
+  cryRender();
+}
+function crySortApply(a,pr,sq,caps){ // v3.270: sorteren binnen het eigen type-blok - aandelen blijven onder de munten (v3.256-regel)
+  if(CRY_SORT==="man") return a;
+  var ch=function(e){ if(e.k==="stk"){ var o=(sq&&sq[e.c.g])||null; return (o&&typeof o.ch==="number")?o.ch:null; } var o2=(pr&&pr[e.c.g])||null; return (o2&&typeof o2.usd_24h_change==="number")?o2.usd_24h_change:null; };
+  var cap=function(e){ if(e.k==="stk"){ return (caps&&typeof caps[e.c.g]==="number")?caps[e.c.g]:null; } var o=(pr&&pr[e.c.g])||null; return (o&&typeof o.usd_market_cap==="number")?o.usd_market_cap:null; };
+  var key=(CRY_SORT==="cap")?cap:ch, dir=(CRY_SORT==="dn")?1:-1; // v3.270: dalers = grootste daling bovenaan
+  return a.slice().sort(function(x,y){
+    var xs=(x.k==="stk")?1:0, ys=(y.k==="stk")?1:0; if(xs!==ys) return xs-ys;
+    var kx=key(x), ky=key(y);
+    if(kx===null&&ky===null){ var xo=(typeof x.o==="number")?x.o:1e9, yo=(typeof y.o==="number")?y.o:1e9; return xo-yo; }
+    if(kx===null) return 1; if(ky===null) return -1; // v3.270: zonder gegevens onderaan houden
+    return (kx-ky)*dir;
+  });
+}
+function crCapStk(sym,cb){ // v3.270: marktkapitalisatie van een aandeel via jina van de Yahoo-quote-pagina (7 dagen gecached)
+  var cache=null; try{ cache=JSON.parse(localStorage.getItem("mcStkCap")||"null"); }catch(e){}
+  var c=(cache&&cache[sym])||null;
+  if(c&&Date.now()-(c.t||0)<6048e5&&typeof c.c==="number"){ cb(c.c); return; } // v3.270: verse cache = direct antwoord
+  fetch("https://r.jina.ai/https://finance.yahoo.com/quote/"+encodeURIComponent(sym)+"/")
+    .then(function(r){ if(!r.ok) throw 0; return r.text(); })
+    .then(function(t){
+      var m=/Market Cap(?:\s*\(intraday\))?([0-9][0-9.,]*)([KMBT])/.exec(String(t)), v=null;
+      if(m){ v=parseFloat(String(m[1]).replace(/,/g,"")); if(!isNaN(v)) v=v*({K:1e3,M:1e6,B:1e9,T:1e12}[m[2]]||1); else v=null; }
+      if(typeof v==="number"&&v>0){ var o=cache||{}; o[sym]={c:v,t:Date.now()}; try{ localStorage.setItem("mcStkCap",JSON.stringify(o)); }catch(e2){} cb(v); return; }
+      cb(null);
+    })
+    .catch(function(){ cb(null); });
+}
+function crCapsAll(syms,cb){ // v3.270: marktkapitalisaties van alle aandelen tegelijk ophalen
+  var out={}, n=0;
+  if(!syms||!syms.length){ cb(out); return; }
+  syms.forEach(function(s){ crCapStk(String(s),function(v){ out[String(s)]=(typeof v==="number")?v:null; n++; if(n===syms.length) cb(out); }); });
+}
 function cryDel(id){
   var dit=null; slLoad("cry").forEach(function(x){ if(x.id===id) dit=x; }); if(!confirm(dit&&dit.k==="stk"?"Dit aandeel verwijderen?":"Deze munt verwijderen?")) return; // v3.255: passende tekst bij aandelen
   var del=slDelLoad("cry").filter(function(d){ return d.id!==id; }); del.push({id:id,ts:Date.now()});
@@ -2808,26 +2854,28 @@ function cryRender(){
   cryBarUpd();
   var a=slLoad("cry");
   if(!a.length){ sc.innerHTML='<h1 style="margin:4px 0 2px">Munten &amp; aandelen</h1><div class="sub">Prijsgrafieken van je munten en aandelen</div><div class="tip">Nog geen munten of aandelen. Tik hieronder op "Munt toevoegen" of "Aandeel toevoegen".</div>'+topSectionHtml(); topLoad(); return; } // v3.255: aandelen erbij; v3.269: ook bij een lege lijst de Top 10 tonen
-  sc.innerHTML='<h1 style="margin:4px 0 2px">Munten &amp; aandelen</h1><div class="sub">Prijsgrafieken van je munten en aandelen</div><div class="tip">Tik op een munt of aandeel voor de grafiek - sleep aan ☰ om de volgorde te veranderen.</div>';
+  sc.innerHTML='<h1 style="margin:4px 0 2px">Munten &amp; aandelen</h1><div class="sub">Prijsgrafieken van je munten en aandelen</div>'+crySortSelHtml()+'<div class="tip">'+crySortTip()+'</div>';
   var ids=a.filter(function(e){ return e.k!=="stk"; }).map(function(e){ return e.c?e.c.g:""; }).filter(Boolean).join(","); // v3.255: alleen munten naar CoinGecko
   var syms=a.filter(function(e){ return e.k==="stk"&&e.c&&e.c.g; }).map(function(e){ return e.c.g; }).join(","); // v3.255: aandelen naar Yahoo
-  var pc=new Promise(function(res){ if(!ids){ res(null); return; } fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(ids)+"&vs_currencies=usd&include_24hr_change=true")
-    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }).then(function(pr){ res(pr||null); }).catch(function(){ res(null); }); }); // v3.255: munten-koersen
+  var pc=new Promise(function(res){ if(!ids){ res(null); return; } fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(ids)+"&vs_currencies=usd&include_24hr_change=true&include_market_cap=true")
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }).then(function(pr){ res(pr||null); }).catch(function(){ res(null); }); }); // v3.255: munten-koersen; v3.270: plus marktwaarde voor de Grootte-sortering
   var ps=new Promise(function(res){ if(!syms){ res(null); return; } stkQuotes(syms,function(q){ res(q); }); }); // v3.255: aandelen-koersen
-  Promise.all([pc,ps]).then(function(rr){ if(CRY_DET===null) cryDrawList(a,rr[0],rr[1]); }); // v3.255: beide in één overzicht
+  var pcp=new Promise(function(res){ if(CRY_SORT!=="cap"||!syms){ res(null); return; } crCapsAll(syms.split(","), function(caps){ res(caps||null); }); }); // v3.270: marktkapitalisatie van de aandelen alleen bij Grootte-sortering
+  Promise.all([pc,ps,pcp]).then(function(rr){ if(CRY_DET===null) cryDrawList(a,rr[0],rr[1],rr[2]); }); // v3.255: beide in één overzicht; v3.270: plus marktkapitalisaties
 }
-function cryDrawList(a,pr,sq){ // v3.255: sq = aandelen-koersen
+function cryDrawList(a,pr,sq,caps){ // v3.255: sq = aandelen-koersen; v3.270: caps = marktkapitalisatie per symbool
   var sc=document.getElementById("cryScroll"); if(!sc||CRY_DET!==null) return;
-  a=crySorted(a); // v3.181: handmatige volgorde (sleep-handvat)
-  var h='<h1 style="margin:4px 0 2px">Munten &amp; aandelen</h1><div class="sub">Prijsgrafieken van je munten en aandelen</div><div class="tip">Tik op een munt of aandeel voor de grafiek - sleep aan ☰ om de volgorde te veranderen.</div>';
+  a=crySortApply(crySorted(a),pr,sq,caps); // v3.181: handmatige volgorde (sleep-handvat); v3.270: of stijgers/dalers/grootte
+  var h='<h1 style="margin:4px 0 2px">Munten &amp; aandelen</h1><div class="sub">Prijsgrafieken van je munten en aandelen</div>'+crySortSelHtml()+'<div class="tip">'+crySortTip()+'</div>';
   a.forEach(function(e){
     var g=e.c?e.c.g:"", s=e.c?e.c.s:"";
+    var dh=(CRY_SORT==="man")?'<span class="cryDrag" onpointerdown="cryDragStart('+e.id+',event)">☰</span>':""; // v3.270: sleep-handvat alleen in handmatige volgorde
     if(e.k==="stk"){ // v3.255: aandeel-rij met valuta-teken en dag-wijziging
       var q2=(sq&&sq[g])||null, p=q2?q2.p:null, ch=(q2&&typeof q2.ch==="number")?q2.ch:null;
-      h+='<div class="lookupItem" data-cid="'+e.id+'" onclick="cryDet('+e.id+')"><span class="cryDrag" onpointerdown="cryDragStart('+e.id+',event)">☰</span><div class="si"><div class="sd">'+colEsc(s)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(e.t)+'</div></div><div style="text-align:right"><div id="cryP'+e.id+'" style="font-size:15px;font-weight:800">'+(p===null?"...":(stkCurSign(e.cur)+stkFmt(p)))+'</div><div id="cryC'+e.id+'" style="font-size:11px;font-weight:700;color:'+(ch===null?"#64748b":(ch>=0?"#4ade80":"#f87171"))+'">'+(ch===null?"dag: ...":("dag: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"))+'</div></div><button style="background:#1e293b;border:0;color:#f87171;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700" onclick="event.stopPropagation();cryDel('+e.id+')">✕</button></div>';
+      h+='<div class="lookupItem" data-cid="'+e.id+'" onclick="cryDet('+e.id+')">'+dh+'<div class="si"><div class="sd">'+colEsc(s)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(e.t)+'</div></div><div style="text-align:right"><div id="cryP'+e.id+'" style="font-size:15px;font-weight:800">'+(p===null?"...":(stkCurSign(e.cur)+stkFmt(p)))+'</div><div id="cryC'+e.id+'" style="font-size:11px;font-weight:700;color:'+(ch===null?"#64748b":(ch>=0?"#4ade80":"#f87171"))+'">'+(ch===null?"dag: ...":("dag: "+(ch>=0?"+":"")+ch.toFixed(2)+"%"))+'</div></div><button style="background:#1e293b;border:0;color:#f87171;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700" onclick="event.stopPropagation();cryDel('+e.id+')">✕</button></div>';
       return; }
     var o=(pr&&pr[g])||null, p2=o?o.usd:null, ch2=(o&&o.usd_24h_change!==undefined)?o.usd_24h_change:null;
-    h+='<div class="lookupItem" data-cid="'+e.id+'" onclick="cryDet('+e.id+')"><span class="cryDrag" onpointerdown="cryDragStart('+e.id+',event)">☰</span><div class="si"><div class="sd">'+colEsc(s)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(e.t)+'</div></div><div style="text-align:right"><div id="cryP'+e.id+'" style="font-size:15px;font-weight:800">'+(p2===null?"...":cryFmt(p2))+'</div><div id="cryC'+e.id+'" style="font-size:11px;font-weight:700;color:'+(ch2===null?"#64748b":(ch2>=0?"#4ade80":"#f87171"))+'">'+(ch2===null?"24u: ...":("24u: "+(ch2>=0?"+":"")+ch2.toFixed(2)+"%"))+'</div></div><button style="background:#1e293b;border:0;color:#f87171;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700" onclick="event.stopPropagation();cryDel('+e.id+')">✕</button></div>';
+    h+='<div class="lookupItem" data-cid="'+e.id+'" onclick="cryDet('+e.id+')">'+dh+'<div class="si"><div class="sd">'+colEsc(s)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(e.t)+'</div></div><div style="text-align:right"><div id="cryP'+e.id+'" style="font-size:15px;font-weight:800">'+(p2===null?"...":cryFmt(p2))+'</div><div id="cryC'+e.id+'" style="font-size:11px;font-weight:700;color:'+(ch2===null?"#64748b":(ch2>=0?"#4ade80":"#f87171"))+'">'+(ch2===null?"24u: ...":("24u: "+(ch2>=0?"+":"")+ch2.toFixed(2)+"%"))+'</div></div><button style="background:#1e293b;border:0;color:#f87171;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700" onclick="event.stopPropagation();cryDel('+e.id+')">✕</button></div>';
   });
   h+=topSectionHtml(); // v3.269: de Top 10-blokken onder de eigen lijst
   sc.innerHTML=h;
@@ -4017,7 +4065,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.269";
+var VERSION="3.270";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5477,7 +5525,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.269-->
+<!--v:3.270-->
 
 
 
