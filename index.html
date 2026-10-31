@@ -197,6 +197,8 @@
 #cryFsX, #cryFsRotBtn { display:none; } /* v3.231+v3.234: de weg- en draai-knop staan altijd in de grafiek maar zijn alleen zichtbaar op het volledige scherm */
 #cryFsArea.cryFS #cryFsX, #cryFsArea.cryFS #cryFsRotBtn { display:block; } /* v3.231+v3.234 */
 #cryHovT { transform:translateX(-50%); } /* v3.232: stond eerst inline in de tooltip - nu in CSS zodat hij op z'n kant tegendraaid kan worden */
+#cryHovT .cryHovD { display:block; font-size:10px; font-weight:400; color:#94a3b8; } /* v3.266: de datum-regel onder de prijs in de tooltip */
+body.pink #cryHovT .cryHovD { color:#f9a8d4 !important; } /* v3.266: de datum-regel in roze voor Chantal */
 #cryFsArea.cryFS.cryFSR { left:50%; right:auto; top:50%; bottom:auto; width:100vh; height:100vw; width:100dvh; height:100dvw; padding:10px 10px; transform:translate(-50%,-50%) rotate(90deg); /* v3.242: ook op z'n kant een smalle marge zodat de chart de hele breedte vult */ } /* v3.232+v3.234: de chart draait een kwartslag - breed over de lange kant van de telefoon; v3.238: houd de telefoon op z'n zijkant, dan zie je alles rechtop met de instel-knoppen onderaan de chart */
 /* v3.238: op z'n kant precies dezelfde opmaak als staand - de chart bovenaan en de instel-knoppen eronder als gewone rijen; wie de telefoon op z'n zijkant houdt ziet de knoppen netjes onderaan en de prijs- en tijd-teksten gewoon rechtop (de knoppen-kolom aan de zijkant en de tegendraaide teksten zijn weg) */
 body.pink #cryFsBtn { color:#f472b6 !important; } /* v3.231: roze variant van de volledig-scherm-knop */
@@ -364,7 +366,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.265</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.266</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -2702,7 +2704,7 @@ function stkChartLoad(it, tok){ // v3.255: grafiek van een aandeel via Yahoo - z
     if(pe) pe.textContent=stkCurSign(it.cur)+stkFmt(pm.p);
     if(ce&&pm.pc){ var ch2=(pm.p-pm.pc)/pm.pc*100; ce.textContent="dag: "+(ch2>=0?"+":"")+ch2.toFixed(2)+"%"; ce.style.color=ch2>=0?"#4ade80":"#f87171"; } };
   if(cached&&Date.now()-cached.t<ttl){ upd(cached.pm); var cl=cached.p[cached.p.length-1]; if(cl) CRY_CUR=cnd?cl[4]:cl; // v3.255: uit de cache tekenen
-    var dpc=cryTrim(cached.p), b2=document.getElementById("cryChartBox"); if(b2){ b2.innerHTML=(cnd?cryChartCandle(dpc):cryChartSvg(dpc,cached.ts?cryTrim(cached.ts):null)); cryHovAttach(dpc); } return; }
+    var dpc=cryTrim(cached.p), b2=document.getElementById("cryChartBox"); if(b2){ b2.innerHTML=(cnd?cryChartCandle(dpc):cryChartSvg(dpc,cached.ts?cryTrim(cached.ts):null)); cryHovAttach(dpc,cached.ts?cryTrim(cached.ts):null); } return; }
   var iv=(cnd?{"1m":["1d","1m"],"5m":["1d","5m"],"15m":["5d","15m"],"1h":["1mo","1h"],"1d":["1y","1d"]}[CRY_IV]:{1:["1d","5m"],7:["5d","15m"],30:["1mo","1d"],90:["3mo","1d"],180:["6mo","1d"],365:["1y","1d"]}[CRY_RANGE])||["1mo","1d"]; // v3.255: periode-knoppen naar Yahoo-range + interval
   stkFetch("https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(g)+"?interval="+iv[1]+"&range="+iv[0], function(j){
     if(tok!==CRY_TOK) return;
@@ -2719,7 +2721,7 @@ function stkChartLoad(it, tok){ // v3.255: grafiek van een aandeel via Yahoo - z
     CRY_CH[key]={t:Date.now(),p:dpc2,ts:ts,pm:pm};
     if(dpc2.length) CRY_CUR=cnd?dpc2[dpc2.length-1][4]:dpc2[dpc2.length-1];
     upd(pm);
-    var dp=cryTrim(dpc2), b3=document.getElementById("cryChartBox"); if(b3){ b3.innerHTML=(cnd?cryChartCandle(dp):cryChartSvg(dp,cryTrim(ts))); cryHovAttach(dp); }
+    var dp=cryTrim(dpc2), b3=document.getElementById("cryChartBox"); if(b3){ b3.innerHTML=(cnd?cryChartCandle(dp):cryChartSvg(dp,cryTrim(ts))); cryHovAttach(dp,cryTrim(ts)); }
   });
 }
 function cryPick(i){
@@ -2916,7 +2918,7 @@ function cryChartLoad(g, s, tok){ // v3.183: s = symbool voor Binance-candles; v
   var key=g+"|"+(CRY_KIND==="candle"?CRY_IV:CRY_RANGE)+"|"+CRY_KIND, cached=CRY_CH[key], ttl=(CRY_KIND==="candle"||CRY_RANGE===1?10000:60000); // v3.183: cache ook per kaars-grootte; Dag/candles elke 10s, Week/Maand via 60s
   if(window._CRY_PKEY!==key){ CRY_PAN_F=0; window._CRY_PKEY=key; } // v3.228: andere munt, periode of soort = weer beginnen bij de nieuwste; een live-tick met dezelfde grafiek laat je plek staan
   if(cached&&Date.now()-cached.t<ttl){ var cl=cached.p[cached.p.length-1]; if(cl) CRY_CUR=(CRY_KIND==="candle")?cl[4]:cl; // v3.229: nieuwste prijs bij de cache-render
-  var dp=cryTrim(cached.p), b2=document.getElementById("cryChartBox"); if(b2){ b2.innerHTML=(CRY_KIND==="candle"?cryChartCandle(dp):cryChartSvg(dp,cached.ts?cryTrim(cached.ts):null)); cryHovAttach(dp); } return; } // v3.189 + v3.211: tijdbalk ook uit de cache
+  var dp=cryTrim(cached.p), b2=document.getElementById("cryChartBox"); if(b2){ b2.innerHTML=(CRY_KIND==="candle"?cryChartCandle(dp):cryChartSvg(dp,cached.ts?cryTrim(cached.ts):null)); cryHovAttach(dp,cached.ts?cryTrim(cached.ts):null); } return; } // v3.189 + v3.211: tijdbalk ook uit de cache
   if(CRY_KIND==="candle"){ // v3.183: candles via Binance klines - kaars-grootte 1m t/m 24u (CoinGecko kent geen intraday-candles)
     fetch("https://api.binance.com/api/v3/klines?symbol="+encodeURIComponent(s+"USDT")+"&interval="+CRY_IV+"&limit=360") // v3.230: 3x zo lange candle-geschiedenis - 1m=6 uur, 5m=30 uur, 15m=90 uur, 1u=15 dagen, 24u=360 dagen
       .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
@@ -2938,7 +2940,7 @@ function cryChartLoad(g, s, tok){ // v3.183: s = symbool voor Binance-candles; v
       if(pts.length>140){ var st=pts.length/140, ds=[], dts=[]; for(var i=0;i<140;i++){ var ix=Math.floor(i*st); ds.push(pts[ix]); dts.push(ts[ix]); } ds.push(pts[pts.length-1]); dts.push(ts[ts.length-1]); pts=ds; ts=dts; }
       CRY_CH[key]={t:Date.now(),p:pts,ts:ts}; // v3.211: ook de tijden in de cache
       if(pts.length) CRY_CUR=pts[pts.length-1]; // v3.229: nieuwste prijs voor de prijs-lijn
-      var dp3=cryTrim(pts), dts3=cryTrim(ts), b3=document.getElementById("cryChartBox"); if(b3){ b3.innerHTML=cryChartSvg(dp3,dts3); cryHovAttach(dp3); } // v3.189 + v3.211
+      var dp3=cryTrim(pts), dts3=cryTrim(ts), b3=document.getElementById("cryChartBox"); if(b3){ b3.innerHTML=cryChartSvg(dp3,dts3); cryHovAttach(dp3,dts3); } // v3.189 + v3.211
     })
     .catch(function(){ if(tok!==CRY_TOK) return; var b4=document.getElementById("cryChartBox"); if(b4) b4.innerHTML='<div class="note">Grafiek kon niet worden geladen - geen verbinding of tijdelijke API-limiet.</div>'; cryFsBtns(); }); // v3.234: ook bij een fout de weg- en draai-knop tonen
 }
@@ -3188,11 +3190,12 @@ function cryFsBtns(){ // v3.234: de weg- en draai-knop op de grafiek in een eige
   box.style.position="relative"; // v3.231: de knoppen op de grafiek hebben dit nodig
   box.insertAdjacentHTML("beforeend",'<div id="cryFsX" onclick="cryFsToggle(event)" style="position:absolute;top:4px;right:8px;background:#0f172a;color:#f87171;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;white-space:nowrap;cursor:pointer">&#10005;</div><div id="cryFsRotBtn" onclick="cryFsRotTgl(event)" style="position:absolute;top:4px;left:8px;background:#0f172a;color:#facc15;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;white-space:nowrap;cursor:pointer">&#128260;</div>'); // v3.231: wegknop + v3.234: draai-knop + v3.236: de kruis rechtsboven (terug naar het normale scherm), de draai-knop linksboven
 }
-function cryHovAttach(data){ // v3.189: prijs bij hover met de muis of tik op het scherm
+function cryHovAttach(data,ts){ // v3.189: prijs bij hover met de muis of tik op het scherm + v3.266: ts = de tijden per punt - de tooltip toont de datum (met tijd bij korte periodes) onder de prijs
   var box=document.getElementById("cryChartBox"); if(!box) return;
   cryFsBtns(); // v3.234: de weg- en draai-knop zit in een eigen functie - ook de fout-meldingen roepen die aan
   var sv=box.querySelector("svg"); if(!sv) return;
   var isC=(CRY_KIND==="candle"), dm=(window._CRYDIMS||cryWH()), W=dm.W, H=dm.H, pad=10, n=data.length; // v3.240
+  var tss=isC?data.map(function(r){ return r[0]; }):ts, hok=(tss&&tss.length===n), wt=(hok&&tss[n-1]-tss[0]<=48*36e5); // v3.266: bij candles zit de tijd in de rij zelf, bij de lijn-grafiek komt hij mee - tot 48 uur toont hij ook de tijd
   if(n<2) return;
   var mn=Infinity, mx=-Infinity;
   for(var i=0;i<n;i++){ var vv=isC?data[i][4]:data[i]; if(isC){ if(data[i][3]<mn) mn=data[i][3]; if(data[i][2]>mx) mx=data[i][2]; } else { if(vv<mn) mn=vv; if(vv>mx) mx=vv; } }
@@ -3211,7 +3214,7 @@ function cryHovAttach(data){ // v3.189: prijs bij hover met de muis of tik op he
     var l=document.getElementById("cryHovL"), c=document.getElementById("cryHovC"), t=document.getElementById("cryHovT");
     if(l) l.style.left=(px/W*bw-1)+"px";
     if(c){ c.style.left=(px/W*bw)+"px"; c.style.top=(yv/H*bh)+"px"; }
-    if(t){ t.textContent=cryFmt(v); t.style.left=Math.max(46,Math.min(bw-46,px/W*bw))+"px"; }
+    if(t){ t.innerHTML=cryFmt(v)+(hok?'<span class="cryHovD">'+cryDT(tss[idx],wt)+'</span>':""); t.style.left=Math.max(46,Math.min(bw-46,px/W*bw))+"px"; } // v3.266: de prijs met daaronder de datum van dit punt
   };
   box.onpointermove=ev; box.onpointerdown=function(e2){ e2.preventDefault(); ev(e2); }; box.onpointerleave=hid; // v3.207: preventDefault tegen het Apple-vergrootglas
 }
@@ -3942,7 +3945,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.265";
+var VERSION="3.266";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5402,7 +5405,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.265-->
+<!--v:3.266-->
 
 
 
