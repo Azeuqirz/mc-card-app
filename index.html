@@ -241,6 +241,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   body.pink #colScroll polyline { stroke:#f472b6 !important; }
   body.pink #colScroll .score b { color:#f472b6; }
   body.pink .lookupItem > div[style*="facc15"] { color:#f472b6 !important; }
+  body.pink #topMsg { color:#f9a8d4 !important; } /* v3.268: de toegevoegd-melding van het Top 10-scherm in het roze thema */
   body.pink .n[style*="fbbf24"] { color:#f472b6 !important; }
   /* v3.35: roze accenten - het logo blijft overal gewoon geel */
   body.pink #refreshBtn { border-color:rgba(236,72,153,.6); color:#f472b6; }
@@ -368,7 +369,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.267</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.268</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -400,6 +401,8 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="ibOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">💡</div>Ideeënbus<span id="ibBadge" class="ibBadge"></span></button>
     <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="prodOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🛍️</div>Productzoeker</button>
     <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="mistOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🤖</div>Mistral AI</button>
+    <!-- v3.268: Top 10-tegel op het beginscherm -->
+    <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="topOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🏆</div>Top 10</button>
   </div>
   </div>
   <button class="btn yellow" id="homeLogin" onclick="showView('loginView');fbRenderLogin()"><span class="bt"><span class="bi">🔐</span>Inloggen</span></button>
@@ -2677,22 +2680,22 @@ function stkAdd(){ // v3.255: aandeel toevoegen - zoeken op naam of ticker
     sc.innerHTML=h;
   });
 }
-function stkPick(i){ // v3.255: aandeel valideren (Yahoo kent het symbool + de valuta) en toevoegen
+function stkPick(i,cb){ // v3.255: aandeel valideren (Yahoo kent het symbool + de valuta) en toevoegen; v3.268: cb = optionele melding na het toevoegen
   var c=(window._stkS||[])[i]; if(!c) return;
   if(!FB.user){ showView("loginView"); return; }
   var a=slLoad("cry");
-  for(var k=0;k<a.length;k++){ if(a[k].c&&a[k].c.g===c.symbol){ alert("Dit aandeel staat al in je lijst."); return; } }
+  for(var k=0;k<a.length;k++){ if(a[k].c&&a[k].c.g===c.symbol){ alert("Dit aandeel staat al in je lijst."); if(cb) cb(false); return; } }
   var sc=document.getElementById("cryScroll"); if(sc) sc.innerHTML='<div class="tip">'+colEsc(c.name)+' controleren...</div>';
   stkFetch("https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(c.symbol)+"?interval=1d&range=1d", function(j){
     var m=(j&&j.chart&&j.chart.result&&j.chart.result[0]&&j.chart.result[0].meta)||null;
-    if(!m||!m.regularMarketPrice){ alert("Kan dit aandeel nu niet controleren - geen verbinding of onbekend symbool. Probeer het zo meteen opnieuw."); return; }
+    if(!m||!m.regularMarketPrice){ alert("Kan dit aandeel nu niet controleren - geen verbinding of onbekend symbool. Probeer het zo meteen opnieuw."); if(cb) cb(false); return; }
     var nm=String(m.longName||m.shortName||c.name), cur=String(m.currency||"USD");
     var mnO=0; for(var k2=0;k2<a.length;k2++){ if(typeof a[k2].o==="number"&&a[k2].o<mnO) mnO=a[k2].o; } // v3.255: bovenaan de handmatige volgorde
     var disp=c.symbol.indexOf(".")>0?c.symbol.split(".")[0]:c.symbol;
     a.unshift({id:Date.now(),t:nm,c:{g:c.symbol,s:disp},k:"stk",cur:cur,o:mnO-1,by:String(FB.user.email).toLowerCase(),ts:Date.now(),m:Date.now()}); // v3.255: k="stk" + cur markeren het aandeel
     a.sort(function(x,y){ return y.id-x.id; });
     slSave("cry",a); slPush("cry");
-    cryRender();
+    cryRender(); if(cb) cb(true); // v3.268: melding na het toevoegen
   });
 }
 function cryDetIsStk(){ if(CRY_DET===null) return false; var e=null; slLoad("cry").forEach(function(x){ if(x.id===CRY_DET) e=x; }); return !!(e&&e.k==="stk"); } // v3.255: terug-knop en labels per type
@@ -2736,6 +2739,65 @@ function cryPick(i){
   a.sort(function(x,y){ return y.id-x.id; });
   slSave("cry",a); slPush("cry");
   cryRender();
+}
+
+// ===== v3.268: Top 10-overzicht - de grootste munten en Amerikaanse aandelen =====
+var TOP_TOK=0; // v3.268: token tegen dubbele renders bij het opnieuw openen
+var TOP_STK=[["AAPL","Apple"],["MSFT","Microsoft"],["NVDA","Nvidia"],["GOOGL","Alphabet"],["AMZN","Amazon"],["META","Meta Platforms"],["AVGO","Broadcom"],["TSLA","Tesla"],["BRK-B","Berkshire Hathaway"],["JPM","JPMorgan Chase"]]; // v3.268: de 10 grootste Amerikaanse aandelen naar beurswaarde
+function topOpen(){ showView("topView"); topRender(); } // v3.268: de Top 10-tegel opent het overzicht
+function topRender(){ // v3.268: beide lijsten laden - tik op een rij om hem aan je eigen lijst toe te voegen
+  var sc=document.getElementById("topScroll"); if(!sc) return;
+  var tok=++TOP_TOK;
+  sc.innerHTML='<h1 style="margin:4px 0 2px">Top 10</h1><div class="sub">De 10 grootste munten en Amerikaanse aandelen naar beurswaarde</div><div id="topMsg" class="n" style="margin:6px 0 0;color:#4ade80;font-weight:700;display:none"></div><div class="sub" style="margin-top:14px">Munten</div><div id="topCryBox"><div class="tip">Munten laden...</div></div><div class="sub" style="margin-top:14px">Aandelen</div><div id="topStkBox"><div class="tip">Aandelen laden...</div></div>';
+  topCrypto(tok); topStocks(tok);
+}
+function topCrypto(tok){ // v3.268: CoinGecko top 10 op marktwaarde
+  fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1")
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(function(list){
+      if(tok!==TOP_TOK) return;
+      var b=document.getElementById("topCryBox"); if(!b) return;
+      var its=(list||[]).slice(0,10); window._topC=its;
+      var h='<div class="tip">Tik op een munt om hem aan je eigen lijst toe te voegen.</div>';
+      its.forEach(function(c,i){ h+=topRow(String(c.symbol||"").toUpperCase(), String(c.name||c.id||""), (typeof c.current_price==="number")?cryFmt(c.current_price):"...", (typeof c.price_change_percentage_24h==="number")?c.price_change_percentage_24h:null, "24u", "topCPick("+i+")"); });
+      b.innerHTML=h;
+    })
+    .catch(function(){ var b=document.getElementById("topCryBox"); if(b) b.innerHTML='<div class="note">Munten konden niet worden geladen - geen verbinding of tijdelijke API-limiet. Tik op verversen rechtsboven.</div>'; });
+}
+function topStocks(tok){ // v3.268: de 10 grootste aandelen via de bewezen Yahoo-batchkoersen (met cache bij storing)
+  stkQuotes(TOP_STK.map(function(s){ return s[0]; }).join(","), function(q){
+    if(tok!==TOP_TOK) return;
+    var b=document.getElementById("topStkBox"); if(!b) return;
+    window._stkS=TOP_STK.map(function(s){ return {symbol:s[0], name:s[1], ex:"VS"}; }); // v3.268: tik-lijst hergebruikt de bewezen stkPick-validatie
+    var h='<div class="tip">Tik op een aandeel om hem aan je eigen lijst toe te voegen.</div>';
+    TOP_STK.forEach(function(s,i){
+      var qq=(q&&q[s[0]])||null, p=(qq&&typeof qq.p==="number")?qq.p:null, ch=(qq&&typeof qq.ch==="number")?qq.ch:null;
+      h+=topRow(s[0], s[1], (p===null?"...":("$ "+stkFmt(p))), ch, "dag", "topSPick("+i+")");
+    });
+    b.innerHTML=h;
+  });
+}
+function topRow(sd,nm,pr,ch,chLbl,fn){ // v3.268: één rij-opbouw voor munten en aandelen
+  return '<div class="lookupItem" onclick="'+fn+'"><div class="si"><div class="sd">'+colEsc(sd)+'</div><div style="font-size:15px;font-weight:800">'+colEsc(nm)+'</div></div><div style="text-align:right"><div style="font-size:15px;font-weight:800">'+pr+'</div><div style="font-size:11px;font-weight:700;color:'+(ch===null?"#64748b":(ch>=0?"#4ade80":"#f87171"))+'">'+(ch===null?(chLbl+": ..."):(chLbl+": "+(ch>=0?"+":"")+ch.toFixed(2)+"%"))+'</div></div><div style="font-size:20px">➕</div></div>';
+}
+function topNote(txt){ // v3.268: korte bevestiging bovenin het Top 10-scherm
+  var m=document.getElementById("topMsg"); if(!m) return;
+  m.style.display="block"; m.textContent=txt;
+}
+function topCPick(i){ // v3.268: munt uit de top 10 toevoegen via de bewezen cryPick-route
+  var c=(window._topC||[])[i]; if(!c) return;
+  if(!FB.user){ showView("loginView"); return; }
+  var a=slLoad("cry");
+  for(var k=0;k<a.length;k++){ if(a[k].c&&a[k].c.g===String(c.id)){ alert("Deze munt staat al in je lijst."); return; } }
+  window._cryS=[{id:String(c.id), name:String(c.name||c.id), symbol:String(c.symbol||"")}];
+  cryPick(0);
+  topNote(String(c.name||c.id)+" is toegevoegd aan je lijst.");
+}
+function topSPick(i){ // v3.268: aandeel uit de top 10 toevoegen via de bewezen stkPick-validatie
+  var c=(window._stkS||[])[i]; if(!c) return;
+  var a=slLoad("cry");
+  for(var k=0;k<a.length;k++){ if(a[k].c&&a[k].c.g===c.symbol){ alert("Dit aandeel staat al in je lijst."); return; } }
+  stkPick(i, function(ok){ topNote(ok?(c.name+" is toegevoegd aan je lijst."):(c.name+" kon niet worden toegevoegd - probeer het zo meteen opnieuw.")); });
 }
 function cryDel(id){
   var dit=null; slLoad("cry").forEach(function(x){ if(x.id===id) dit=x; }); if(!confirm(dit&&dit.k==="stk"?"Dit aandeel verwijderen?":"Deze munt verwijderen?")) return; // v3.255: passende tekst bij aandelen
@@ -3901,6 +3963,11 @@ function fbSync(interactive){
   </div>
 </div>
 
+<!-- v3.268: Top 10-overzicht - de grootste munten en Amerikaanse aandelen -->
+<div class="view" id="topView">
+  <div id="topScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+</div>
+
 <!-- ===== AANBIEDINGSSCAN (v3.56) ===== -->
 <div class="view" id="dealView">
   <div id="dealScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
@@ -3957,7 +4024,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.267";
+var VERSION="3.268";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -3988,7 +4055,7 @@ function showView(id, noPush){
 var VIEW_UP={ pokeView:"home", camView:"pokeView", resultView:"pokeView",
   collectionView:"pokeView", colAddView:"collectionView", colDetailView:"collectionView",
   cryptoView:"home", agendaView:"home", remView:"home", ideaView:"home", ntView:"home", loginView:"home",
-  hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView", prodView:"home", mistView:"home",
+  hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView", prodView:"home", mistView:"home", topView:"home", // v3.268: het Top 10-scherm valt onder home
   dealView:"pokeView", dealAddView:"dealView", dsHistView:"dealView" };
 // v2.60: terug naar vorige pagina
 function goBack(){ // v3.197: één niveau omhoog in de vaste structuur - binnen een paar tikken altijd op home, geen lussen meer
@@ -4027,6 +4094,7 @@ function refreshBtnTap(){ // v3.211: verversen op élke pagina met data - je bli
   if(id==="collectionView"){ colRefresh(1); refSpinHide(); return; } // prijzen opnieuw ophalen, blijft op de pagina
   if(id==="colDetailView"){ colDetail(window._colDetId); refSpinHide(); return; } // v3.211: open kaart opnieuw
   if(id==="cryptoView"){ slPull("cry",function(){ if(CRY_DET===null) cryRender(); else cryDetRender(); done(); }); return; }
+  if(id==="topView"){ topRender(); refSpinHide(); return; } // v3.268: het Top 10-scherm opnieuw laden
   if(id==="hydView"){ slPull("hyd",function(){ hydRender(); done(); }); return; }
   if(id==="hydDetView"){ slPull("hyd",function(){ hydDetRender(); done(); }); return; }
   if(id==="recView"){ slPull("rec",function(){ recRender(); done(); }); return; }
@@ -5417,7 +5485,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.267-->
+<!--v:3.268-->
 
 
 
