@@ -375,7 +375,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.277</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.278</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -4093,7 +4093,7 @@ function afRender(){ // v3.275: de afvallen-pagina tekenen - gegevens, dagdoel, 
     +'<div id="afRecBox"></div>'; // v3.275: hier komen de drie afval-recepten
   afUpdate(); // v3.275: meteen uitrekenen met je bewaarde gegevens
 }
-function afRec(){ // v3.275: de chef-AI bedenkt drie afval-recepten (ontbijt, lunch, diner) die in je dagdoel passen
+function afRec(){ // v3.278: de chef-AI bedenkt tien afval-recepten die in je dagdoel passen
   var box=document.getElementById("afRecBox"); if(!box) return;
   if(!mistKey()){ box.innerHTML='<div class="card"><div class="remSub">Voor afval-recepten heb je een gratis Mistral API-key nodig - die blijft op je eigen toestel. Maak hem aan op console.mistral.ai.</div><button class="btn dark" style="width:auto;flex:none;margin:6px 0 0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="mistKeyAsk()">API-key invoeren</button></div>'; return; } // v3.275: zelfde patroon als bij de recepten
   var c=afBereken();
@@ -4101,15 +4101,15 @@ function afRec(){ // v3.275: de chef-AI bedenkt drie afval-recepten (ontbijt, lu
   var p=afProf();
   var avond=(String(p.maaltijd)!=="3"); // v3.277: eet je alleen een avondmaal, dan is elk recept een complete avondeten
   var soort1=avond?"Avondeten":"Ontbijt"; // v3.277: de eerste recept-soort staat in het vaste formaat
-  var taak=avond?"Maak 3 recepten: alle drie een complete avondeten. De persoon eet alleen een avondmaal per dag, dus elk recept moet in z'n eentje in het dagdoel passen (ongeveer evenveel kcal als het dagdoel).":"Maak 3 recepten: ontbijt, lunch en diner, die samen in het dagdoel passen (ontbijt ongeveer 25%, lunch 35%, diner 40%)."; // v3.277: de maaltijd-keuze bepaalt de opdracht
+  var taak=avond?"Maak 10 recepten: alle tien een complete avondeten. De persoon eet alleen een avondmaal per dag, dus elk recept moet in z'n eentje in het dagdoel passen (ongeveer evenveel kcal als het dagdoel).":"Maak 10 recepten: een mix van ontbijt, lunch en diner, die samen in het dagdoel passen (ontbijt ongeveer 25%, lunch 35%, diner 40%)."; // v3.278: de maaltijd-keuze bepaalt de opdracht - tien per keer
   var kgw=Math.min(1.5,Math.max(0.1,parseFloat(p.kgw)||0.5)); // v3.277: je doel in kg per week gaat mee naar de chef-AI
-  box.innerHTML='<div class="card"><div class="remSub">De chef-AI bedenkt drie '+(avond?"avondeten":"maaltijd")+'-recepten voor je dagdoel...</div></div>';
+  box.innerHTML='<div class="card"><div class="remSub">De chef-AI bedenkt tien '+(avond?"avondeten":"maaltijd")+'-recepten voor je dagdoel...</div></div>';
   fetch("https://api.mistral.ai/v1/chat/completions",{
     method:"POST",
     headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+mistKey(), "Accept":"application/json" },
     body:JSON.stringify({ model:"mistral-small-latest", messages:[
-      {role:"system",content:"Je bent een Nederlandse diëtist en chef-kok. Iemand wil afvallen. "+taak+" Schrijf in het Nederlands, kort en praktisch, met gewone supermarkt-ingredienten, veel eiwit en groenten. Antwoord alleen in platte tekst - geen dikgedrukte tekst, geen sterretjes, geen hekjes. Gebruik dit exacte formaat, herhaald voor elk recept:\nRecept 1 - "+soort1+":\nNaam: ...\nIngredienten voor 1 persoon:\n- ...\nBereiding:\n1. ...\nPer persoon: ... kcal, ... g eiwit, ... g koolhydraten, ... g vet\nZoekterm: <engels hoofd-ingredient, 1 of 2 woorden>\nDan Recept 2 en Recept 3 op dezelfde manier."}, // v3.277: platte tekst eisen - anders leest de app de recepten niet
-      {role:"user",content:"Maak de drie recepten voor: "+(p.mv==="v"?"vrouw":"man")+", "+(parseFloat(p.leeftijd)||0)+" jaar, "+c.kg+" kg"+(c.vet>0?", vetpercentage "+c.vet+"%":"")+". Dagdoel: "+Math.round(c.doel)+" kcal per dag ("+c.df+" kcal onder het onderhoud van ~"+Math.round(c.onderh)+" kcal, "+kgw+" kg per week). Richt je op minimaal "+Math.round(1.5*c.kg)+" gram eiwit per dag."}] }) // v3.275: alle gegevens en het dagdoel gaan mee naar de chef-AI
+      {role:"system",content:"Je bent een Nederlandse diëtist en chef-kok. Iemand wil afvallen. "+taak+" Schrijf in het Nederlands, kort en praktisch, met gewone supermarkt-ingredienten, veel eiwit en groenten. Houd de bereiding kort: maximaal 3 stappen. Antwoord alleen in platte tekst - geen dikgedrukte tekst, geen sterretjes, geen hekjes. Gebruik dit exacte formaat, herhaald voor elk recept:\nRecept 1 - "+soort1+":\nNaam: ...\nOmschrijving: <1 korte zin over het gerecht>\nIngredienten voor 1 persoon:\n- ...\nBereiding:\n1. ...\nPer persoon: ... kcal, ... g eiwit, ... g koolhydraten, ... g vet\nZoekterm: <engels hoofd-ingredient, 1 of 2 woorden>\nDan Recept 2 t/m Recept 10 op dezelfde manier."}, // v3.277: platte tekst eisen - anders leest de app de recepten niet
+      {role:"user",content:"Maak de tien recepten voor: "+(p.mv==="v"?"vrouw":"man")+", "+(parseFloat(p.leeftijd)||0)+" jaar, "+c.kg+" kg"+(c.vet>0?", vetpercentage "+c.vet+"%":"")+". Dagdoel: "+Math.round(c.doel)+" kcal per dag ("+c.df+" kcal onder het onderhoud van ~"+Math.round(c.onderh)+" kcal, "+kgw+" kg per week). Richt je op minimaal "+Math.round(1.5*c.kg)+" gram eiwit per dag."}] }) // v3.275: alle gegevens en het dagdoel gaan mee naar de chef-AI
   }).then(function(r){
     if(r.status===401||r.status===403){ try{ localStorage.removeItem("mcMistKey"); }catch(e2){} throw new Error("key"); } // v3.275: key ongeldig - opnieuw vragen, net als bij de recepten
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -4117,15 +4117,15 @@ function afRec(){ // v3.275: de chef-AI bedenkt drie afval-recepten (ontbijt, lu
   }).then(function(j){
     var t=String((j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"").trim(); // v3.275: de drie recepten komen als tekst in het vaste formaat
     if(!t){ box.innerHTML='<div class="card"><div class="remSub">De AI gaf geen recepten terug - probeer het nog eens.</div></div>'; return; }
-    afRecShow(t); // v3.275: parsen en als kaarten tonen
+    afRecShow(t); // v3.278: parsen en als lijst met foto's tonen
   }).catch(function(e){
     box.innerHTML='<div class="card"><div class="remSub">'+((e&&e.message==="key")?"Je API-key wordt niet geaccepteerd - voer hem opnieuw in.":"Mislukt - geen verbinding of de AI is even druk. Probeer het over een paar tellen nog eens.")+'</div></div>'; // v3.275: eerlijke fout-melding
   });
 }
-function afRecShow(r){ // v3.277: de AI-recepten parsen en als kaarten tonen met voedingswaarde en foto - opmaak eerst eraf
+function afRecShow(r){ // v3.278: de AI-recepten parsen en als lijst met foto's tonen - opmaak eerst eraf
   var box=document.getElementById("afRecBox"); if(!box) return;
   var t=String(r).replace(/[#*_]/g,""); // v3.277: de AI antwoordt soms met dikgedrukte tekst of hekjes - eerst eraf, anders leest de app niets
-  var recs=[], h="";
+  var recs=[];
   t.split(/Recept\s*\d+/).forEach(function(part){ // v3.275: elke "Recept n" start een nieuw recept
     var naam=(/^Naam:\s*(.+)$/m.exec(part)||[])[1]; if(!naam) return; // v3.275: zonder naam geen geldig recept
     var soort=(/^\s*-\s*([^\n:]+):/m.exec(part)||[])[1]||"Recept"; // v3.275: ontbijt, lunch of diner
@@ -4135,25 +4135,43 @@ function afRecShow(r){ // v3.277: de AI-recepten parsen en als kaarten tonen met
     var dsc=(bb>=0?part.slice(bb):part).replace(/^Bereiding:\s*/,"").replace(/\n?Per persoon:[^\n]*/,"").replace(/\n?Zoekterm:[^\n]*/,"").trim(); // v3.275: alleen de bereiding - de voedingswaarde staat apart op de kaart
     var per=(/^Per persoon:\s*(.+)$/m.exec(part)||[])[1]||""; // v3.275: de voedingswaarde-regel
     var zt=(/^Zoekterm:\s*(.+)$/m.exec(part)||[])[1]||""; // v3.275: voor de passende foto
-    recs.push({soort:String(soort).trim(), t:naam.charAt(0).toUpperCase()+naam.slice(1), ing:ing, dsc:dsc, per:String(per).trim(), zt:String(zt).trim(), img:""});
+    var om=(/^Omschrijving:\s*(.+)$/m.exec(part)||[])[1]||""; // v3.278: de korte beschrijving voor in de lijst
+    recs.push({soort:String(soort).trim(), t:naam.charAt(0).toUpperCase()+naam.slice(1), ing:ing, dsc:dsc, per:String(per).trim(), om:String(om).trim(), zt:String(zt).trim(), img:""});
   });
   window._afRecs=recs; // v3.275: klaarzetten voor "Opslaan" en de foto's
   if(!recs.length){ box.innerHTML='<div class="card"><div class="remSub">De recepten waren niet goed te lezen - tik nog eens op "Recepten genereren".</div></div>'; return; }
-  recs.forEach(function(d,i){ // v3.275: elk recept z'n eigen kaart
-    h+='<div class="card">'
-      +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px">'+colEsc(d.soort)+' om af te vallen</p>'
-      +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">' // v3.275: foto naast de naam, net als bij de recepten
-      +'<div id="afRecImg'+i+'" style="flex:none"></div>' // v3.275: hier schuift de passende foto in
-      +'<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:#e2e8f0">'+colEsc(d.t)+'</div><div class="remSub">Per persoon: '+colEsc(d.per)+'</div></div></div>'
-      +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Ingredienten</p>'
-      +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(d.ing.join("\n"))+'</p>'
-      +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Bereiding</p>'
-      +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(d.dsc)+'</p>'
-      +'<button class="btn yellow" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="afSave('+i+')">Opslaan</button>' // v3.275: geen emoji, v3.249-regel
-      +'<div class="tip" style="margin-top:8px">Tik op "Opslaan" en dit recept staat bij jullie recepten - de voedingswaarde staat erbij.</div></div>';
+  afRecList(); // v3.278: eerst de lijst met de foto's en korte beschrijvingen ernaast
+}
+function afRecList(){ // v3.278: de recepten als lijst - foto met de naam en korte beschrijving ernaast, tik voor het hele recept
+  var box=document.getElementById("afRecBox"); if(!box) return;
+  var recs=window._afRecs||[]; if(!recs.length){ box.innerHTML='<div class="card"><div class="remSub">Er zijn nog geen recepten - tik op "Recepten genereren".</div></div>'; return; }
+  var h='<div class="card"><div class="remSub">Tik op een recept voor de ingredienten en de bereiding.</div></div>'; // v3.278: even uitleg boven de lijst
+  recs.forEach(function(d,i){ // v3.278: elk recept een eigen rij met de foto en de beschrijving ernaast
+    h+='<div class="card" style="display:flex;gap:10px;align-items:center;cursor:pointer" onclick="afRecOpen('+i+')">'
+      +'<div id="afRecImg'+i+'" style="flex:none">'+(d.img?'<img src="'+d.img+'" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:10px">':'')+'</div>' // v3.278: de foto links, meteen zichtbaar als die er al is
+      +'<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:#e2e8f0">'+colEsc(d.t)+'</div>' // v3.278: de naam ernaast
+      +(d.om?'<div class="remSub">'+colEsc(d.om)+'</div>':'')+(d.per?'<div class="remSub">Per persoon: '+colEsc(d.per)+'</div>':'')+'</div></div>'; // v3.278: de korte beschrijving en de voedingswaarde onder de naam
   });
   box.innerHTML=h;
-  recs.forEach(function(d,i){ afPhoto(d.zt,i); }); // v3.275: meteen passende foto's zoeken
+  recs.forEach(function(d,i){ if(!d.img) afPhoto(d.zt,i); }); // v3.278: alleen voor de rijen die nog geen foto hebben
+}
+function afRecOpen(i){ // v3.278: een recept uit de lijst openen - het hele recept met ingredienten en bereiding
+  var d=(window._afRecs||[])[i]; if(!d) return;
+  var box=document.getElementById("afRecBox"); if(!box) return;
+  box.innerHTML='<div class="card">'
+    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px">'+colEsc(d.soort)+' om af te vallen</p>'
+    +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">' // v3.278: foto naast de naam, net als in de lijst
+    +'<div id="afRecImg'+i+'" style="flex:none">'+(d.img?'<img src="'+d.img+'" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:10px">':'')+'</div>' // v3.278: hier schuift de passende foto in
+    +'<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:#e2e8f0">'+colEsc(d.t)+'</div><div class="remSub">Per persoon: '+colEsc(d.per)+'</div></div></div>'
+    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Ingredienten</p>'
+    +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(d.ing.join("\n"))+'</p>'
+    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Bereiding</p>'
+    +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(d.dsc)+'</p>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    +'<button class="btn yellow" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="afSave('+i+')">Opslaan</button>' // v3.278: geen emoji, v3.249-regel
+    +'<button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="afRecList()">Terug naar de lijst</button></div>' // v3.278: terug zonder iets te bewaren
+    +'<div class="tip" style="margin-top:8px">Tik op "Opslaan" en dit recept staat bij jullie recepten - de voedingswaarde staat erbij.</div></div>';
+  if(!d.img) afPhoto(d.zt,i); // v3.278: foto erbij zoeken als die er nog niet is
 }
 function afPhoto(zt,i){ // v3.275: een passende foto bij elk afval-recept - zelfde aanpak als bij recept op maat
   var d=(window._afRecs||[])[i]; if(!d||d.img) return;
@@ -4586,7 +4604,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.277";
+var VERSION="3.278";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -6046,4 +6064,4 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.277-->
+<!--v:3.278-->
