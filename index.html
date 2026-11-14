@@ -371,7 +371,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.273</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.274</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3802,8 +3802,8 @@ function recRndShow(mm){ // v3.271: het random recept met foto, ingredienten en 
     +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">' // v3.272: de instellingen op één rij
     +'<input id="recRndPf" placeholder="Voorkeur (bijv. kip)" value="'+colEsc(pf)+'" oninput="recRndPrefSet(this.value)" style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: hiermee zoekt "Ander recept" de volgende keer
     +'<input id="recRndPer" type="number" inputmode="numeric" min="1" max="20" placeholder="Pers." value="'+p0+'" oninput="recRndPerSet(this.value); recRndScaleRender()" style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: het aantal personen - de ingredienten schalen meteen mee
-    +'<input id="recRndPr" type="number" inputmode="numeric" min="0" placeholder="Eiwit g p.p." style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: eiwit-doel per persoon voor "Recept op maat"
-    +'<input id="recRndKh" type="number" inputmode="numeric" min="0" placeholder="Koolh. g p.p." style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: koolhydraten-doel per persoon voor "Recept op maat"
+    +'<input id="recRndPr" type="number" inputmode="numeric" min="0" placeholder="Eiwit g p.p." oninput="recRndGoalSet(this.id,this.value)" style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: eiwit-doel per persoon voor "Recept op maat" + v3.274: bewaren zodat "Ander recept" vanaf de AI-kaart ook de doelen kent
+    +'<input id="recRndKh" type="number" inputmode="numeric" min="0" placeholder="Koolh. g p.p." oninput="recRndGoalSet(this.id,this.value)" style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: koolhydraten-doel per persoon voor "Recept op maat" + v3.274: bewaren zodat "Ander recept" vanaf de AI-kaart ook de doelen kent
     +'</div>'
     +'<div id="recRndNutBox" style="margin:0 0 8px"></div>' // v3.272: hier komen de geschatte kosten en voedingswaarde te staan
     +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn yellow" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndSave()">Opslaan</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRnd()">Ander recept</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndNutri()">Kosten & voedingswaarde</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndMaat()">Recept op maat</button></div>'
@@ -3828,7 +3828,7 @@ function recRndSave(){ // v3.272: het random recept opslaan in jullie recepten-l
 }
 function recRndHide(){ // v3.271: de random-kaart sluiten + v3.273: terug naar de recepten-pagina
   var el=document.getElementById("recRndBox"); if(el) el.innerHTML="";
-  window._recRndNut=null; window._recRndAI=null; window._recRndAIP=null; window._recRndTr=null; // v3.272: schattingen en AI-recept horen bij de gesloten kaart + v3.273: de vertaling ook
+  window._recRndNut=null; window._recRndAI=null; window._recRndAIP=null; window._recRndTr=null; window._recRndG=null; // v3.272: schattingen en AI-recept horen bij de gesloten kaart + v3.273: de vertaling ook + v3.274: de doelen horen er ook bij
   if(curView==="recRndView") goBackTo("recView"); // v3.273: de random-kaart is een eigen pagina - sluiten betekent terug naar de recepten
 }
 // ===== v3.272: PERSONEN - ingredienten schalen mee met het aantal personen (het basisrecept is voor 4) =====
@@ -3837,6 +3837,7 @@ function recRndPerGet(){ // v3.272: het bewaarde aantal personen
   return 4;
 }
 function recRndPerSet(t){ try{ localStorage.setItem("mcRecPer",String(t||"")); }catch(e){} } // v3.272: aantal personen bewaren voor de volgende keer
+function recRndGoalSet(id,v){ window._recRndG=window._recRndG||{}; var k=(id==="recRndPr")?"pr":(id==="recRndKh")?"kh":""; if(k) window._recRndG[k]=String(v||"").trim(); } // v3.274: eiwit/koolhydraten-doel bewaren - de AI-kaart heeft geen invoer-vakken maar "Ander recept" heeft de doelen nodig
 function recRndPerVal(){ // v3.272: het aantal personen uit het invoer-vak (met een veilige grens)
   var e2=document.getElementById("recRndPer");
   return Math.max(1,Math.min(20,parseInt(e2&&e2.value,10)||recRndPerGet()));
@@ -3938,17 +3939,17 @@ function recRndNutri(){ // v3.272: kosten en voedingswaarde laten schatten door 
 }
 // ===== v3.272: RECEPT OP MAAT - de chef-AI bedenkt een recept dat past bij je eiwit- en koolhydraten-doel =====
 function recRndMaat(){ // v3.272: recept op maat via de AI - Nederlands, met kosten en voedingswaarde
-  var el=document.getElementById("recRndBox"), box=document.getElementById("recRndNutBox"); if(!el||!box) return;
+  var el=document.getElementById("recRndBox"), box=document.getElementById("recRndNutBox"); if(!el) return; if(!box) box=el; // v3.274: "Ander recept" vanaf de AI-kaart deed eerst niets - de status-plek mag ook de hele kaart zijn
   if(!mistKey()){ box.innerHTML='<div class="remSub">Voor een recept op maat heb je een gratis Mistral API-key nodig - die blijft op je eigen toestel. Maak hem aan op console.mistral.ai.</div><button class="btn dark" style="width:auto;flex:none;margin:6px 0 0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="mistKeyAsk()">API-key invoeren</button>'; return; } // v3.272: zonder key geen op-maat-recept
   var pr=document.getElementById("recRndPr"), kh=document.getElementById("recRndKh"), p=recRndPerVal(), pf=recRndPref();
-  var gv=String((pr&&pr.value)||"").trim(), gk=String((kh&&kh.value)||"").trim(); // v3.272: de doelwitten uit de invoer-vakken
+  var gv=String((pr&&pr.value)||(window._recRndG&&window._recRndG.pr)||"").trim(), gk=String((kh&&kh.value)||(window._recRndG&&window._recRndG.kh)||"").trim(); // v3.272: de doelwitten uit de invoer-vakken + v3.274: anders de bewaarde doelen, want de AI-kaart heeft geen invoer-vakken
   if(!gv&&!gk){ box.innerHTML='<div class="remSub">Vul eerst een doel in (bijv. 30 bij eiwit of 100 bij koolhydraten, per persoon) en tik dan opnieuw op "Recept op maat".</div>'; return; } // v3.272: zonder doel kan de AI niets maken
   box.innerHTML='<div class="remSub">De chef-AI bedenkt een recept op maat...</div>';
   fetch("https://api.mistral.ai/v1/chat/completions",{
     method:"POST",
     headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+mistKey(), "Accept":"application/json" },
     body:JSON.stringify({ model:"mistral-small-latest", messages:[
-      {role:"system",content:"Je bent een Nederlandse chef-kok. Maak één compleet, echt kookbaar recept dat voldoet aan de doelen. Schrijf in het Nederlands, kort en praktisch, en gebruik dit exacte formaat:\nNaam: ...\nIngredienten voor X personen:\n- ...\nBereiding:\n1. ...\nKosten: ... euro totaal (... euro per persoon)\nPer persoon: ... kcal, ... g eiwit, ... g koolhydraten, ... g vet"},
+      {role:"system",content:"Je bent een Nederlandse chef-kok. Maak één compleet, echt kookbaar recept dat voldoet aan de doelen. Schrijf in het Nederlands, kort en praktisch, en gebruik dit exacte formaat:\nNaam: ...\nIngredienten voor X personen:\n- ...\nBereiding:\n1. ...\nKosten: ... euro totaal (... euro per persoon)\nPer persoon: ... kcal, ... g eiwit, ... g koolhydraten, ... g vet\nZoekterm: <engels hoofd-ingredient van dit recept, 1 of 2 woorden>"},
       {role:"user",content:"Maak een recept voor "+p+" personen"+(gv?" met ongeveer "+gv+" gram eiwit per persoon":"")+(gk?" en ongeveer "+gk+" gram koolhydraten per persoon":"")+(pf?" - gebruik bij voorkeur "+pf:"")+"."}] }) // v3.272: alle instellingen gaan mee naar de chef-AI
   }).then(function(r){
     if(r.status===401||r.status===403){ try{ localStorage.removeItem("mcMistKey"); }catch(e2){} throw new Error("key"); } // v3.272: key ongeldig - opnieuw vragen
@@ -3966,30 +3967,60 @@ function recRndMaat(){ // v3.272: recept op maat via de AI - Nederlands, met kos
 function recRndShowAI(t){ // v3.272: het AI-recept op maat in de kaart
   var el=document.getElementById("recRndBox"); if(!el) return;
   var p=recRndPerVal(), naam=(/^Naam:\s*(.+)$/m.exec(t)||[])[1]||"Recept op maat"; // v3.272: de naam bovenaan het formaat
+  var zt=(/^Zoekterm:\s*(.+)$/m.exec(t)||[])[1]||""; // v3.274: de Engelse zoekterm waarmee de recepten-dienst een passende foto vindt
   var ib=t.indexOf("Ingredienten"), bb=t.indexOf("Bereiding:"); // v3.272: de blokken uit het vaste formaat
   var ing=[];
   if(ib>=0&&bb>ib){ t.slice(ib,bb).split(/\r?\n/).forEach(function(L){ var s=L.replace(/^[-•*]\s*/,"").trim(); if(s&&s.indexOf("Ingredienten")!==0) ing.push(s); }); } // v3.272: elke ingredient-regel wordt een eigen punt
-  var dsc=(bb>=0?t.slice(bb):t).replace(/^Bereiding:\s*/,"").trim(); // v3.272: bereiding + kosten + voedingswaarde samen als beschrijving
-  window._recRndAIP={t:naam.charAt(0).toUpperCase()+naam.slice(1), ing:ing, dsc:dsc, p:p}; // v3.272: alles klaarzetten voor "Opslaan"
+  var dsc=(bb>=0?t.slice(bb):t).replace(/^Bereiding:\s*/,"").replace(/\n?Zoekterm:[^\n]*/,"").trim(); // v3.272: bereiding + kosten + voedingswaarde samen als beschrijving + v3.274: de zoekterm hoort niet in de beschrijving
+  window._recRndAIP={t:naam.charAt(0).toUpperCase()+naam.slice(1), ing:ing, dsc:dsc, p:p, img:""}; // v3.272: alles klaarzetten voor "Opslaan" + v3.274: de gevonden foto komt in img te staan
   var h='<div class="card" style="position:relative">'
     +'<div class="cryAiX" onclick="recRndHide()" style="position:absolute;top:6px;right:8px;color:#f87171;font-size:12px;font-weight:700;padding:2px 7px;border-radius:8px;cursor:pointer">&#10005;</div>' // v3.272: de kaart sluiten
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px;padding-right:26px">Recept op maat - voor '+p+' personen</p>'
-    +'<div style="font-size:16px;font-weight:800;color:#e2e8f0;margin-bottom:8px">'+colEsc(window._recRndAIP.t)+'</div>'
+    +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">' // v3.274: foto naast de naam, net als bij het random recept
+    +'<div id="recRndAIImgBox" style="flex:none"></div>' // v3.274: hier schuift de passende foto in zodra de recepten-dienst er één gevonden heeft
+    +'<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:#e2e8f0">'+colEsc(window._recRndAIP.t)+'</div></div></div>'
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Ingredienten</p>'
     +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(ing.join("\n"))+'</p>'
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Bereiding</p>'
     +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(dsc)+'</p>'
+    +'<div id="recRndNutBox" style="margin:0 0 8px"></div>' // v3.274: status-plek - zonder deze regel kon "Ander recept" vanaf de AI-kaart niets meer doen
     +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn yellow" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndSaveAI()">Opslaan</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndMaat()">Ander recept</button></div>'
     +'<div class="tip" style="margin-top:8px">Dit recept is door de AI op maat gemaakt voor je eiwit- en koolhydraten-doel - de kosten en voedingswaarde staan onder de bereiding. Tik op "Opslaan" en hij staat bij jullie recepten.</div></div>'; // v3.272: hoe de op-maat-kaart werkt
   el.innerHTML=h;
+  recRndAIPhoto(zt); // v3.274: meteen een passende foto zoeken bij het AI-recept - de AI geeft er een Engelse zoekterm bij
 }
 function recRndSaveAI(){ // v3.272: het AI-recept op maat opslaan in jullie gedeelde recepten-lijst
   if(!FB.user){ showView("loginView"); return; }
   var d=window._recRndAIP; if(!d) return;
-  var x={id:Date.now(), t:String(d.t), by:String(FB.user.email).toLowerCase(), ts:Date.now(), m:Date.now(), r:{ing:(d.ing.length?d.ing:["Zie de beschrijving"]), ben:[], dsc:d.dsc}}; // v3.272: het AI-formaat bevat de kosten en voedingswaarde al
+  var x={id:Date.now(), t:String(d.t), by:String(FB.user.email).toLowerCase(), ts:Date.now(), m:Date.now(), r:{ing:(d.ing.length?d.ing:["Zie de beschrijving"]), ben:[], dsc:d.dsc}, imgs:(d.img?[d.img]:[])}; // v3.272: het AI-formaat bevat de kosten en voedingswaarde al + v3.274: de gevonden foto gaat mee naar jullie recepten
   var a=slLoad("rec"); a.unshift(x); a.sort(function(u,v){ return v.id-u.id; }); slSave("rec",a); slPush("rec"); recRender();
   try{ var b=document.getElementById("pushBanner"); if(b){ b.textContent=x.t+" staat bij jullie recepten"; b.classList.add("show"); clearTimeout(window._pbT); window._pbT=setTimeout(function(){ b.classList.remove("show"); },4000); } }catch(e2){} // v3.272: dezelfde melding als bij de internet-recepten
   recRndHide();
+}
+// ===== v3.274: FOTO BIJ RECEPT OP MAAT - de recepten-dienst zoekt een passende foto bij de zoekterm van de chef-AI =====
+function recRndAIPhoto(zt){ // v3.274: een passende foto bij het AI-recept - de AI geeft een Engelse zoekterm mee, anders valt de app terug op de voorkeur en daarna op kip
+  var d=window._recRndAIP; if(!d||d.img) return;
+  var ib=document.getElementById("recRndAIImgBox");
+  var cands=[String(zt||"").trim()], pf=recRndPref();
+  if(pf) cands.push(recRndIng(pf)); // v3.274: de voorkeur van vandaag als tweede poging
+  cands.push("chicken"); // v3.274: en anders een veilige derde poging die bijna altijd wat vindt
+  var i=0, go=function(){ // v3.274: elke kandidaat op zijn beurt proberen tot er een foto is
+    if(i>=cands.length) return; // v3.274: niets gevonden - de kaart staat er gewoon zonder foto
+    var q=cands[i++]; if(!q) return go();
+    fetch("https://www.themealdb.com/api/json/v1/1/filter.php?i="+encodeURIComponent(q))
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var ms=(j&&j.meals)||[];
+        if(!ms.length) return go();
+        var m2=ms[Math.floor(Math.random()*ms.length)];
+        if(!m2||!m2.strMealThumb) return go();
+        if(window._recRndAIP!==d) return; // v3.274: ondertussen al een ander recept op de kaart - deze foto is verlopen
+        d.img=String(m2.strMealThumb); // v3.274: "Opslaan" neemt hem mee naar jullie recepten
+        if(ib) ib.innerHTML='<img src="'+d.img+'" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:10px">'; // v3.274: net zo'n foto-hoekje als bij het random recept
+      })
+      .catch(function(){ go(); });
+  };
+  go();
 }
 // ===== v3.215: foto bij recept =====
 var _recPickId=null;
@@ -4334,7 +4365,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.273";
+var VERSION="3.274";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5794,7 +5825,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.273-->
+<!--v:3.274-->
 
 
 
