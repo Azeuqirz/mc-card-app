@@ -371,7 +371,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.272</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.273</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3556,10 +3556,10 @@ function prodRender(){ // v3.210: overzicht met de beste plekken om te kopen
 }
 
 function recRender(){
-  var a=slLoad("rec"), h='<div id="recWebBox"></div><div id="recRndBox"></div>'; // v3.246: hier komen de internet-zoekresultaten te staan + v3.271: en hier de random-recept-kaart
+  var a=slLoad("rec"), h='<div id="recWebBox"></div>'; // v3.246: hier komen de internet-zoekresultaten te staan + v3.273: de random-recept-kaart staat nu op zijn eigen pagina (recRndView), niet meer boven de bestaande recepten
   if(!a.length) h+='<div class="tip">Nog geen recepten. Tik hieronder op "Nieuw recept".</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
-  h+='<button class="btn yellow" style="margin:0;padding:16px 8px;font-size:13px" onclick="recRnd()"><div style="font-weight:800;margin-bottom:4px">Random recept</div><div style="font-size:11px;color:rgba(15,23,42,.75)">De app kiest iets lekkers</div></button>'; // v3.271: de random-tegel - nieuwe knop zonder emoji
+  h+='<button class="btn yellow" style="margin:0;padding:16px 8px;font-size:13px" onclick="recRnd()"><div style="font-weight:800;margin-bottom:4px">Random recept</div><div style="font-size:11px;color:rgba(15,23,42,.75)">De app kiest iets lekkers</div></button>'; // v3.271: de random-tegel - nieuwe knop zonder emoji + v3.273: tikken opent zijn eigen pagina
   a.forEach(function(e){
     h+='<button class="btn yellow" style="margin:0;padding:16px 8px;font-size:13px;position:relative" onclick="recDet('+e.id+')">'+(recImgs(e).length?'<img src="'+recImgs(e)[recImgs(e).length-1]+'" alt="" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block">':'<div style="font-size:26px;line-height:1;margin-bottom:6px">'+recEmoji(e.t)+'</div>')+colEsc(e.t)+(REC_DELMODE?'<span style="position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:#ef4444;color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1" onclick="event.stopPropagation();recDelAsk('+e.id+')">✕</span>':'')+'</button>';
   });
@@ -3745,8 +3745,9 @@ function recRndIng(q){ // v3.271: NL-keukenwoord omzetten naar de Engelse ingred
   var m={ kip:"chicken", pasta:"pasta", spaghetti:"spaghetti", macaroni:"macaroni", lasagne:"lasagne", lasagna:"lasagne", rijst:"rice", aardappel:"potato", aardappelen:"potato", aardappels:"potato", zalm:"salmon", tonijn:"tuna", garnalen:"shrimp", garnaal:"shrimp", vis:"fish", gehakt:"beef", rund:"beef", runder:"beef", varken:"pork", varkensvlees:"pork", worst:"sausage", kaas:"cheese", ei:"egg", eieren:"egg", champignon:"mushroom", champignons:"mushroom", tomaat:"tomato", tomaten:"tomato", brood:"bread", ui:"onion", tofu:"tofu", spinazie:"spinach", broccoli:"broccoli", bloemkool:"cauliflower", courgette:"courgette", linzen:"lentils", kikkererwten:"chickpeas", appel:"apple", banaan:"banana", chocolade:"chocolate", soep:"soup" }; // v3.271: de meest gebruikte NL keuken-woorden
   return m[String(q||"").trim().toLowerCase()]||String(q||"").trim();
 }
-function recRnd(){ // v3.271: de random-tegel - zonder voorkeur echt random, met voorkeur zoekt hij daarmee
+function recRnd(){ // v3.271: de random-tegel - zonder voorkeur echt random, met voorkeur zoekt hij daarmee + v3.273: opent zijn eigen pagina
   if(!FB.user){ showView("loginView"); return; }
+  showView("recRndView"); // v3.273: het random recept landt op een eigen pagina - niet meer boven de bestaande recepten
   var el=document.getElementById("recRndBox"); if(!el) return;
   var pf=recRndPref();
   el.innerHTML='<div class="card"><div class="score"><span>Random recept</span></div><div class="remSub">De recepten-dienst zoekt een recept'+(pf?' met '+colEsc(pf):'')+' op...</div></div>';
@@ -3785,17 +3786,19 @@ function recRndShow(mm){ // v3.271: het random recept met foto, ingredienten en 
     return;
   }
   window._recRnd=mm; window._recRndId=String(mm.idMeal||"");
+  window._recRndTr=null; // v3.273: de vertaling hoort bij dit recept - eerst Engels tonen, de AI vertaalt meteen daarna
   var p0=recRndPerGet(), ing=recRndIngs(mm,p0); // v3.272: ingredienten meteen voor het bewaarde aantal personen (het basisrecept is voor 4)
   var h='<div class="card" style="position:relative">'
     +'<div class="cryAiX" onclick="recRndHide()" style="position:absolute;top:6px;right:8px;color:#f87171;font-size:12px;font-weight:700;padding:2px 7px;border-radius:8px;cursor:pointer">&#10005;</div>' // v3.271: de kaart sluiten
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px;padding-right:26px">Random recept</p>'
     +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">'
     +'<img src="'+(mm.strMealThumb||'')+'" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:10px;flex:none">'
-    +'<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:#e2e8f0">'+colEsc(mm.strMeal||"Recept")+'</div><div class="remSub">'+colEsc(String(mm.strCategory||"")+(mm.strArea?" - "+mm.strArea:""))+'</div></div></div>'
+    +'<div style="flex:1;min-width:0"><div id="recRndNm" style="font-size:16px;font-weight:800;color:#e2e8f0">'+colEsc(mm.strMeal||"Recept")+'</div><div id="recRndCat" class="remSub">'+colEsc(String(mm.strCategory||"")+(mm.strArea?" - "+mm.strArea:""))+'</div></div></div>' // v3.273: ids erbij zodat de vertaling er zonder flikkeren inschuift
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Ingredienten voor <span id="recRndPerTxt">'+p0+'</span> personen</p>'
     +'<p id="recRndIngP" class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(ing.join("\n"))+'</p>' // v3.272: elk ingredient op z'n eigen regel, live te schalen via recRndScaleRender
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Bereiding</p>'
-    +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(String(mm.strInstructions||"").replace(/\r\n/g,"\n"))+'</p>' // v3.271: de Engelse bereiding, net als bij de internet-recepten
+    +'<p id="recRndInsP" class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(String(mm.strInstructions||"").replace(/\r\n/g,"\n"))+'</p>' // v3.271: de Engelse bereiding, net als bij de internet-recepten + v3.273: id erbij, de AI vertaalt hem meteen naar het Nederlands
+    +'<div id="recRndTrBox" class="remSub" style="margin:0 0 8px"></div>' // v3.273: hier komt de vertaal-status van de recepten-dienst (Engels naar Nederlands)
     +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">' // v3.272: de instellingen op één rij
     +'<input id="recRndPf" placeholder="Voorkeur (bijv. kip)" value="'+colEsc(pf)+'" oninput="recRndPrefSet(this.value)" style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: hiermee zoekt "Ander recept" de volgende keer
     +'<input id="recRndPer" type="number" inputmode="numeric" min="1" max="20" placeholder="Pers." value="'+p0+'" oninput="recRndPerSet(this.value); recRndScaleRender()" style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: het aantal personen - de ingredienten schalen meteen mee
@@ -3806,25 +3809,27 @@ function recRndShow(mm){ // v3.271: het random recept met foto, ingredienten en 
     +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn yellow" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndSave()">Opslaan</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRnd()">Ander recept</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndNutri()">Kosten & voedingswaarde</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndMaat()">Recept op maat</button></div>'
     +'<div class="tip" style="margin-top:8px">Bevalt het recept? Tik op "Opslaan" en hij staat bij jullie recepten. De ingredienten schalen mee met het aantal personen. "Kosten & voedingswaarde" laat de AI de prijs en calorieën schatten, "Recept op maat" laat hem een recept bedenken dat past bij je eiwit- en koolhydraten-doel (beide hebben de gratis Mistral API-key nodig).</div></div>'; // v3.272: hoe de random-kaart werkt
   el.innerHTML=h;
+  recRndTrans(mm); // v3.273: het recept meteen naar het Nederlands laten vertalen - de kaart staat al, de vertaling schuift erin
 }
 function recRndSave(){ // v3.272: het random recept opslaan in jullie recepten-lijst - met het aantal personen geschaalde hoeveelheden
   if(!FB.user){ showView("loginView"); return; }
   var mm=window._recRnd; if(!mm) return;
   var p=recRndPerVal(), f=p/4, c={}, k; // v3.272: de recepten-dienst gaat uit van 4 personen
-  c.strMeal=mm.strMeal; c.strMealThumb=mm.strMealThumb; // v3.272: kopie met alleen wat nodig is - de foto gaat mee naar jullie recepten
-  var d=String(mm.strInstructions||"").replace(/\r\n/g,"\n")+"\n\nVoor "+p+" personen."; // v3.272: het aantal personen hoort bij het recept
+  c.strMeal=(window._recRndTr&&window._recRndTr.naam)||mm.strMeal; c.strMealThumb=mm.strMealThumb; // v3.272: kopie met alleen wat nodig is - de foto gaat mee naar jullie recepten + v3.273: de Nederlandse naam als de vertaling er is
+  var d=recRndInsTxt(mm)+"\n\nVoor "+p+" personen."; // v3.272: het aantal personen hoort bij het recept + v3.273: de Nederlandse bereiding als de vertaling er is
   var nw=window._recRndNut; // v3.272: de geschatte kosten en voedingswaarde erbij als die er zijn
   if(nw) d+="\nGeschat: kosten ~€"+(Math.round(nw.kosten*100)/100)+" totaal (~€"+(Math.round(nw.kosten/Math.max(1,p)*100)/100)+" p.p.) · per persoon ~"+nw.kcal+" kcal, ~"+nw.eiwit+" g eiwit, ~"+nw.koolhydraten+" g koolhydraten, ~"+nw.vet+" g vet.";
   c.strInstructions=d;
   for(k=1;k<=20;k++){ var nm2=String(mm["strIngredient"+k]||"").trim(); if(!nm2||nm2.toLowerCase()==="null") continue; // v3.272: alleen gevulde ingredienten overzetten
-    c["strIngredient"+k]=mm["strIngredient"+k]; c["strMeasure"+k]=recRndScale(String(mm["strMeasure"+k]||""),f); } // v3.272: hoeveelheden voor dit aantal personen
+    c["strIngredient"+k]=recRndTrIng(window._recRndTr,mm["strIngredient"+k]); c["strMeasure"+k]=recRndScale(String(mm["strMeasure"+k]||""),f); } // v3.272: hoeveelheden voor dit aantal personen + v3.273: Nederlandse ingredient-namen als de vertaling er is
   window._recWeb=[c]; // v3.271: recWebAdd doet al het werk (ingredienten, beschrijving, foto en sync) - hergebruik hem
   recWebAdd(0);
   recRndHide();
 }
-function recRndHide(){ // v3.271: de random-kaart sluiten
+function recRndHide(){ // v3.271: de random-kaart sluiten + v3.273: terug naar de recepten-pagina
   var el=document.getElementById("recRndBox"); if(el) el.innerHTML="";
-  window._recRndNut=null; window._recRndAI=null; window._recRndAIP=null; // v3.272: schattingen en AI-recept horen bij de gesloten kaart
+  window._recRndNut=null; window._recRndAI=null; window._recRndAIP=null; window._recRndTr=null; // v3.272: schattingen en AI-recept horen bij de gesloten kaart + v3.273: de vertaling ook
+  if(curView==="recRndView") goBackTo("recView"); // v3.273: de random-kaart is een eigen pagina - sluiten betekent terug naar de recepten
 }
 // ===== v3.272: PERSONEN - ingredienten schalen mee met het aantal personen (het basisrecept is voor 4) =====
 function recRndPerGet(){ // v3.272: het bewaarde aantal personen
@@ -3845,7 +3850,7 @@ function recRndScale(s,f){ // v3.272: de hoeveelheid vooraan in een ingredient-r
 }
 function recRndIngs(mm,p){ // v3.272: de ingredienten-lijst voor p personen
   var ing=[], k, f=(p||4)/4;
-  for(k=1;k<=20;k++){ var mn=recRndScale(String(mm["strMeasure"+k]||"").trim().replace(/\s+/g," "),f), nm=String(mm["strIngredient"+k]||"").trim(); if(!nm||nm.toLowerCase()==="null") continue; ing.push(mn?(mn+" "+nm):nm); } // v3.272: hoeveelheid + naam per ingredient, net als bij de internet-zoekresultaten
+  for(k=1;k<=20;k++){ var mn=recRndScale(String(mm["strMeasure"+k]||"").trim().replace(/\s+/g," "),f), nm=String(mm["strIngredient"+k]||"").trim(); if(!nm||nm.toLowerCase()==="null") continue; var nn=recRndTrIng(window._recRndTr,nm); ing.push(mn?(mn+" "+nn):nn); } // v3.272: hoeveelheid + naam per ingredient, net als bij de internet-zoekresultaten + v3.273: de naam in het Nederlands zodra de vertaling er is
   return ing;
 }
 function recRndScaleRender(){ // v3.272: ingredienten meteen opnieuw schalen als het aantal personen verandert
@@ -3854,6 +3859,54 @@ function recRndScaleRender(){ // v3.272: ingredienten meteen opnieuw schalen als
   var p=recRndPerVal();
   el.textContent=recRndIngs(mm,p).join("\n"); // v3.272: textContent = geen escaping nodig
   if(pt) pt.textContent=String(p); // v3.272: de kop met het aantal personen loopt mee
+}
+// ===== v3.273: NEDERLANDS - de recepten-dienst is Engels, de AI vertaalt naam, ingredienten en bereiding meteen =====
+function recRndCatTxt(mm){ // v3.273: categorie - land in het Nederlands zodra de vertaling er is
+  var tr=window._recRndTr;
+  var c=String((tr&&tr.cat)||mm.strCategory||""), l=String((tr&&tr.land)||mm.strArea||"");
+  return c+(l?" - "+l:"");
+}
+function recRndInsTxt(mm){ // v3.273: de bereiding in het Nederlands zodra de vertaling er is
+  var tr=window._recRndTr;
+  return (tr&&tr.bereiding)||String(mm.strInstructions||"").replace(/\r\n/g,"\n");
+}
+function recRndTrIng(tr,nm){ // v3.273: de Nederlandse naam van een ingredient - ook als de hoofdletters net anders staan
+  if(!tr||!tr.ing) return String(nm);
+  if(tr.ing[nm]) return tr.ing[nm];
+  var lo=String(nm).toLowerCase();
+  for(var k in tr.ing){ if(String(k).toLowerCase()===lo) return tr.ing[k]; }
+  return String(nm);
+}
+function recRndTrans(mm){ // v3.273: het Engelse recept meteen laten vertalen door de AI - de kaart staat al, de vertaling schuift op zijn plek
+  var tb=document.getElementById("recRndTrBox"); if(!tb||!mm) return;
+  if(!mistKey()){ tb.innerHTML='<div class="remSub">Dit recept komt uit een Engelse database - met je gratis Mistral API-key zet de app hem automatisch in het Nederlands.</div><button class="btn dark" style="width:auto;flex:none;margin:6px 0 0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="mistKeyAsk()">API-key invoeren</button>'; return; } // v3.273: zelfde patroon als bij kosten & voedingswaarde
+  tb.innerHTML='<div class="remSub">Wordt vertaald naar het Nederlands...</div>'; // v3.273: even geduld, de AI is bezig
+  var ings=[], k;
+  for(k=1;k<=20;k++){ var nm=String(mm["strIngredient"+k]||"").trim(); if(nm&&nm.toLowerCase()!=="null") ings.push(nm); } // v3.273: de Engelse ingredient-namen gaan mee als vertaal-sleutel
+  fetch("https://api.mistral.ai/v1/chat/completions",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+mistKey(), "Accept":"application/json" },
+    body:JSON.stringify({ model:"mistral-small-latest", messages:[
+      {role:"system",content:"Je vertaalt Engelse recepten naar het Nederlands. Antwoord ALLEEN met geldige JSON, geen uitleg, in dit exacte formaat: {\"naam\":\"\",\"cat\":\"\",\"land\":\"\",\"bereiding\":\"\",\"ing\":{}}. naam, cat en land zijn de Nederlandse vertalingen, bereiding is de volledige Nederlandse vertaling van de Engelse tekst (zelfde stappen en volgorde), ing bevat ELKE Engelse ingredient-naam uit het recept als sleutel met de Nederlandse vertaling als waarde."},
+      {role:"user",content:"Vertaal dit recept:\nNaam: "+String(mm.strMeal||"")+"\nCategorie: "+String(mm.strCategory||"")+"\nLand: "+String(mm.strArea||"")+"\nIngredienten: "+ings.join(", ")+"\nBereiding:\n"+String(mm.strInstructions||"").replace(/\r\n/g,"\n")}] }) // v3.273: het hele recept gaat mee naar de vertaler
+  }).then(function(r){
+    if(r.status===401||r.status===403){ try{ localStorage.removeItem("mcMistKey"); }catch(e2){} throw new Error("key"); } // v3.273: key ongeldig - opnieuw vragen, net als bij de schatting
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return r.json();
+  }).then(function(j){
+    var t=String((j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"").replace(/```[a-z]*|```/g,"").trim(); // v3.273: JSON-hekjes weghalen
+    var o=null; try{ o=JSON.parse(t); }catch(e3){ var a2=t.indexOf("{"), b2=t.lastIndexOf("}"); if(a2>=0&&b2>a2){ try{ o=JSON.parse(t.slice(a2,b2+1)); }catch(e4){} } } // v3.273: anders het eerste {..} blok proberen
+    if(!o||!o.naam||!o.bereiding||typeof o.ing!=="object"){ tb.innerHTML='<div class="remSub">Vertalen mislukt - het recept staat nu in het Engels. Tik op "Ander recept" of probeer het over een paar tellen nog eens.</div>'; return; } // v3.273: geen bruikbare vertaling teruggekomen
+    if(window._recRnd!==mm) return; // v3.273: ondertussen al een ander recept gekozen - deze vertaling is verlopen
+    window._recRndTr={ naam:String(o.naam), cat:String(o.cat||""), land:String(o.land||""), bereiding:String(o.bereiding), ing:(o.ing||{}) }; // v3.273: alles klaar voor tonen en opslaan
+    var e2=document.getElementById("recRndNm"); if(e2) e2.textContent=window._recRndTr.naam;
+    var e3=document.getElementById("recRndCat"); if(e3) e3.textContent=recRndCatTxt(mm); // v3.273: naam en categorie op de kaart vervangen
+    var e4=document.getElementById("recRndInsP"); if(e4) e4.textContent=window._recRndTr.bereiding; // v3.273: en de bereiding
+    recRndScaleRender(); // v3.273: de ingredienten opnieuw tekenen met de Nederlandse namen
+    tb.innerHTML=""; // v3.273: klaar - de vertaling staat op de kaart
+  }).catch(function(e){
+    tb.innerHTML='<div class="remSub">'+((e&&e.message==="key")?"Je API-key wordt niet geaccepteerd - voer hem opnieuw in.":"Vertalen mislukt - het recept staat nu in het Engels. Probeer het over een paar tellen nog eens.")+'</div>'; // v3.273: eerlijke fout-melding
+  });
 }
 // ===== v3.272: KOSTEN & VOEDINGSWAARDE - de AI schat de prijs en de voedingswaarde per persoon =====
 function recRndNutri(){ // v3.272: kosten en voedingswaarde laten schatten door de AI - heeft de Mistral API-key nodig
@@ -3867,7 +3920,7 @@ function recRndNutri(){ // v3.272: kosten en voedingswaarde laten schatten door 
     headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+mistKey(), "Accept":"application/json" },
     body:JSON.stringify({ model:"mistral-small-latest", messages:[
       {role:"system",content:"Je schat de kosten en voedingswaarde van recepten. Antwoord ALLEEN met geldige JSON, geen uitleg, in dit exacte formaat: {\"kosten\":getal,\"kcal\":getal,\"eiwit\":getal,\"koolhydraten\":getal,\"vet\":getal}. kosten = totaalprijs in euro's voor het hele recept, de andere getallen per persoon. Gebruik realistische Nederlandse supermarktprijzen."},
-      {role:"user",content:"Recept voor "+p+" personen:\n"+String(mm.strMeal||"")+"\nIngredienten:\n"+recRndIngs(mm,p).join("\n")}] }) // v3.272: de schatting hoort bij dit aantal personen
+      {role:"user",content:"Recept voor "+p+" personen:\n"+String((window._recRndTr&&window._recRndTr.naam)||mm.strMeal||"")+"\nIngredienten:\n"+recRndIngs(mm,p).join("\n")}] }) // v3.272: de schatting hoort bij dit aantal personen + v3.273: de Nederlandse naam als de vertaling er is
   }).then(function(r){
     if(r.status===401||r.status===403){ try{ localStorage.removeItem("mcMistKey"); }catch(e2){} throw new Error("key"); } // v3.272: key ongeldig - opnieuw vragen, net als bij de samenvatting
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -4188,6 +4241,11 @@ function fbSync(interactive){
   </div>
 </div>
 
+<!-- ===== RANDOM RECEPT (v3.273): een eigen pagina - het recept landt hier, niet meer boven de bestaande recepten ===== -->
+<div class="view" id="recRndView">
+  <div id="recRndScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"><div id="recRndBox"></div></div>
+</div>
+
 <!-- ===== PRODUCTZOEKER (v3.210) ===== -->
 <div class="view" id="prodView">
   <div id="prodScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
@@ -4276,7 +4334,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.272";
+var VERSION="3.273";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4286,7 +4344,7 @@ var curView="home", viewStack=[];
 function rbSync(id){ // v3.221: zichtbaarheid van de ververs-knop op één plek - óók bij het opstarten, want home staat al actief in de HTML en showView loopt dan niet (na een verversing bleef de knop daardoor "weg")
   var _rb=document.getElementById("refreshBtn"); if(!_rb) return;
   var v=id||curView;
-  _rb.style.display=(v==="camView"||v==="resultView"||v==="loginView"||v==="colAddView"||v==="dealAddView"||v==="pokeView"||v==="prodView"||v==="ntView"||v==="mistView")?"none":"";
+  _rb.style.display=(v==="camView"||v==="resultView"||v==="loginView"||v==="colAddView"||v==="dealAddView"||v==="pokeView"||v==="prodView"||v==="ntView"||v==="mistView"||v==="recRndView")?"none":""; // v3.273: de random-pagina haalt zelf nieuw op via de kaart-knoppen
 }
 function showView(id, noPush){
   if(!window._histNav && !noPush){ window._fwdStack=[]; } // v3.226: een gewone navigatie wist de vooruit-geschiedenis, net als in een browser
@@ -4307,7 +4365,7 @@ function showView(id, noPush){
 var VIEW_UP={ pokeView:"home", camView:"pokeView", resultView:"pokeView",
   collectionView:"pokeView", colAddView:"collectionView", colDetailView:"collectionView",
   cryptoView:"home", agendaView:"home", remView:"home", ideaView:"home", ntView:"home", loginView:"home",
-  hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView", prodView:"home", mistView:"home",
+  hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView", recRndView:"recView", prodView:"home", mistView:"home",
   dealView:"pokeView", dealAddView:"dealView", dsHistView:"dealView" };
 // v2.60: terug naar vorige pagina
 function goBack(){ // v3.197: één niveau omhoog in de vaste structuur - binnen een paar tikken altijd op home, geen lussen meer
@@ -5736,7 +5794,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.272-->
+<!--v:3.273-->
 
 
 
