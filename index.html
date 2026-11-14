@@ -219,6 +219,10 @@ body.pink #cryFsRotBtn { color:#f472b6 !important; } /* v3.234: roze variant van
   body.pink #recWebBtn { color:#f472b6 !important; } /* v3.246: de internet-zoek-knop bij de recepten ook roze voor Chantal */
   body.pink #recRndBox p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.271: de koppen op de random-recept-kaart in roze */
   body.pink #recRndBox div[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.271: de naam van het random recept ook in roze */
+  body.pink #afScroll p[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.275: de koppen op de afvallen-pagina in roze */
+  body.pink #afScroll div[style*="e2e8f0"] { color:#f9a8d4 !important; } /* v3.275: de namen en het dagdoel op de afvallen-pagina ook in roze */
+  body.pink #afScroll input { color:#f9a8d4 !important; } /* v3.275: de invoer-vakken in roze voor Chantal */
+  body.pink #afScroll select { background:#1e293b !important; border-color:#f9a8d4 !important; color:#f9a8d4 !important; } /* v3.275: man/vrouw en tempo in het roze thema */
   body.pink #colWipeBtn { color:#f472b6 !important; } /* v3.248: de prijzen-wis-knop bij de collectie ook roze voor Chantal */
 /* v3.214: bolletjes-spinner bij het verversen - midden in het scherm, zolang de verversing bezig is */
 #refSpin { position:fixed; inset:0; z-index:9990; display:none; background:rgba(2,6,23,.6); }
@@ -371,7 +375,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.274</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.275</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -400,6 +404,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="remOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🔔</div>Herinneringen</button>
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="hydOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🌱</div>Hydrocultuur</button>
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="recOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🍳</div>Recepten</button>
+  <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="afOpen()"><div style="font-size:17px;line-height:1.1;margin:8px 0 9px;font-weight:800">Afvallen</div>Recepten &amp; gewicht</button> <!-- v3.275: de afvallen-tegel - geen emoji (v3.249-regel) -->
   <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px;position:relative" onclick="ibOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">💡</div>Ideeënbus<span id="ibBadge" class="ibBadge"></span></button>
     <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="prodOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🛍️</div>Productzoeker</button>
     <button class="btn yellow" style="margin:0;padding:18px 8px;font-size:13px" onclick="mistOpen()"><div style="font-size:28px;line-height:1;margin-bottom:6px">🤖</div>Mistral AI</button>
@@ -4022,6 +4027,150 @@ function recRndAIPhoto(zt){ // v3.274: een passende foto bij het AI-recept - de 
   };
   go();
 }
+// ===== v3.275: AFVALLEN - recepten om af te vallen op basis van je gegevens + gewichts-verwachting =====
+function afOpen(){ showView("afView"); afRender(); } // v3.275: de afvallen-pagina openen vanaf de hoofdpagina
+function afProf(){ // v3.275: je gegevens (gewicht, vet, water, spier, bmi, leeftijd, man/vrouw, tempo) - bewaard op je eigen toestel
+  var o={kg:"",vet:"",water:"",spier:"",bmi:"",leeftijd:"",mv:"m",tempo:"500"};
+  try{ var s=JSON.parse(localStorage.getItem("mcAfProf")||"{}"); for(var k in o){ if(s&&s[k]!==undefined&&s[k]!==null) o[k]=s[k]; } }catch(e){}
+  return o;
+}
+function afIn(id,v){ // v3.275: een invoer bewaart stil onder het typen - geen opnieuw tekenen, anders raak je je plek in het vak kwijt
+  var k={afKg:"kg",afVet:"vet",afWater:"water",afSpier:"spier",afBmi:"bmi",afLeeftijd:"leeftijd",afMv:"mv",afTempo:"tempo"}[id]; if(!k) return;
+  var p=afProf(); p[k]=v; try{ localStorage.setItem("mcAfProf",JSON.stringify(p)); }catch(e){}
+  afUpdate(); // v3.275: het dagdoel en de gewichts-verwachting lopen meteen mee
+}
+function afBereken(){ // v3.275: rustverbruik en dagdoel uit je gegevens - met vetpercentage Katch-McArdle, anders Mifflin-St Jeor
+  var p=afProf(), kg=parseFloat(p.kg)||0, vet=parseFloat(p.vet)||0, lt=parseFloat(p.leeftijd)||0, bmi=parseFloat(p.bmi)||0;
+  if(!kg||!lt) return null; // v3.275: zonder gewicht en leeftijd geen berekening mogelijk
+  var h=(bmi>0)?Math.sqrt(kg/bmi):((p.mv==="v")?1.65:1.78); // v3.275: je lengte komt uit je BMI, anders een gemiddelde
+  var bmr=(vet>0)?(370+21.6*(kg*(1-vet/100))):(10*kg+6.25*(h*100)-5*lt+((p.mv==="v")?-161:5)); // v3.275: rustverbruik met of zonder je vetpercentage
+  var df=(String(p.tempo)==="250")?250:((String(p.tempo)==="750")?750:500); // v3.275: het gekozen tempo in kcal minder per dag
+  var onderh=bmr*1.375; // v3.275: onderhoud bij licht actief gemiddeld
+  return {kg:kg,vet:vet,lt:lt,h:h,bmr:bmr,onderh:onderh,df:df,doel:onderh-df};
+}
+function afUpdate(){ // v3.275: dagdoel en verwacht gewicht na 1 week, 2 weken, 3 weken, 1 maand en 3 maanden
+  var gl=document.getElementById("afGoalTxt"), pb=document.getElementById("afProjBox"); if(!gl||!pb) return;
+  var c=afBereken();
+  if(!c){ gl.textContent=""; pb.innerHTML='<div class="remSub">Vul je gewicht en leeftijd in (en kies man of vrouw) - dan verschijnt hier je verwachting.</div>'; return; } // v3.275: eerst de minimale gegevens
+  var r1=function(x){ return Math.round(x*10)/10; }; // v3.275: netjes op 1 decimaal
+  gl.textContent="Dagdoel ~"+Math.round(c.doel)+" kcal (onderhoud ~"+Math.round(c.onderh)+" kcal, "+c.df+" kcal minder per dag)"; // v3.275: je doel staat meteen bij je gegevens
+  var rows=[[7,"Na 1 week"],[14,"Na 2 weken"],[21,"Na 3 weken"],[30,"Na 1 maand"],[90,"Na 3 maanden"]]; // v3.275: de termijnen die je vroeg
+  var s='<div class="remSub" style="margin:0 0 4px">Nu: '+r1(c.kg)+' kg'+(c.vet>0?" (waarvan ~"+r1(c.kg*c.vet/100)+" kg vet)":"")+" - bij dit tempo ("+r1(c.df*7/7700)+" kg per week):</div>"; // v3.275: je vetpercentage mee in beeld als je het invult
+  rows.forEach(function(rw){ s+='<div style="display:flex;justify-content:space-between;font-size:13px;margin:3px 0"><span class="n" style="margin:0">'+rw[1]+'</span><span class="n" style="margin:0;font-weight:800">'+r1(c.kg-c.df*rw[0]/7700)+' kg</span></div>'; }); // v3.275: 7.700 kcal per kilo - elke termijn op z'n eigen regel
+  s+='<div class="tip" style="margin-top:8px">De verwachting gaat uit van 7.700 kcal per kilo en licht actief gemiddeld - het is een schatting, geen medisch advies.</div>';
+  pb.innerHTML=s;
+}
+function afRender(){ // v3.275: de afvallen-pagina tekenen - gegevens, dagdoel, verwachting en recepten-knop
+  var sc=document.getElementById("afScroll"); if(!sc) return;
+  var p=afProf();
+  var st='width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px'; // v3.275: zelfde stijl als bij de random-recept-instellingen
+  var inp=function(id,key,ph){ return '<input id="'+id+'" type="number" inputmode="decimal" step="any" min="0" placeholder="'+ph+'" value="'+String(p[key]||"")+'" oninput="afIn(this.id,this.value)" style="'+st+'">'; }; // v3.275: elk vak bewaart stil onder het typen
+  sc.innerHTML='<div class="card">'
+    +'<div class="score"><span>Afvallen</span></div>'
+    +'<div class="remSub">Vul je gegevens in - de app rekent je dagdoel en gewichts-verwachting uit en de chef-AI bedenkt recepten om af te vallen.</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-top:8px">' // v3.275: alle acht gegevens op twee rijen
+    +inp("afKg","kg","Gewicht kg")
+    +inp("afVet","vet","Vet %")
+    +inp("afWater","water","Water %")
+    +inp("afSpier","spier","Spier %")
+    +inp("afBmi","bmi","BMI")
+    +inp("afLeeftijd","leeftijd","Leeftijd")
+    +'<select id="afMv" onchange="afIn(this.id,this.value)" style="'+st+'"><option value="m"'+(p.mv==="v"?"":" selected")+'>Man</option><option value="v"'+(p.mv==="v"?" selected":"")+'>Vrouw</option></select>' // v3.275: man of vrouw voor de berekening
+    +'<select id="afTempo" onchange="afIn(this.id,this.value)" style="'+st+'"><option value="250"'+(String(p.tempo)==="250"?" selected":"")+'>Rustig</option><option value="500"'+((String(p.tempo)!=="250"&&String(p.tempo)!=="750")?" selected":"")+'>Normaal</option><option value="750"'+(String(p.tempo)==="750"?" selected":"")+'>Sneller</option></select>' // v3.275: hoe snel je wilt afvallen
+    +'</div>'
+    +'<div id="afGoalTxt" style="font-size:13px;font-weight:700;color:#e2e8f0;margin-top:10px"></div>' // v3.275: je dagdoel
+    +'<button class="btn yellow" style="margin:10px 0 0" onclick="afRec()">Recepten genereren</button>' // v3.275: geen emoji, v3.249-regel
+    +'<div class="tip" style="margin-top:8px">Je gegevens blijven op je eigen toestel - net als je API-key.</div></div>'
+    +'<div class="card"><p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px">Gewichts-verwachting</p><div id="afProjBox"></div></div>' // v3.275: hier komt de verwachting per week en per maand
+    +'<div id="afRecBox"></div>'; // v3.275: hier komen de drie afval-recepten
+  afUpdate(); // v3.275: meteen uitrekenen met je bewaarde gegevens
+}
+function afRec(){ // v3.275: de chef-AI bedenkt drie afval-recepten (ontbijt, lunch, diner) die in je dagdoel passen
+  var box=document.getElementById("afRecBox"); if(!box) return;
+  if(!mistKey()){ box.innerHTML='<div class="card"><div class="remSub">Voor afval-recepten heb je een gratis Mistral API-key nodig - die blijft op je eigen toestel. Maak hem aan op console.mistral.ai.</div><button class="btn dark" style="width:auto;flex:none;margin:6px 0 0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="mistKeyAsk()">API-key invoeren</button></div>'; return; } // v3.275: zelfde patroon als bij de recepten
+  var c=afBereken();
+  if(!c){ box.innerHTML='<div class="card"><div class="remSub">Vul eerst je gewicht en leeftijd in bovenaan - daarmee rekent de app je dagdoel uit.</div></div>'; return; } // v3.275: zonder dagdoel geen recepten
+  var p=afProf();
+  box.innerHTML='<div class="card"><div class="remSub">De chef-AI bedenkt drie afval-recepten voor je dagdoel...</div></div>';
+  fetch("https://api.mistral.ai/v1/chat/completions",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+mistKey(), "Accept":"application/json" },
+    body:JSON.stringify({ model:"mistral-small-latest", messages:[
+      {role:"system",content:"Je bent een Nederlandse diëtist en chef-kok. Iemand wil afvallen. Maak 3 recepten: ontbijt, lunch en diner, die samen in het dagdoel passen (ontbijt ongeveer 25%, lunch 35%, diner 40%). Schrijf in het Nederlands, kort en praktisch, met gewone supermarkt-ingredienten, veel eiwit en groenten. Gebruik dit exacte formaat, herhaald voor elk recept:\nRecept 1 - Ontbijt:\nNaam: ...\nIngredienten voor 1 persoon:\n- ...\nBereiding:\n1. ...\nPer persoon: ... kcal, ... g eiwit, ... g koolhydraten, ... g vet\nZoekterm: <engels hoofd-ingredient, 1 of 2 woorden>\nDan Recept 2 - Lunch en Recept 3 - Diner op dezelfde manier."},
+      {role:"user",content:"Maak de drie recepten voor: "+(p.mv==="v"?"vrouw":"man")+", "+(parseFloat(p.leeftijd)||0)+" jaar, "+c.kg+" kg"+(c.vet>0?", vetpercentage "+c.vet+"%":"")+". Dagdoel: "+Math.round(c.doel)+" kcal per dag ("+c.df+" kcal onder het onderhoud van ~"+Math.round(c.onderh)+" kcal). Richt je op minimaal "+Math.round(1.5*c.kg)+" gram eiwit per dag."}] }) // v3.275: alle gegevens en het dagdoel gaan mee naar de chef-AI
+  }).then(function(r){
+    if(r.status===401||r.status===403){ try{ localStorage.removeItem("mcMistKey"); }catch(e2){} throw new Error("key"); } // v3.275: key ongeldig - opnieuw vragen, net als bij de recepten
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return r.json();
+  }).then(function(j){
+    var t=String((j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"").trim(); // v3.275: de drie recepten komen als tekst in het vaste formaat
+    if(!t){ box.innerHTML='<div class="card"><div class="remSub">De AI gaf geen recepten terug - probeer het nog eens.</div></div>'; return; }
+    afRecShow(t); // v3.275: parsen en als kaarten tonen
+  }).catch(function(e){
+    box.innerHTML='<div class="card"><div class="remSub">'+((e&&e.message==="key")?"Je API-key wordt niet geaccepteerd - voer hem opnieuw in.":"Mislukt - geen verbinding of de AI is even druk. Probeer het over een paar tellen nog eens.")+'</div></div>'; // v3.275: eerlijke fout-melding
+  });
+}
+function afRecShow(t){ // v3.275: de drie AI-recepten parsen en als kaarten tonen met voedingswaarde en foto
+  var box=document.getElementById("afRecBox"); if(!box) return;
+  var recs=[], h="";
+  t.split(/Recept\s*\d+/).forEach(function(part){ // v3.275: elke "Recept n" start een nieuw recept
+    var naam=(/^Naam:\s*(.+)$/m.exec(part)||[])[1]; if(!naam) return; // v3.275: zonder naam geen geldig recept
+    var soort=(/^\s*-\s*([^\n:]+):/m.exec(part)||[])[1]||"Recept"; // v3.275: ontbijt, lunch of diner
+    var ib=part.indexOf("Ingredienten"), bb=part.indexOf("Bereiding:");
+    var ing=[];
+    if(ib>=0&&bb>ib){ part.slice(ib,bb).split(/\r?\n/).forEach(function(L){ var s=L.replace(/^[-•*]\s*/,"").trim(); if(s&&s.indexOf("Ingredienten")!==0) ing.push(s); }); } // v3.275: elke ingredient-regel wordt een eigen punt
+    var dsc=(bb>=0?part.slice(bb):part).replace(/^Bereiding:\s*/,"").replace(/\n?Per persoon:[^\n]*/,"").replace(/\n?Zoekterm:[^\n]*/,"").trim(); // v3.275: alleen de bereiding - de voedingswaarde staat apart op de kaart
+    var per=(/^Per persoon:\s*(.+)$/m.exec(part)||[])[1]||""; // v3.275: de voedingswaarde-regel
+    var zt=(/^Zoekterm:\s*(.+)$/m.exec(part)||[])[1]||""; // v3.275: voor de passende foto
+    recs.push({soort:String(soort).trim(), t:naam.charAt(0).toUpperCase()+naam.slice(1), ing:ing, dsc:dsc, per:String(per).trim(), zt:String(zt).trim(), img:""});
+  });
+  window._afRecs=recs; // v3.275: klaarzetten voor "Opslaan" en de foto's
+  if(!recs.length){ box.innerHTML='<div class="card"><div class="remSub">De recepten waren niet goed te lezen - tik nog eens op "Recepten genereren".</div></div>'; return; }
+  recs.forEach(function(d,i){ // v3.275: elk recept z'n eigen kaart
+    h+='<div class="card">'
+      +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px">'+colEsc(d.soort)+' om af te vallen</p>'
+      +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">' // v3.275: foto naast de naam, net als bij de recepten
+      +'<div id="afRecImg'+i+'" style="flex:none"></div>' // v3.275: hier schuift de passende foto in
+      +'<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:#e2e8f0">'+colEsc(d.t)+'</div><div class="remSub">Per persoon: '+colEsc(d.per)+'</div></div></div>'
+      +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Ingredienten</p>'
+      +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(d.ing.join("\n"))+'</p>'
+      +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Bereiding</p>'
+      +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(d.dsc)+'</p>'
+      +'<button class="btn yellow" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="afSave('+i+')">Opslaan</button>' // v3.275: geen emoji, v3.249-regel
+      +'<div class="tip" style="margin-top:8px">Tik op "Opslaan" en dit recept staat bij jullie recepten - de voedingswaarde staat erbij.</div></div>';
+  });
+  box.innerHTML=h;
+  recs.forEach(function(d,i){ afPhoto(d.zt,i); }); // v3.275: meteen passende foto's zoeken
+}
+function afPhoto(zt,i){ // v3.275: een passende foto bij elk afval-recept - zelfde aanpak als bij recept op maat
+  var d=(window._afRecs||[])[i]; if(!d||d.img) return;
+  var ib=document.getElementById("afRecImg"+i);
+  var cands=[String(zt||"").trim(),"chicken"]; // v3.275: de zoekterm van de chef-AI, anders een veilige poging
+  var j=0, go=function(){ // v3.275: elke kandidaat op zijn beurt proberen tot er een foto is
+    if(j>=cands.length) return; // v3.275: niets gevonden - de kaart staat er gewoon zonder foto
+    var q=cands[j++]; if(!q) return go();
+    fetch("https://www.themealdb.com/api/json/v1/1/filter.php?i="+encodeURIComponent(q))
+      .then(function(r){ return r.json(); })
+      .then(function(x){
+        var ms=(x&&x.meals)||[];
+        if(!ms.length) return go();
+        var m2=ms[Math.floor(Math.random()*ms.length)];
+        if(!m2||!m2.strMealThumb) return go();
+        if(!window._afRecs||window._afRecs[i]!==d) return; // v3.275: ondertussen nieuwe recepten op de pagina - deze foto is verlopen
+        d.img=String(m2.strMealThumb); // v3.275: "Opslaan" neemt hem mee naar jullie recepten
+        if(ib) ib.innerHTML='<img src="'+d.img+'" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:10px">';
+      })
+      .catch(function(){ go(); });
+  };
+  go();
+}
+function afSave(i){ // v3.275: het afval-recept opslaan in jullie gedeelde recepten-lijst, met voedingswaarde en foto
+  if(!FB.user){ showView("loginView"); return; }
+  var d=(window._afRecs||[])[i]; if(!d) return;
+  var x={id:Date.now(), t:d.t, by:String(FB.user.email).toLowerCase(), ts:Date.now(), m:Date.now(), r:{ing:(d.ing.length?d.ing:["Zie de beschrijving"]), ben:[], dsc:d.dsc+(d.per?"\n\nPer persoon: "+d.per:"")}, imgs:(d.img?[d.img]:[])}; // v3.275: de voedingswaarde komt in de beschrijving te staan
+  var a=slLoad("rec"); a.unshift(x); a.sort(function(u,v){ return v.id-u.id; }); slSave("rec",a); slPush("rec"); recRender();
+  try{ var b=document.getElementById("pushBanner"); if(b){ b.textContent=x.t+" staat bij jullie recepten"; b.classList.add("show"); clearTimeout(window._pbT); window._pbT=setTimeout(function(){ b.classList.remove("show"); },4000); } }catch(e2){} // v3.275: dezelfde melding als bij de recepten op maat
+}
 // ===== v3.215: foto bij recept =====
 var _recPickId=null;
 function recImgs(e){ var a=[]; if(e&&e.imgs) e.imgs.forEach(function(x){ if(x) a.push(x); }); return a; } // v3.215: alle foto's van een recept
@@ -4277,6 +4426,11 @@ function fbSync(interactive){
   <div id="recRndScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"><div id="recRndBox"></div></div>
 </div>
 
+<!-- ===== AFVALLEN (v3.275): recepten om af te vallen + gewichts-verwachting ===== -->
+<div class="view" id="afView">
+  <div id="afScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+</div>
+
 <!-- ===== PRODUCTZOEKER (v3.210) ===== -->
 <div class="view" id="prodView">
   <div id="prodScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
@@ -4365,7 +4519,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.274";
+var VERSION="3.275";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -4375,7 +4529,7 @@ var curView="home", viewStack=[];
 function rbSync(id){ // v3.221: zichtbaarheid van de ververs-knop op één plek - óók bij het opstarten, want home staat al actief in de HTML en showView loopt dan niet (na een verversing bleef de knop daardoor "weg")
   var _rb=document.getElementById("refreshBtn"); if(!_rb) return;
   var v=id||curView;
-  _rb.style.display=(v==="camView"||v==="resultView"||v==="loginView"||v==="colAddView"||v==="dealAddView"||v==="pokeView"||v==="prodView"||v==="ntView"||v==="mistView"||v==="recRndView")?"none":""; // v3.273: de random-pagina haalt zelf nieuw op via de kaart-knoppen
+  _rb.style.display=(v==="camView"||v==="resultView"||v==="loginView"||v==="colAddView"||v==="dealAddView"||v==="pokeView"||v==="prodView"||v==="ntView"||v==="mistView"||v==="recRndView"||v==="afView")?"none":""; // v3.273: de random-pagina haalt zelf nieuw op via de kaart-knoppen + v3.275: de afvallen-pagina rekent alles zelf uit
 }
 function showView(id, noPush){
   if(!window._histNav && !noPush){ window._fwdStack=[]; } // v3.226: een gewone navigatie wist de vooruit-geschiedenis, net als in een browser
@@ -4396,7 +4550,7 @@ function showView(id, noPush){
 var VIEW_UP={ pokeView:"home", camView:"pokeView", resultView:"pokeView",
   collectionView:"pokeView", colAddView:"collectionView", colDetailView:"collectionView",
   cryptoView:"home", agendaView:"home", remView:"home", ideaView:"home", ntView:"home", loginView:"home",
-  hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView", recRndView:"recView", prodView:"home", mistView:"home",
+  hydView:"home", hydDetView:"hydView", recView:"home", recDetView:"recView", recRndView:"recView", afView:"home", prodView:"home", mistView:"home",
   dealView:"pokeView", dealAddView:"dealView", dsHistView:"dealView" };
 // v2.60: terug naar vorige pagina
 function goBack(){ // v3.197: één niveau omhoog in de vaste structuur - binnen een paar tikken altijd op home, geen lussen meer
@@ -5825,7 +5979,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.274-->
+<!--v:3.275-->
 
 
 
