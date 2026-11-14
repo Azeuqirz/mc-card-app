@@ -371,7 +371,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.271</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.272</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -3785,32 +3785,158 @@ function recRndShow(mm){ // v3.271: het random recept met foto, ingredienten en 
     return;
   }
   window._recRnd=mm; window._recRndId=String(mm.idMeal||"");
-  var ing=[], k;
-  for(k=1;k<=20;k++){ var mn=String(mm["strMeasure"+k]||"").trim().replace(/\s+/g," "), nm=String(mm["strIngredient"+k]||"").trim(); if(!nm||nm.toLowerCase()==="null") continue; ing.push(mn?(mn+" "+nm):nm); } // v3.271: hoeveelheid + naam per ingredient, net als bij de internet-zoekresultaten
+  var p0=recRndPerGet(), ing=recRndIngs(mm,p0); // v3.272: ingredienten meteen voor het bewaarde aantal personen (het basisrecept is voor 4)
   var h='<div class="card" style="position:relative">'
     +'<div class="cryAiX" onclick="recRndHide()" style="position:absolute;top:6px;right:8px;color:#f87171;font-size:12px;font-weight:700;padding:2px 7px;border-radius:8px;cursor:pointer">&#10005;</div>' // v3.271: de kaart sluiten
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px;padding-right:26px">Random recept</p>'
     +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">'
     +'<img src="'+(mm.strMealThumb||'')+'" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:10px;flex:none">'
     +'<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:#e2e8f0">'+colEsc(mm.strMeal||"Recept")+'</div><div class="remSub">'+colEsc(String(mm.strCategory||"")+(mm.strArea?" - "+mm.strArea:""))+'</div></div></div>'
-    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Ingredienten</p>'
-    +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(ing.join("\n"))+'</p>' // v3.271: elk ingredient op z'n eigen regel
+    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Ingredienten voor <span id="recRndPerTxt">'+p0+'</span> personen</p>'
+    +'<p id="recRndIngP" class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(ing.join("\n"))+'</p>' // v3.272: elk ingredient op z'n eigen regel, live te schalen via recRndScaleRender
     +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Bereiding</p>'
     +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(String(mm.strInstructions||"").replace(/\r\n/g,"\n"))+'</p>' // v3.271: de Engelse bereiding, net als bij de internet-recepten
-    +'<input id="recRndPf" placeholder="Voorkeur voor vandaag (bijv. kip of pasta)" value="'+colEsc(pf)+'" oninput="recRndPrefSet(this.value)" style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:10px;color:#f1f5f9;font-family:inherit;font-size:14px;margin-bottom:8px">' // v3.271: hiermee zoekt "Ander recept" de volgende keer
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn yellow" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndSave()">Opslaan</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRnd()">Ander recept</button></div>'
-    +'<div class="tip" style="margin-top:8px">Bevalt het recept? Tik op "Opslaan" en hij staat bij jullie recepten. Vul je voorkeur voor vandaag in (bijv. kip of pasta) en de app zoekt daarmee - morgen is de voorkeur weer weg.</div></div>'; // v3.271: hoe de random-kaart werkt
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">' // v3.272: de instellingen op één rij
+    +'<input id="recRndPf" placeholder="Voorkeur (bijv. kip)" value="'+colEsc(pf)+'" oninput="recRndPrefSet(this.value)" style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: hiermee zoekt "Ander recept" de volgende keer
+    +'<input id="recRndPer" type="number" inputmode="numeric" min="1" max="20" placeholder="Pers." value="'+p0+'" oninput="recRndPerSet(this.value); recRndScaleRender()" style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: het aantal personen - de ingredienten schalen meteen mee
+    +'<input id="recRndPr" type="number" inputmode="numeric" min="0" placeholder="Eiwit g p.p." style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: eiwit-doel per persoon voor "Recept op maat"
+    +'<input id="recRndKh" type="number" inputmode="numeric" min="0" placeholder="Koolh. g p.p." style="width:100%;background:#1e293b;border:1px solid #1e293b;border-radius:10px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:12px">' // v3.272: koolhydraten-doel per persoon voor "Recept op maat"
+    +'</div>'
+    +'<div id="recRndNutBox" style="margin:0 0 8px"></div>' // v3.272: hier komen de geschatte kosten en voedingswaarde te staan
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn yellow" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndSave()">Opslaan</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRnd()">Ander recept</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndNutri()">Kosten & voedingswaarde</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndMaat()">Recept op maat</button></div>'
+    +'<div class="tip" style="margin-top:8px">Bevalt het recept? Tik op "Opslaan" en hij staat bij jullie recepten. De ingredienten schalen mee met het aantal personen. "Kosten & voedingswaarde" laat de AI de prijs en calorieën schatten, "Recept op maat" laat hem een recept bedenken dat past bij je eiwit- en koolhydraten-doel (beide hebben de gratis Mistral API-key nodig).</div></div>'; // v3.272: hoe de random-kaart werkt
   el.innerHTML=h;
 }
-function recRndSave(){ // v3.271: het random recept opslaan in jullie gedeelde recepten-lijst
+function recRndSave(){ // v3.272: het random recept opslaan in jullie recepten-lijst - met het aantal personen geschaalde hoeveelheden
   if(!FB.user){ showView("loginView"); return; }
   var mm=window._recRnd; if(!mm) return;
-  window._recWeb=[mm]; // v3.271: recWebAdd doet al het werk (ingredienten, beschrijving, foto en sync) - hergebruik hem
+  var p=recRndPerVal(), f=p/4, c={}, k; // v3.272: de recepten-dienst gaat uit van 4 personen
+  c.strMeal=mm.strMeal; c.strMealThumb=mm.strMealThumb; // v3.272: kopie met alleen wat nodig is - de foto gaat mee naar jullie recepten
+  var d=String(mm.strInstructions||"").replace(/\r\n/g,"\n")+"\n\nVoor "+p+" personen."; // v3.272: het aantal personen hoort bij het recept
+  var nw=window._recRndNut; // v3.272: de geschatte kosten en voedingswaarde erbij als die er zijn
+  if(nw) d+="\nGeschat: kosten ~€"+(Math.round(nw.kosten*100)/100)+" totaal (~€"+(Math.round(nw.kosten/Math.max(1,p)*100)/100)+" p.p.) · per persoon ~"+nw.kcal+" kcal, ~"+nw.eiwit+" g eiwit, ~"+nw.koolhydraten+" g koolhydraten, ~"+nw.vet+" g vet.";
+  c.strInstructions=d;
+  for(k=1;k<=20;k++){ var nm2=String(mm["strIngredient"+k]||"").trim(); if(!nm2||nm2.toLowerCase()==="null") continue; // v3.272: alleen gevulde ingredienten overzetten
+    c["strIngredient"+k]=mm["strIngredient"+k]; c["strMeasure"+k]=recRndScale(String(mm["strMeasure"+k]||""),f); } // v3.272: hoeveelheden voor dit aantal personen
+  window._recWeb=[c]; // v3.271: recWebAdd doet al het werk (ingredienten, beschrijving, foto en sync) - hergebruik hem
   recWebAdd(0);
   recRndHide();
 }
 function recRndHide(){ // v3.271: de random-kaart sluiten
   var el=document.getElementById("recRndBox"); if(el) el.innerHTML="";
+  window._recRndNut=null; window._recRndAI=null; window._recRndAIP=null; // v3.272: schattingen en AI-recept horen bij de gesloten kaart
+}
+// ===== v3.272: PERSONEN - ingredienten schalen mee met het aantal personen (het basisrecept is voor 4) =====
+function recRndPerGet(){ // v3.272: het bewaarde aantal personen
+  try{ var v=parseInt(localStorage.getItem("mcRecPer"),10); if(v>=1&&v<=20) return v; }catch(e){}
+  return 4;
+}
+function recRndPerSet(t){ try{ localStorage.setItem("mcRecPer",String(t||"")); }catch(e){} } // v3.272: aantal personen bewaren voor de volgende keer
+function recRndPerVal(){ // v3.272: het aantal personen uit het invoer-vak (met een veilige grens)
+  var e2=document.getElementById("recRndPer");
+  return Math.max(1,Math.min(20,parseInt(e2&&e2.value,10)||recRndPerGet()));
+}
+function recRndScale(s,f){ // v3.272: de hoeveelheid vooraan in een ingredient-regel schalen - tekst zonder getal (dash, snufje) blijft staan
+  if(!f||Math.abs(f-1)<0.0001) return s; // v3.272: factor 1 = niets doen
+  var m=/^([\d.]+)\s*(.*)$/.exec(String(s).trim());
+  if(!m||!m[2]||m[2].charAt(0)==="/") return s; // v3.272: geen getal vooraan of een breuk (bijv. 1/2 cup) = niet schalen
+  var v=parseFloat(m[1])*f, r=(Math.abs(v-Math.round(v))<0.05)?Math.round(v):Math.round(v*10)/10; // v3.272: hele getallen heel houden, anders maximaal 1 decimaal
+  return r+" "+m[2];
+}
+function recRndIngs(mm,p){ // v3.272: de ingredienten-lijst voor p personen
+  var ing=[], k, f=(p||4)/4;
+  for(k=1;k<=20;k++){ var mn=recRndScale(String(mm["strMeasure"+k]||"").trim().replace(/\s+/g," "),f), nm=String(mm["strIngredient"+k]||"").trim(); if(!nm||nm.toLowerCase()==="null") continue; ing.push(mn?(mn+" "+nm):nm); } // v3.272: hoeveelheid + naam per ingredient, net als bij de internet-zoekresultaten
+  return ing;
+}
+function recRndScaleRender(){ // v3.272: ingredienten meteen opnieuw schalen als het aantal personen verandert
+  var mm=window._recRnd, el=document.getElementById("recRndIngP"), pt=document.getElementById("recRndPerTxt");
+  if(!mm||!el) return;
+  var p=recRndPerVal();
+  el.textContent=recRndIngs(mm,p).join("\n"); // v3.272: textContent = geen escaping nodig
+  if(pt) pt.textContent=String(p); // v3.272: de kop met het aantal personen loopt mee
+}
+// ===== v3.272: KOSTEN & VOEDINGSWAARDE - de AI schat de prijs en de voedingswaarde per persoon =====
+function recRndNutri(){ // v3.272: kosten en voedingswaarde laten schatten door de AI - heeft de Mistral API-key nodig
+  var box=document.getElementById("recRndNutBox"); if(!box) return;
+  if(!mistKey()){ box.innerHTML='<div class="remSub">Voor kosten en voedingswaarde heb je een gratis Mistral API-key nodig - die blijft op je eigen toestel. Maak hem aan op console.mistral.ai.</div><button class="btn dark" style="width:auto;flex:none;margin:6px 0 0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="mistKeyAsk()">API-key invoeren</button>'; return; } // v3.272: zelfde patroon als bij de AI-samenvatting
+  var mm=window._recRnd; if(!mm) return;
+  var p=recRndPerVal();
+  box.innerHTML='<div class="remSub">Kosten en voedingswaarde worden geschat...</div>';
+  fetch("https://api.mistral.ai/v1/chat/completions",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+mistKey(), "Accept":"application/json" },
+    body:JSON.stringify({ model:"mistral-small-latest", messages:[
+      {role:"system",content:"Je schat de kosten en voedingswaarde van recepten. Antwoord ALLEEN met geldige JSON, geen uitleg, in dit exacte formaat: {\"kosten\":getal,\"kcal\":getal,\"eiwit\":getal,\"koolhydraten\":getal,\"vet\":getal}. kosten = totaalprijs in euro's voor het hele recept, de andere getallen per persoon. Gebruik realistische Nederlandse supermarktprijzen."},
+      {role:"user",content:"Recept voor "+p+" personen:\n"+String(mm.strMeal||"")+"\nIngredienten:\n"+recRndIngs(mm,p).join("\n")}] }) // v3.272: de schatting hoort bij dit aantal personen
+  }).then(function(r){
+    if(r.status===401||r.status===403){ try{ localStorage.removeItem("mcMistKey"); }catch(e2){} throw new Error("key"); } // v3.272: key ongeldig - opnieuw vragen, net als bij de samenvatting
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return r.json();
+  }).then(function(j){
+    var t=String((j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"").replace(/```[a-z]*|```/g,"").trim(); // v3.272: JSON-hekjes weghalen
+    var o=null; try{ o=JSON.parse(t); }catch(e3){ var a2=t.indexOf("{"), b2=t.lastIndexOf("}"); if(a2>=0&&b2>a2){ try{ o=JSON.parse(t.slice(a2,b2+1)); }catch(e4){} } } // v3.272: anders het eerste {..} blok proberen
+    if(!o||typeof o.kosten!=="number"){ box.innerHTML='<div class="remSub">Schatten mislukt - tik nog eens op "Kosten & voedingswaarde".</div>'; return; }
+    o.kcal=typeof o.kcal==="number"?o.kcal:0; o.eiwit=typeof o.eiwit==="number"?o.eiwit:0; o.koolhydraten=typeof o.koolhydraten==="number"?o.koolhydraten:0; o.vet=typeof o.vet==="number"?o.vet:0; // v3.272: ontbrekende getallen mogen 0 zijn
+    window._recRndNut=o; // v3.272: bewaren zodat "Opslaan" de schatting meeneemt
+    box.innerHTML='<div class="remSub">Geschat voor '+p+' personen: kosten ~€'+(Math.round(o.kosten*100)/100)+' (~€'+(Math.round(o.kosten/Math.max(1,p)*100)/100)+' p.p.) · per persoon ~'+o.kcal+' kcal, ~'+o.eiwit+' g eiwit, ~'+o.koolhydraten+' g koolhydraten, ~'+o.vet+' g vet.</div>'; // v3.272: alles op één leesbare regel
+  }).catch(function(e){
+    box.innerHTML='<div class="remSub">'+((e&&e.message==="key")?"Je API-key wordt niet geaccepteerd - voer hem opnieuw in.":"Schatten mislukt - geen verbinding of de AI is even druk. Probeer het over een paar tellen nog eens.")+'</div>'; // v3.272: eerlijke fout-melding
+  });
+}
+// ===== v3.272: RECEPT OP MAAT - de chef-AI bedenkt een recept dat past bij je eiwit- en koolhydraten-doel =====
+function recRndMaat(){ // v3.272: recept op maat via de AI - Nederlands, met kosten en voedingswaarde
+  var el=document.getElementById("recRndBox"), box=document.getElementById("recRndNutBox"); if(!el||!box) return;
+  if(!mistKey()){ box.innerHTML='<div class="remSub">Voor een recept op maat heb je een gratis Mistral API-key nodig - die blijft op je eigen toestel. Maak hem aan op console.mistral.ai.</div><button class="btn dark" style="width:auto;flex:none;margin:6px 0 0;padding:6px 12px;font-size:12px;border-radius:99px" onclick="mistKeyAsk()">API-key invoeren</button>'; return; } // v3.272: zonder key geen op-maat-recept
+  var pr=document.getElementById("recRndPr"), kh=document.getElementById("recRndKh"), p=recRndPerVal(), pf=recRndPref();
+  var gv=String((pr&&pr.value)||"").trim(), gk=String((kh&&kh.value)||"").trim(); // v3.272: de doelwitten uit de invoer-vakken
+  if(!gv&&!gk){ box.innerHTML='<div class="remSub">Vul eerst een doel in (bijv. 30 bij eiwit of 100 bij koolhydraten, per persoon) en tik dan opnieuw op "Recept op maat".</div>'; return; } // v3.272: zonder doel kan de AI niets maken
+  box.innerHTML='<div class="remSub">De chef-AI bedenkt een recept op maat...</div>';
+  fetch("https://api.mistral.ai/v1/chat/completions",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+mistKey(), "Accept":"application/json" },
+    body:JSON.stringify({ model:"mistral-small-latest", messages:[
+      {role:"system",content:"Je bent een Nederlandse chef-kok. Maak één compleet, echt kookbaar recept dat voldoet aan de doelen. Schrijf in het Nederlands, kort en praktisch, en gebruik dit exacte formaat:\nNaam: ...\nIngredienten voor X personen:\n- ...\nBereiding:\n1. ...\nKosten: ... euro totaal (... euro per persoon)\nPer persoon: ... kcal, ... g eiwit, ... g koolhydraten, ... g vet"},
+      {role:"user",content:"Maak een recept voor "+p+" personen"+(gv?" met ongeveer "+gv+" gram eiwit per persoon":"")+(gk?" en ongeveer "+gk+" gram koolhydraten per persoon":"")+(pf?" - gebruik bij voorkeur "+pf:"")+"."}] }) // v3.272: alle instellingen gaan mee naar de chef-AI
+  }).then(function(r){
+    if(r.status===401||r.status===403){ try{ localStorage.removeItem("mcMistKey"); }catch(e2){} throw new Error("key"); } // v3.272: key ongeldig - opnieuw vragen
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return r.json();
+  }).then(function(j){
+    var t=String((j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"").trim(); // v3.272: het recept komt als tekst in het vaste formaat
+    if(!t){ box.innerHTML='<div class="remSub">De AI gaf geen recept terug - probeer het nog eens.</div>'; return; }
+    window._recRndAI=t;
+    recRndShowAI(t); // v3.272: tonen in de kaart, opslaan kan daarna
+  }).catch(function(e){
+    box.innerHTML='<div class="remSub">'+((e&&e.message==="key")?"Je API-key wordt niet geaccepteerd - voer hem opnieuw in.":"Mislukt - geen verbinding of de AI is even druk. Probeer het over een paar tellen nog eens.")+'</div>'; // v3.272: eerlijke fout-melding
+  });
+}
+function recRndShowAI(t){ // v3.272: het AI-recept op maat in de kaart
+  var el=document.getElementById("recRndBox"); if(!el) return;
+  var p=recRndPerVal(), naam=(/^Naam:\s*(.+)$/m.exec(t)||[])[1]||"Recept op maat"; // v3.272: de naam bovenaan het formaat
+  var ib=t.indexOf("Ingredienten"), bb=t.indexOf("Bereiding:"); // v3.272: de blokken uit het vaste formaat
+  var ing=[];
+  if(ib>=0&&bb>ib){ t.slice(ib,bb).split(/\r?\n/).forEach(function(L){ var s=L.replace(/^[-•*]\s*/,"").trim(); if(s&&s.indexOf("Ingredienten")!==0) ing.push(s); }); } // v3.272: elke ingredient-regel wordt een eigen punt
+  var dsc=(bb>=0?t.slice(bb):t).replace(/^Bereiding:\s*/,"").trim(); // v3.272: bereiding + kosten + voedingswaarde samen als beschrijving
+  window._recRndAIP={t:naam.charAt(0).toUpperCase()+naam.slice(1), ing:ing, dsc:dsc, p:p}; // v3.272: alles klaarzetten voor "Opslaan"
+  var h='<div class="card" style="position:relative">'
+    +'<div class="cryAiX" onclick="recRndHide()" style="position:absolute;top:6px;right:8px;color:#f87171;font-size:12px;font-weight:700;padding:2px 7px;border-radius:8px;cursor:pointer">&#10005;</div>' // v3.272: de kaart sluiten
+    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px;padding-right:26px">Recept op maat - voor '+p+' personen</p>'
+    +'<div style="font-size:16px;font-weight:800;color:#e2e8f0;margin-bottom:8px">'+colEsc(window._recRndAIP.t)+'</div>'
+    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Ingredienten</p>'
+    +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(ing.join("\n"))+'</p>'
+    +'<p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 4px">Bereiding</p>'
+    +'<p class="n" style="margin:0 0 8px;white-space:pre-line">'+colEsc(dsc)+'</p>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn yellow" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndSaveAI()">Opslaan</button><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="recRndMaat()">Ander recept</button></div>'
+    +'<div class="tip" style="margin-top:8px">Dit recept is door de AI op maat gemaakt voor je eiwit- en koolhydraten-doel - de kosten en voedingswaarde staan onder de bereiding. Tik op "Opslaan" en hij staat bij jullie recepten.</div></div>'; // v3.272: hoe de op-maat-kaart werkt
+  el.innerHTML=h;
+}
+function recRndSaveAI(){ // v3.272: het AI-recept op maat opslaan in jullie gedeelde recepten-lijst
+  if(!FB.user){ showView("loginView"); return; }
+  var d=window._recRndAIP; if(!d) return;
+  var x={id:Date.now(), t:String(d.t), by:String(FB.user.email).toLowerCase(), ts:Date.now(), m:Date.now(), r:{ing:(d.ing.length?d.ing:["Zie de beschrijving"]), ben:[], dsc:d.dsc}}; // v3.272: het AI-formaat bevat de kosten en voedingswaarde al
+  var a=slLoad("rec"); a.unshift(x); a.sort(function(u,v){ return v.id-u.id; }); slSave("rec",a); slPush("rec"); recRender();
+  try{ var b=document.getElementById("pushBanner"); if(b){ b.textContent=x.t+" staat bij jullie recepten"; b.classList.add("show"); clearTimeout(window._pbT); window._pbT=setTimeout(function(){ b.classList.remove("show"); },4000); } }catch(e2){} // v3.272: dezelfde melding als bij de internet-recepten
+  recRndHide();
 }
 // ===== v3.215: foto bij recept =====
 var _recPickId=null;
@@ -4150,7 +4276,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.271";
+var VERSION="3.272";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5610,7 +5736,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.271-->
+<!--v:3.272-->
 
 
 
