@@ -375,7 +375,7 @@ body.pink #refSpin .rsDots i { background:#f472b6; } /* v3.214: roze bolletjes v
 <!-- ===== HOME ===== -->
 <div class="view active" id="home">
   <header style="margin-bottom:28px">
-    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.275</div>
+    <div style="font-size:11px;color:#475569;text-align:center;margin-bottom:2px">v3.276</div>
     <svg viewBox="0 0 120 120">
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
@@ -4078,9 +4078,12 @@ function afRender(){ // v3.275: de afvallen-pagina tekenen - gegevens, dagdoel, 
     +'<select id="afMv" onchange="afIn(this.id,this.value)" style="'+st+'"><option value="m"'+(p.mv==="v"?"":" selected")+'>Man</option><option value="v"'+(p.mv==="v"?" selected":"")+'>Vrouw</option></select>' // v3.275: man of vrouw voor de berekening
     +'<select id="afTempo" onchange="afIn(this.id,this.value)" style="'+st+'"><option value="250"'+(String(p.tempo)==="250"?" selected":"")+'>Rustig</option><option value="500"'+((String(p.tempo)!=="250"&&String(p.tempo)!=="750")?" selected":"")+'>Normaal</option><option value="750"'+(String(p.tempo)==="750"?" selected":"")+'>Sneller</option></select>' // v3.275: hoe snel je wilt afvallen
     +'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn dark" style="width:auto;flex:none;margin:0;padding:8px 12px;font-size:13px" onclick="afHealthPick()">Uit Gezondheid halen</button></div>' // v3.276: je gegevens uit de Gezondheid-app halen - geen emoji, v3.249-regel
+    +'<input type="file" id="afHealthFile" accept=".xml,text/xml,application/xml" style="display:none" onchange="afHealthPicked(this)">' // v3.276: verborgen bestanden-kiezer - opent bij de knop
+    +'<div id="afHealthBox" class="remSub" style="margin-top:8px"></div>' // v3.276: hier komt de status van het lezen te staan
     +'<div id="afGoalTxt" style="font-size:13px;font-weight:700;color:#e2e8f0;margin-top:10px"></div>' // v3.275: je dagdoel
     +'<button class="btn yellow" style="margin:10px 0 0" onclick="afRec()">Recepten genereren</button>' // v3.275: geen emoji, v3.249-regel
-    +'<div class="tip" style="margin-top:8px">Je gegevens blijven op je eigen toestel - net als je API-key.</div></div>'
+    +'<div class="tip" style="margin-top:8px">Je gegevens blijven op je eigen toestel - net als je API-key. Zo haal je ze uit de Gezondheid-app: tik in Gezondheid op je foto rechtsboven, kies "Exporteer alle gezondheidsgegevens", bewaar het zip-bestand in Bestanden, decomprimeer het daar en kies daarna hier het bestand export.xml.</div></div>' // v3.276: de stappen voor het exporteren staan erbij
     +'<div class="card"><p class="n" style="font-weight:800;color:#e2e8f0;margin:0 0 6px">Gewichts-verwachting</p><div id="afProjBox"></div></div>' // v3.275: hier komt de verwachting per week en per maand
     +'<div id="afRecBox"></div>'; // v3.275: hier komen de drie afval-recepten
   afUpdate(); // v3.275: meteen uitrekenen met je bewaarde gegevens
@@ -4170,6 +4173,60 @@ function afSave(i){ // v3.275: het afval-recept opslaan in jullie gedeelde recep
   var x={id:Date.now(), t:d.t, by:String(FB.user.email).toLowerCase(), ts:Date.now(), m:Date.now(), r:{ing:(d.ing.length?d.ing:["Zie de beschrijving"]), ben:[], dsc:d.dsc+(d.per?"\n\nPer persoon: "+d.per:"")}, imgs:(d.img?[d.img]:[])}; // v3.275: de voedingswaarde komt in de beschrijving te staan
   var a=slLoad("rec"); a.unshift(x); a.sort(function(u,v){ return v.id-u.id; }); slSave("rec",a); slPush("rec"); recRender();
   try{ var b=document.getElementById("pushBanner"); if(b){ b.textContent=x.t+" staat bij jullie recepten"; b.classList.add("show"); clearTimeout(window._pbT); window._pbT=setTimeout(function(){ b.classList.remove("show"); },4000); } }catch(e2){} // v3.275: dezelfde melding als bij de recepten op maat
+}
+// ===== v3.276: GEZONDHEID-APP - je gegevens uit de export van de Gezondheid-app halen (gewicht, bmi, vet, spier, water, leeftijd, man/vrouw) =====
+function afHealthPick(){ var f=document.getElementById("afHealthFile"); if(!f) return; try{ f.value=""; }catch(e){} f.click(); } // v3.276: de bestanden-kiezer openen voor de export van de Gezondheid-app
+function afHealthPicked(el){ // v3.276: het export-bestand in stukken van 8 MB lezen - zo blijft ook een grote export bruikbaar op je iPhone
+  var fl=el&&el.files&&el.files[0]; if(!fl) return;
+  var box=document.getElementById("afHealthBox"); if(!box) return;
+  var nm=String(fl.name||"");
+  if(/\.zip$/i.test(nm)){ box.innerHTML='<div class="remSub">Dit is nog het zip-bestand - tik er in Bestanden lang op, kies Decomprimeren en kies daarna het bestand export.xml.</div>'; return; } // v3.276: de Gezondheid-app exporteert een zip, daarin zit export.xml
+  var gev={kg:0,bmi:0,vet:0,lean:0,water:0,geb:"",sekse:"",kgT:"",bmiT:"",vetT:"",leanT:"",waterT:""}; // v3.276: de nieuwste meting van elke soort bewaren we hier
+  var dec=new TextDecoder(), rest="", off=0, CH=(window._afHealthChunk||8*1024*1024); // v3.276: de decoder plakt tekens die over een stukgrens heen vallen netjes aan elkaar
+  var step=function(){ // v3.276: telkens het volgende stuk lezen en scannen
+    if(off>=fl.size){ var t=rest+dec.decode(); rest=""; afHealthScan(t,gev); afHealthDone(gev); return; } // v3.276: het laatste stuk, de decoder nog even legen en dan je gegevens invullen
+    var end=Math.min(off+CH, fl.size), bl=fl.slice(off, end); off=end;
+    var rd=new FileReader();
+    rd.onload=function(){ // v3.276: dit stuk scannen, een half labeltje gaat mee naar het volgende stuk
+      var t=rest+dec.decode(new Uint8Array(rd.result),{stream: true});
+      var lt=t.lastIndexOf("<");
+      if(lt>=0){ afHealthScan(t.slice(0,lt),gev); rest=t.slice(lt); } else { afHealthScan(t,gev); rest=""; }
+      if(off<fl.size) box.innerHTML='<div class="remSub">Bezig met lezen... '+Math.round(off/fl.size*100)+'%</div>'; // v3.276: even geduld bij een grote export
+      step();
+    };
+    rd.onerror=function(){ box.innerHTML='<div class="remSub">Het bestand kon niet gelezen worden - probeer het nog eens.</div>'; }; // v3.276: eerlijke fout-melding
+    rd.readAsArrayBuffer(bl);
+  };
+  step();
+}
+function afHealthScan(t,gev){ // v3.276: alle Record-labeltjes in dit stuk bekijken en de nieuwste meting per soort bewaren
+  var re=/<Record\b[^>]*>/g, m;
+  var a=function(tag,n){ var x2=new RegExp('\\b'+n+'="([^"]*)"').exec(tag); return x2?x2[1]:""; }; // v3.276: een attribuut uit het labeltje halen - de volgorde wisselt per export
+  while((m=re.exec(t))){
+    var tag=m[0], tp=a(tag,"type"), vl=a(tag,"value"), dt=a(tag,"endDate")||a(tag,"startDate")||a(tag,"creationDate"), num=parseFloat(String(vl).replace(",","."))||0;
+    if(tp==="HKQuantityTypeIdentifierBodyMass"&&num>0&&dt>=gev.kgT){ gev.kg=num; gev.kgT=dt; } // v3.276: gewicht in kg
+    else if(tp==="HKQuantityTypeIdentifierBodyMassIndex"&&num>0&&dt>=gev.bmiT){ gev.bmi=num; gev.bmiT=dt; } // v3.276: je bmi
+    else if(tp==="HKQuantityTypeIdentifierBodyFatPercentage"&&num>0){ var v=(num<1)?num*100:num; if(v<70&&dt>=gev.vetT){ gev.vet=v; gev.vetT=dt; } } // v3.276: vetpercentage - sommige weegschalen geven een breuk (0,25), andere een percentage (25)
+    else if(tp==="HKQuantityTypeIdentifierLeanBodyMass"&&num>0&&dt>=gev.leanT){ gev.lean=num; gev.leanT=dt; } // v3.276: magere massa - daarmee benaderen we je spierpercentage
+    else if(num>0&&/water/i.test(tp)){ var w=(num<1)?num*100:num; if(w>0&&w<90&&dt>=gev.waterT){ gev.water=w; gev.waterT=dt; } } // v3.276: waterpercentage als je weegschaal het doorgeeft aan Gezondheid
+    else if(tp==="HKCharacteristicTypeIdentifierDateOfBirth"){ gev.geb=vl; } // v3.276: je geboortedatum - je leeftijd staat niet als zodanig in de export
+    else if(tp==="HKCharacteristicTypeIdentifierBiologicalSex"){ gev.sekse=(/Female/i.test(vl))?"v":((/Male/i.test(vl))?"m":""); } // v3.276: man of vrouw
+  }
+}
+function afHealthDone(gev){ // v3.276: de nieuwste metingen uit de Gezondheid-app in je gegevens op de afvallen-pagina zetten
+  var box=document.getElementById("afHealthBox");
+  var p=afProf(), s=[], n=0;
+  if(gev.kg>0){ p.kg=String(Math.round(gev.kg*10)/10); s.push("gewicht "+p.kg+" kg"); n++; } // v3.276: gewicht
+  if(gev.bmi>0){ p.bmi=String(Math.round(gev.bmi*10)/10); s.push("bmi "+p.bmi); n++; } // v3.276: bmi
+  if(gev.vet>0){ p.vet=String(Math.round(gev.vet*10)/10); s.push("vet "+p.vet+"%"); n++; } // v3.276: vetpercentage
+  if(gev.water>0){ p.water=String(Math.round(gev.water*10)/10); s.push("water "+p.water+"%"); n++; } // v3.276: waterpercentage
+  if(gev.lean>0&&gev.kg>0){ p.spier=String(Math.round(gev.lean/gev.kg*1000)/10); s.push("spier ~"+p.spier+"% (uit je magere massa)"); n++; } // v3.276: spierpercentage benaderd met je magere massa
+  if(gev.geb){ var yr=parseInt(gev.geb,10); if(yr>1900&&yr<=new Date().getFullYear()){ p.leeftijd=String(new Date().getFullYear()-yr); s.push("leeftijd "+p.leeftijd); n++; } } // v3.276: leeftijd uit je geboortedatum
+  if(gev.sekse){ p.mv=gev.sekse; s.push(gev.sekse==="v"?"vrouw":"man"); n++; } // v3.276: man of vrouw
+  if(!n){ if(box) box.innerHTML='<div class="remSub">Geen bruikbare gegevens in dit bestand - kies het bestand export.xml uit de export van de Gezondheid-app.</div>'; return; } // v3.276: niets gevonden
+  try{ localStorage.setItem("mcAfProf",JSON.stringify(p)); }catch(e2){} // v3.276: meteen bewaren
+  afRender(); // v3.276: de pagina meteen met je gegevens uit Gezondheid
+  var b2=document.getElementById("afHealthBox"); if(b2) b2.innerHTML='<div class="remSub">Uit de Gezondheid-app gehaald: '+s.join(", ")+'.</div>'; // v3.276: kort wat er is overgezet - na afRender opnieuw ophalen want de pagina is net opnieuw getekend
 }
 // ===== v3.215: foto bij recept =====
 var _recPickId=null;
@@ -4519,7 +4576,7 @@ function fbSync(interactive){
       }).catch(function(){});
   }catch(e){}
 })();
-var VERSION="3.275";
+var VERSION="3.276";
 var img=null, rect=null, dims=null; var inner=null; // v2.40: handmatig verstelbare binnenrand (fracties van de kaart)
 var OCR_NR=[0.03,0.035,0.62,0.09], OCR_NUMR=[0.02,0.905,0.32,0.085]; // v2.57: OCR-regio's (naam/nummer) als globals
 
@@ -5979,7 +6036,7 @@ document.addEventListener("pointerup", function(e){
 </script>
 </body>
 </html>
-<!--v:3.275-->
+<!--v:3.276-->
 
 
 
